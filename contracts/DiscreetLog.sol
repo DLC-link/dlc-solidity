@@ -19,6 +19,7 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
         uint closingTime;
         int closingPrice;
         uint actualClosingTime;
+        uint emergencyRefundTime;
     }
 
     struct PerformDataPack {
@@ -26,8 +27,10 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
         uint index;
     }
 
-    event NewDLC(string UUID, address feedAddress, uint closingTime);
+    event NewDLC(string UUID, address feedAddress, uint closingTime, uint emergencyRefundTime);
     event CloseDLC(string UUID, int price, uint actualClosingTime);
+    event RequestCreateDLC(address feedAddress, uint closingTime, uint emergencyRefundTime, address caller);
+    event EarlyCloseDLC(string UUID, int price, uint actualClosingTime);
 
     constructor(address _adminAddress) {
         // set the admin of the contract
@@ -37,17 +40,37 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function addNewDLC(string memory _UUID, address _feedAddress, uint _closingTime) external onlyRole(DLC_ADMIN_ROLE){
+    function addNewDLC(string memory _UUID, address _feedAddress, uint _closingTime, uint _emergencyRefundTime) external onlyRole(DLC_ADMIN_ROLE){
         require(dlcs[_UUID].feedAddress == address(0), "DLC already added");
+        require(_closingTime > block.timestamp, "Closing time can't be in the past");
         dlcs[_UUID] = DLC({
             UUID: _UUID,
             feedAddress: _feedAddress,
             closingTime: _closingTime,
             closingPrice: 0,
-            actualClosingTime: 0
+            actualClosingTime: 0,
+            emergencyRefundTime: _emergencyRefundTime
         });
         openUUIDs.push(_UUID);
-        emit NewDLC(_UUID, _feedAddress, _closingTime);
+        emit NewDLC(_UUID, _feedAddress, _closingTime, _emergencyRefundTime);
+    }
+
+    function requestCreateDLC(address _feedAddress, uint _closingTime, uint _emergencyRefundTime) external {
+        require(_closingTime > block.timestamp, "Closing time can't be in the past");
+        emit RequestCreateDLC(_feedAddress, _closingTime, _emergencyRefundTime, msg.sender);
+    }
+
+    function cancelEarly(string memory _UUID) external onlyRole(DLC_ADMIN_ROLE) returns (int){
+        DLC storage dlc = dlcs[_UUID];
+        require(block.timestamp < dlc.closingTime, "Can only be called before the closing time");
+        require(dlc.actualClosingTime == 0, "Can only be called if the DLC has not been closed yet");
+
+        (int price, uint timeStamp) = getLatestPrice(dlc.feedAddress);
+        dlc.closingPrice = price;
+        dlc.actualClosingTime = timeStamp;
+        removeClosedDLC(findIndex(_UUID));
+        emit EarlyCloseDLC(_UUID, price, timeStamp);
+        return price;
     }
 
     // called by ChainLink Keepers (off-chain simulation, so no gas cost)
@@ -77,7 +100,6 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
 
         (int price, uint timeStamp) = getLatestPrice(dlc.feedAddress);
         dlc.closingPrice = price;
-        // TODO: discuss if the block.timestamp should be used here
         dlc.actualClosingTime = timeStamp;
         removeClosedDLC(pdp.index);
         emit CloseDLC(pdp.UUID, price, timeStamp);

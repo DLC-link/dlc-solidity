@@ -1,3 +1,4 @@
+const helper = require('./timeHelpers.js');
 const truffleAssert = require('truffle-assertions');
 
 const DiscreetLog = artifacts.require("DiscreetLog");
@@ -5,6 +6,10 @@ const MockV3Aggregator = artifacts.require("MockV3Aggregator");
 
 const UUID = "X5hvZBBY";
 const UUID2 = "fakeUUID";
+const oneDay = 24*60*60;
+const today = Math.floor(Date.now() / 1000)
+const tomorrow = today + oneDay;
+const dayAfterTomorrow = tomorrow + oneDay;
 
 // the tests run in chronological order
 // the second describe section removes the pastDLC as expected
@@ -14,15 +19,39 @@ contract("DiscreetLog", (accounts) => {
     let mockV3Aggregator;
 
     before(async () => {
+        snapShot = await helper.takeSnapshot();
+        snapshotId = snapShot['result'];
         discreetLog = await DiscreetLog.deployed();
         mockV3Aggregator = await MockV3Aggregator.deployed();
     });
 
+    after("revert back time", async() => {
+        await helper.revertToSnapShot(snapshotId);
+    });
 
     describe("adding new DLC and retrieving it", async () => {
-        before("add new DLC", async () => {
-            await _addPastDLC();
+        before(async () => {
+            await _addRecentDLC();
             await _addFutureDLC();
+            // cancelled by hand
+            await _addDLCWithData("cancelUUID", tomorrow, accounts[0]);
+        });
+
+        it("Can't early cancel DLC if not admin", async () => {
+            await truffleAssert.reverts(discreetLog.cancelEarly("cancelUUID", { from: accounts[1] }), "AccessControl: account " + accounts[1].toLowerCase() + " is missing role " + await discreetLog.DLC_ADMIN_ROLE());
+        });
+
+        it("Can cancel DLC early", async () => {
+            const result = await discreetLog.cancelEarly("cancelUUID");
+            const closedDLC = await discreetLog.dlcs("cancelUUID");
+            truffleAssert.eventEmitted(
+                result,
+                "EarlyCloseDLC",
+                (ev) => ev.UUID.toString() === "cancelUUID" && ev.price.toString() === "100",
+                "EarlyCloseDLC event should be triggered"
+              );
+            assert.equal(closedDLC.closingPrice, 100, "Price should be set");
+            assert.notEqual(closedDLC.actualClosingTime, 0, "Actual Closing time should be set");
         });
 
         it("DLC UUID added to open UUIDs", async () => {
@@ -31,7 +60,7 @@ contract("DiscreetLog", (accounts) => {
         });
 
         it("Can't add the same DLC", async () => {
-            await truffleAssert.reverts(_addPastDLC(), "DLC already added");
+            await truffleAssert.reverts(_addRecentDLC(), "DLC already added");
         });
 
         it("UUID and closing time set on DLC", async () => {
@@ -56,12 +85,15 @@ contract("DiscreetLog", (accounts) => {
         });
 
         it("Can't call addNewDLC with unauthorized account", async () => {
-            await truffleAssert.reverts(_addDLCWithData("fakeUUID", Date.now(), accounts[1]), "AccessControl: account " + accounts[1].toLowerCase() + " is missing role " + await discreetLog.DLC_ADMIN_ROLE());
+            await truffleAssert.reverts(_addDLCWithData("fakeUUID", today, accounts[1]), "AccessControl: account " + accounts[1].toLowerCase() + " is missing role " + await discreetLog.DLC_ADMIN_ROLE());
         });
 
     });
 
     describe("Keeper related methods and function calls", async () => {
+        before("fast forward in time", async () => {
+            await helper.advanceTimeAndBlock(3 * 60 * 60); // fast forward time so we can test DLC closing
+        });
         let performData;
         it("checkUpKeep should return true and the correct UUID with index", async () => {
             performData = await discreetLog.checkUpkeep("0x");
@@ -112,18 +144,17 @@ contract("DiscreetLog", (accounts) => {
         });
 
     });
-    async function _addPastDLC() {
+    async function _addRecentDLC() {
         // add new DLC with a timeStamp which is in the past
-        await discreetLog.addNewDLC(UUID, mockV3Aggregator.address, 1649571664, { from: accounts[0] });
+        await discreetLog.addNewDLC(UUID, mockV3Aggregator.address, today + 60 * 60, tomorrow, { from: accounts[0] });
     }
 
     async function _addFutureDLC() {
-        let tomorrow = Date.now() + 24*60*60;
         // add new DLC with a timeStamp which is in the future
-        await discreetLog.addNewDLC(UUID2, mockV3Aggregator.address, tomorrow, { from: accounts[0] });
+        await discreetLog.addNewDLC(UUID2, mockV3Aggregator.address, tomorrow, dayAfterTomorrow, { from: accounts[0] });
     }
 
     async function _addDLCWithData(uuid, timeStamp, account) {
-        await discreetLog.addNewDLC(uuid, mockV3Aggregator.address, timeStamp, { from: account });
+        await discreetLog.addNewDLC(uuid, mockV3Aggregator.address, timeStamp, dayAfterTomorrow, { from: account });
     }
 });

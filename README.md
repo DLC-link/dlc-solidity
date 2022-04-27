@@ -1,6 +1,6 @@
 # DiscreetLog Smart Contract
 
-## **Deployed contract can be found here: [DiscreetLog](https://kovan.etherscan.io/address/0x1b82CBECfC306F9D5Db19BeD0c7b725DE8E4b7a7#code)**
+## **Deployed contract can be found here: [DiscreetLog](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)**
 
 # Setup
 
@@ -42,9 +42,27 @@ truffle migrate --network kovan
 ```console
 truffle run verify DiscreetLog --network kovan
 ```
+After Verification Register Keeper Upkeep for the Contract
+# Keeper Configuraton
 
-## After Verification Register Keeper Upkeep for the Contract
-https://docs.chain.link/docs/chainlink-keepers/register-upkeep/
+In essence ChainLink Keepers are a decentralised way to automate smart contracts.
+
+Steps in a nutshell:
+1. Make your contract Keepers-compatible
+2. Register a new Upkeep
+3. After your Upkeep is registered and funded, manage it in the Keepers App
+
+
+### Read these in this order:
+[Keepers intro](https://docs.chain.link/docs/chainlink-keepers/overview/)
+
+[Keepres configuration](https://docs.chain.link/docs/chainlink-keepers/compatible-contracts/)
+
+[Register UpKeep](https://docs.chain.link/docs/chainlink-keepers/register-upkeep/)
+
+[Manage UpKeep](https://docs.chain.link/docs/chainlink-keepers/manage-upkeeps/)
+
+Watch [this](https://www.youtube.com/watch?v=-Wkw5JVQGUo&t=1s&ab_channel=Chainlink) if you prefer video format, but i would still recommend to go trough the official docs.
 
 **IMPORTANT: always keep enough LINK on your UpKeep account or the Keeper won't work (the minimum amount of LINK is displayed on the UpKeep page)**
 
@@ -63,7 +81,7 @@ addNewDLC(string memory _UUID, address _feedAddress, uint _closingTime)
 
 `_feedAddress`: the address of the price feed eg.: [BTC/USD](https://kovan.etherscan.io/address/0x6135b13325bfC4B00278B4abC5e20bbce2D6580e#readContract) on kovan
 
-`_closingTime`: UNIX timestamp in **GMT+0**
+`_closingTime`: UNIX timestamp in **GMT+0** (must be in [seconds](https://ethereum.stackexchange.com/questions/7853/is-the-block-timestamp-value-in-solidity-seconds-or-milliseconds#:~:text=The%20blocks.,when%20the%20block%20was%20created.&text=I%20thank%20you%20for%20your%20response.))
 
 ### Example with ether.js
 ```javascript
