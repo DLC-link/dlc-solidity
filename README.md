@@ -4,31 +4,42 @@ This smart contract is the interface for creating and closing DLCs via the DLC.L
 
 Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity-smart-contract#What-Are-DLCs) and [DLC.Link](https://github.com/DLC-link/dlc-solidity-smart-contract#About-DLC-Link) below.
 
-## Overview
-DLCs require an oracle to attest to a specific outcome among the predefined set of outcomes. That means trust.
+# Overview
+A DLC requires an oracle to attest to a specific outcome among the predefined set of outcomes. That means trust.
 
 This contract acts to feed the outcome of the DLC. By using a smart contract for this task, the implementation of the logic, as well as the data being used, is stamped on the chain, and is visible and reviewable by everyone. 
 
-## How to use this contract
+# How to interact with this contract 
 
-When you register a DLC with this contract using the `requestCreateDLC` function, an associated DLC is opened on our DLC server with the associated outcomes (CETs). A hash with the DLC information needed to fund the DLC are available on the website, and eventually via an API call.
+## Opening a DLC
+When you register a DLC with this contract using the `requestCreateDLC` function, a DLC is opened on our DLC server with the associated outcomes (CETs). The DLC *announcement hash*, which needed to fund the DLC, is available on the website, and eventually via an API call and on-chain.
 
 *(TBD How does the UUID or handle come back to the caller?)*
 
 The creation of a DLC can also be triggered with a traditional JSON API call (*coming soon TBD*)
 
 *Todo: add info about the DLC oracle server*
-
 *Todo: add info about the overall architecture*
 
-### **A sample deployed contract can be found here: [Discreet Log Manager](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)**
+With the announcement hash, you are now able to set up the DLC between the two participants (users, user/protocol, etc.)
 
-# Basic Usage
-We recommend you become familiar with [what a DLC is](https://github.com/DLC-link/dlc-solidity-smart-contract#What-Are-DLCs) before implementing your own DLC with this contract.
+## DLC Closing
+The DLC gets closed one of two ways. 
+1. When the `closingTime` has passed the performUpkeep function will get called by the Chainlink keeper. This will get the price from the associated Chainlink data feed, save this price and time in the contract, and stamp that data on the ledger. 
 
-# Setup
+2. If the same contract that opened the DLC calls `cancelEarly`, then the same process will occur without waitnig for the Chainlink Keeper. The price will be fetched from the associated Chainlink data feed, the price and time will be saved in the contract, and that data will be stamped on the ledger. 
 
-Add `secrets.json` file with the following fields:
+Either way, our system listens to this, and closes the DLC in the DLC oracle with the associated data. An *attestation hash* is now created and like the announcement hash, can be acquired via the website or API (or eventually smart contract).
+
+The attestation hash is what will be used by the participants (user, protocol, etc.) to unlock the funds in the DLC.
+
+# Contributing
+We are happy to have support and contribution from the community. Please find us on Discord and see below for developer details.
+## Setup
+-----------------
+For reference, a sample of this deployed contract can be found here: [Discreet Log Manager](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)
+
+Add a `secrets.json` file with the following fields:
 
 ```json
 {
@@ -37,13 +48,14 @@ Add `secrets.json` file with the following fields:
     "nodeUrl" : ""
 }
 ```
-`etherscanApiKey`: register to etherscan.io and get an api key
+`etherscanApiKey`: register to etherscan.io and get an api key. This will be used for contract verification.
 
-`key`: your account private key you want to deploy from
+`key`: your account private key you want to deploy from. Used by truffle.
 
-`nodeUrl`: your RPC node url
+`nodeUrl`: your RPC node url. For example, infura.io. 
 
-# Testing
+## Testing
+-----------------
 Start a Ganache server
 
 https://trufflesuite.com/docs/ganache/quickstart/
@@ -56,28 +68,31 @@ truffle test
 ```
 
 ## Deploy to Kovan
+-----------------
 ```console
 truffle compile
 truffle migrate --network kovan
 ```
 
 ## Verify contract
+-----------------
 **_NOTE:_**  this step is required for UpKeep registration
 ```console
 truffle run verify DiscreetLog --network kovan
 ```
 After Verification Register Keeper Upkeep for the Contract
-# Keeper Configuraton
+## Keeper Configuraton
+-----------------
 
-In essence ChainLink Keepers are a decentralised way to automate smart contracts.
+In essence ChainLink Keepers are a decentralised way to automate smart contract function calls.  For this contract, this is useful as a way to check the contracts to see if the closingTime has passed, and close the contract accordingly.
 
 Steps in a nutshell:
-1. Make your contract Keepers-compatible
+1. Make your contract Keepers-compatible. For this contract, this is done by adding the `checkUpkeep` and `performUpkeep` functions.
 2. Register a new Upkeep
 3. After your Upkeep is registered and funded, manage it in the Keepers App
 
 
-### Read these in this order:
+### For more information, read these in this order:
 [Keepers intro](https://docs.chain.link/docs/chainlink-keepers/overview/)
 
 [Keepres configuration](https://docs.chain.link/docs/chainlink-keepers/compatible-contracts/)
@@ -92,7 +107,7 @@ Watch [this](https://www.youtube.com/watch?v=-Wkw5JVQGUo&t=1s&ab_channel=Chainli
 
 ![Screenshot 2022-04-12 at 14 01 58](https://user-images.githubusercontent.com/38463744/162958829-bccd708d-53ec-4493-8be3-a04772461219.png)
 
-# Usage
+## Usage
 Provide the admin address during deployment (can be the deployer address)
 ```solidity
 constructor(address _adminAddress)
@@ -180,13 +195,13 @@ The average LINK cost is around 0.11 - 0.13 / performUpKeep
 https://keepers.chain.link/kovan/2944
 ![Screenshot 2022-04-14 at 12 41 24](https://user-images.githubusercontent.com/38463744/163374627-9bb25752-273f-4ab9-8dff-aca8e9ca4622.png)
 
-# Known Issue
-The chainlink price feed is updated based on parameters. For example BTC/USD feed on ETH mainnet updates only every hour or if the price changes by 0.5%. Since the DLC closing uses the timestamp from the price feed (because that is the actual time the price was updated, which means that is the "real" actualClosingTime) it can happen that the `actualClosingTime` will be in the past relative to the closingTime supplied at DLC creation. We could use the `block.timestamp` as actualClosingTime as a solution, but that would raise the question if that is correct in this case or not. An another solution would be to log both the pricefeed timestamp and the block.timestamp as well.
+# Known Issues
+The chainlink price feed is updated based on various parameters. For example, the BTC/USD feed on ETH mainnet updates only every hour or if the price changes by 0.5%. Since the DLC closing uses the timestamp from the price feed (because that is the actual time the price was updated, which means that is the "real" actualClosingTime) it can happen that the `actualClosingTime` will be in the past relative to the closingTime supplied at DLC creation. We could use the `block.timestamp` as actualClosingTime as a solution, but that would raise the question if that is correct in this case or not. Another solution would be to log both the pricefeed timestamp and the block.timestamp as well.
 
-## What Are DLCs
+# What Are DLCs
 [Discreet Log Contracts](https://dci.mit.edu/smart-contracts) (DLCs) facilitate conditional payments on Bitcoin between two or more parties. By creating a Discreet Log Contract, two parties can form a monetary contract redistributing their funds to each other without revealing any details to the blockchain. Its appearance on the Bitcoin blockchain will be no different than an ordinary multi-signature output, so no external observer can learn its existence or details from the public ledger. A DLC is similar to a 2-of-3 multisig transaction where the third participant is an “oracle”.  An oracle is a 3rd party source of data or information that the parties to the DLC trust as the source of truth for the contract. The oracle is incentivized to be a fair arbiter of the contract.
 
-## About DLC Link
+# About DLC Link
 DLC.Link is building infrastructure to empower decentralized applications and smart contract developers to easily leverage the power of DLCs (Discreet Log Contract - See section below:Dev Learning ). We provide companies and applications with a traditional REST API and a smart contract interface to create and manage DLCs for their use cases.
 
 DLCs require an oracle to attest to a specific outcome among the predefined set of outcomes. That means trust.
