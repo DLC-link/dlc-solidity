@@ -5,9 +5,7 @@ import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-
 contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
-
     bytes32 public constant DLC_ADMIN_ROLE = keccak256("DLC_ADMIN_ROLE");
 
     string[] public openUUIDs;
@@ -16,21 +14,31 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
     struct DLC {
         string UUID;
         address feedAddress;
-        uint closingTime;
-        int closingPrice;
-        uint actualClosingTime;
-        uint emergencyRefundTime;
+        uint256 closingTime;
+        int256 closingPrice;
+        uint256 actualClosingTime;
+        uint256 emergencyRefundTime;
     }
 
     struct PerformDataPack {
         string UUID;
-        uint index;
+        uint256 index;
     }
 
-    event NewDLC(string UUID, address feedAddress, uint closingTime, uint emergencyRefundTime);
-    event CloseDLC(string UUID, int price, uint actualClosingTime);
-    event RequestCreateDLC(address feedAddress, uint closingTime, uint emergencyRefundTime, address caller);
-    event EarlyCloseDLC(string UUID, int price, uint actualClosingTime);
+    event NewDLC(
+        string UUID,
+        address feedAddress,
+        uint256 closingTime,
+        uint256 emergencyRefundTime
+    );
+    event CloseDLC(string UUID, int256 price, uint256 actualClosingTime);
+    event RequestCreateDLC(
+        address feedAddress,
+        uint256 closingTime,
+        uint256 emergencyRefundTime,
+        address caller
+    );
+    event EarlyCloseDLC(string UUID, int256 price, uint256 actualClosingTime);
 
     constructor(address _adminAddress) {
         // set the admin of the contract
@@ -40,9 +48,17 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function addNewDLC(string memory _UUID, address _feedAddress, uint _closingTime, uint _emergencyRefundTime) external onlyRole(DLC_ADMIN_ROLE){
+    function addNewDLC(
+        string memory _UUID,
+        address _feedAddress,
+        uint256 _closingTime,
+        uint256 _emergencyRefundTime
+    ) external onlyRole(DLC_ADMIN_ROLE) {
         require(dlcs[_UUID].feedAddress == address(0), "DLC already added");
-        require(_closingTime > block.timestamp, "Closing time can't be in the past");
+        require(
+            _closingTime > block.timestamp,
+            "Closing time can't be in the past"
+        );
         dlcs[_UUID] = DLC({
             UUID: _UUID,
             feedAddress: _feedAddress,
@@ -55,17 +71,39 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
         emit NewDLC(_UUID, _feedAddress, _closingTime, _emergencyRefundTime);
     }
 
-    function requestCreateDLC(address _feedAddress, uint _closingTime, uint _emergencyRefundTime) external {
-        require(_closingTime > block.timestamp, "Closing time can't be in the past");
-        emit RequestCreateDLC(_feedAddress, _closingTime, _emergencyRefundTime, msg.sender);
+    function requestCreateDLC(
+        address _feedAddress,
+        uint256 _closingTime,
+        uint256 _emergencyRefundTime
+    ) external {
+        require(
+            _closingTime > block.timestamp,
+            "Closing time can't be in the past"
+        );
+        emit RequestCreateDLC(
+            _feedAddress,
+            _closingTime,
+            _emergencyRefundTime,
+            msg.sender
+        );
     }
 
-    function cancelEarly(string memory _UUID) external onlyRole(DLC_ADMIN_ROLE) returns (int){
+    function cancelEarly(string memory _UUID)
+        external
+        onlyRole(DLC_ADMIN_ROLE)
+        returns (int256)
+    {
         DLC storage dlc = dlcs[_UUID];
-        require(block.timestamp < dlc.closingTime, "Can only be called before the closing time");
-        require(dlc.actualClosingTime == 0, "Can only be called if the DLC has not been closed yet");
+        require(
+            block.timestamp < dlc.closingTime,
+            "Can only be called before the closing time"
+        );
+        require(
+            dlc.actualClosingTime == 0,
+            "Can only be called if the DLC has not been closed yet"
+        );
 
-        (int price, uint timeStamp) = getLatestPrice(dlc.feedAddress);
+        (int256 price, uint256 timeStamp) = getLatestPrice(dlc.feedAddress);
         dlc.closingPrice = price;
         dlc.actualClosingTime = timeStamp;
         removeClosedDLC(findIndex(_UUID));
@@ -74,15 +112,27 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
     }
 
     // called by ChainLink Keepers (off-chain simulation, so no gas cost)
-    function checkUpkeep(bytes calldata /* checkData */) external view override returns (bool upkeepNeeded, bytes memory performData) {
+    function checkUpkeep(
+        bytes calldata /* checkData */
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
         for (uint256 i = 0; i < openUUIDs.length; i++) {
             DLC memory dlc = dlcs[openUUIDs[i]];
-            if(dlc.closingTime <= block.timestamp && dlc.actualClosingTime == 0){  // only perform upkeep if closingTime passed and DLC not closed yet
+            if (
+                dlc.closingTime <= block.timestamp && dlc.actualClosingTime == 0
+            ) {
+                // only perform upkeep if closingTime passed and DLC not closed yet
                 upkeepNeeded = true;
-                performData = abi.encode(PerformDataPack({
-                    UUID: openUUIDs[i],
-                    index: findIndex(openUUIDs[i]) // finding the index in off-chain simulation to save gas
-                }));
+                performData = abi.encode(
+                    PerformDataPack({
+                        UUID: openUUIDs[i],
+                        index: findIndex(openUUIDs[i]) // finding the index in off-chain simulation to save gas
+                    })
+                );
                 break;
             }
         }
@@ -95,19 +145,33 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
 
         //validate again as recommended in the docs, also since upKeeps can run in parallel it can happen
         //that a DLC which is being closed gets picked up by the checkUpKeep so we can revert here
-        require(dlc.closingTime <= block.timestamp && dlc.actualClosingTime == 0, 
-                string(abi.encodePacked("Validation failed for performUpKeep for UUID: ", string(abi.encodePacked(pdp.UUID)))));
+        require(
+            dlc.closingTime <= block.timestamp && dlc.actualClosingTime == 0,
+            string(
+                abi.encodePacked(
+                    "Validation failed for performUpKeep for UUID: ",
+                    string(abi.encodePacked(pdp.UUID))
+                )
+            )
+        );
 
-        (int price, uint timeStamp) = getLatestPrice(dlc.feedAddress);
+        (int256 price, uint256 timeStamp) = getLatestPrice(dlc.feedAddress);
         dlc.closingPrice = price;
         dlc.actualClosingTime = timeStamp;
         removeClosedDLC(pdp.index);
         emit CloseDLC(pdp.UUID, price, timeStamp);
     }
 
-    function closingPriceAndTimeOfDLC(string memory _UUID) external view returns (int, uint){
+    function closingPriceAndTimeOfDLC(string memory _UUID)
+        external
+        view
+        returns (int256, uint256)
+    {
         DLC memory dlc = dlcs[_UUID];
-        require(dlc.actualClosingTime > 0, "The requested DLC is not closed yet");
+        require(
+            dlc.actualClosingTime > 0,
+            "The requested DLC is not closed yet"
+        );
         return (dlc.closingPrice, dlc.actualClosingTime);
     }
 
@@ -115,30 +179,36 @@ contract DiscreetLog is KeeperCompatibleInterface, AccessControl {
         return openUUIDs;
     }
 
-    function getLatestPrice(address _feedAddress) internal view returns (int, uint) {
+    function getLatestPrice(address _feedAddress)
+        internal
+        view
+        returns (int256, uint256)
+    {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(_feedAddress);
-        (,int price,,uint timeStamp,) = priceFeed.latestRoundData();
+        (, int256 price, , uint256 timeStamp, ) = priceFeed.latestRoundData();
         return (price, timeStamp);
     }
 
     // note: this remove not preserving the order
-    function removeClosedDLC(uint index) private returns(string[] memory) {
+    function removeClosedDLC(uint256 index) private returns (string[] memory) {
         require(index < openUUIDs.length);
         // Move the last element to the deleted spot
-        openUUIDs[index] = openUUIDs[openUUIDs.length-1];
+        openUUIDs[index] = openUUIDs[openUUIDs.length - 1];
         // Remove the last element
         openUUIDs.pop();
         return openUUIDs;
     }
 
-    function findIndex(string memory _UUID) private view returns (uint) {
+    function findIndex(string memory _UUID) private view returns (uint256) {
         // find the recently closed UUID index
-        for (uint i = 0; i < openUUIDs.length; i++){
-            if(keccak256(abi.encodePacked(openUUIDs[i])) == keccak256(abi.encodePacked(_UUID))){
+        for (uint256 i = 0; i < openUUIDs.length; i++) {
+            if (
+                keccak256(abi.encodePacked(openUUIDs[i])) ==
+                keccak256(abi.encodePacked(_UUID))
+            ) {
                 return i;
             }
         }
         revert("Not Found"); // should not happen just in case
     }
 }
-
