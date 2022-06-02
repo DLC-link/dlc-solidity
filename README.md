@@ -2,7 +2,7 @@
 
 This smart contract is the interface for creating and closing DLCs via the DLC.Link infrastructure. For cases where the DLC requires market prices of assets (e.g. BTC price) this contract is responsible for fetching that (via Chainlink) as part of it's closing criteria.
 
-Learn more about DLCs and [DLC.Link](https://github.com/DLC-link/dlc-solidity-smart-contract#About-DLC-Link) below.
+Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity-smart-contract#What-Are-DLCs) and [DLC.Link](https://github.com/DLC-link/dlc-solidity-smart-contract#About-DLC-Link) below.
 
 ### **A sample deployed contract can be found here: [DiscreetLog](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)**
 
@@ -162,6 +162,9 @@ https://keepers.chain.link/kovan/2944
 
 # Known Issue
 The chainlink price feed is updated based on parameters. For example BTC/USD feed on ETH mainnet updates only every hour or if the price changes by 0.5%. Since the DLC closing uses the timestamp from the price feed (because that is the actual time the price was updated, which means that is the "real" actualClosingTime) it can happen that the `actualClosingTime` will be in the past relative to the closingTime supplied at DLC creation. We could use the `block.timestamp` as actualClosingTime as a solution, but that would raise the question if that is correct in this case or not. An another solution would be to log both the pricefeed timestamp and the block.timestamp as well.
+
+## What Are DLCs
+[Discreet Log Contracts](https://dci.mit.edu/smart-contracts) (DLCs) facilitate conditional payments on Bitcoin between two or more parties. By creating a Discreet Log Contract, two parties can form a monetary contract redistributing their funds to each other without revealing any details to the blockchain. Its appearance on the Bitcoin blockchain will be no different than an ordinary multi-signature output, so no external observer can learn its existence or details from the public ledger. A DLC is similar to a 2-of-3 multisig transaction where the third participant is an “oracle”.  An oracle is a 3rd party source of data or information that the parties to the DLC trust as the source of truth for the contract. The oracle is incentivized to be a fair arbiter of the contract.
 
 ## About DLC Link
 DLC.Link is building infrastructure to empower decentralized applications and smart contract developers to easily leverage the power of DLCs (Discreet Log Contract - See section below:Dev Learning ). We provide companies and applications with a traditional REST API and a smart contract interface to create and manage DLCs for their use cases.
