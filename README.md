@@ -4,7 +4,27 @@ This smart contract is the interface for creating and closing DLCs via the DLC.L
 
 Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity-smart-contract#What-Are-DLCs) and [DLC.Link](https://github.com/DLC-link/dlc-solidity-smart-contract#About-DLC-Link) below.
 
-### **A sample deployed contract can be found here: [DiscreetLog](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)**
+## Overview
+DLCs require an oracle to attest to a specific outcome among the predefined set of outcomes. That means trust.
+
+This contract acts to feed the outcome of the DLC. By using a smart contract for this task, the implementation of the logic, as well as the data being used, is stamped on the chain, and is visible and reviewable by everyone. 
+
+## How to use this contract
+
+When you register a DLC with this contract using the `requestCreateDLC` function, an associated DLC is opened on our DLC server with the associated outcomes (CETs). A hash with the DLC information needed to fund the DLC are available on the website, and eventually via an API call.
+
+*(TBD How does the UUID or handle come back to the caller?)*
+
+The creation of a DLC can also be triggered with a traditional JSON API call (*coming soon TBD*)
+
+*Todo: add info about the DLC oracle server*
+
+*Todo: add info about the overall architecture*
+
+### **A sample deployed contract can be found here: [Discreet Log Manager](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)**
+
+# Basic Usage
+We recommend you become familiar with [what a DLC is](https://github.com/DLC-link/dlc-solidity-smart-contract#What-Are-DLCs) before implementing your own DLC with this contract.
 
 # Setup
 
@@ -168,6 +188,10 @@ The chainlink price feed is updated based on parameters. For example BTC/USD fee
 
 ## About DLC Link
 DLC.Link is building infrastructure to empower decentralized applications and smart contract developers to easily leverage the power of DLCs (Discreet Log Contract - See section below:Dev Learning ). We provide companies and applications with a traditional REST API and a smart contract interface to create and manage DLCs for their use cases.
+
+DLCs require an oracle to attest to a specific outcome among the predefined set of outcomes. That means trust.
+
+Why power oracles with smart contracts? By using a smart contract for this task, the implementation of the logic, as well as the data being used, is stamped on the chain, and is *visible and reviewable* by everyone. 
 
 Unlike other DLC Oracle server solutions, DLC.link allows the DLCs to be configured with a simple interface, API or via smart contract, and to act on a wide-set of events and data sources through our decentralized infrastructure. 
 
