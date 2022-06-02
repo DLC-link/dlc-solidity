@@ -1,6 +1,10 @@
-# DiscreetLog Smart Contract
+# DLC Manager Smart Contract
 
-## **Deployed contract can be found here: [DiscreetLog](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)**
+This smart contract is the interface for creating and closing DLCs via the DLC.Link infrastructure. For cases where the DLC requires market prices of assets (e.g. BTC price) this contract is responsible for fetching that (via Chainlink) as part of it's closing criteria.
+
+Learn more about DLCs and [DLC.Link](https://github.com/DLC-link/dlc-solidity-smart-contract#About-DLC-Link) below.
+
+### **A sample deployed contract can be found here: [DiscreetLog](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)**
 
 # Setup
 
@@ -19,7 +23,7 @@ Add `secrets.json` file with the following fields:
 
 `nodeUrl`: your RPC node url
 
-# Tests
+# Testing
 Start a Ganache server
 
 https://trufflesuite.com/docs/ganache/quickstart/
@@ -31,13 +35,13 @@ truffle migrate
 truffle test
 ```
 
-# Deploy to Kovan
+## Deploy to Kovan
 ```console
 truffle compile
 truffle migrate --network kovan
 ```
 
-# Verify contract
+## Verify contract
 **_NOTE:_**  this step is required for UpKeep registration
 ```console
 truffle run verify DiscreetLog --network kovan
@@ -73,7 +77,7 @@ Provide the admin address during deployment (can be the deployer address)
 ```solidity
 constructor(address _adminAddress)
 ```
-Add new DLC (only admin can call it)
+Add new DLC (**admin only*)
 ```solidity
 addNewDLC(string memory _UUID, address _feedAddress, uint _closingTime)
 ```
@@ -158,3 +162,14 @@ https://keepers.chain.link/kovan/2879
 
 # Known Issue
 The chainlink price feed is updated based on parameters. For example BTC/USD feed on ETH mainnet updates only every hour or if the price changes by 0.5%. Since the DLC closing uses the timestamp from the price feed (because that is the actual time the price was updated, which means that is the "real" actualClosingTime) it can happen that the `actualClosingTime` will be in the past relative to the closingTime supplied at DLC creation. We could use the `block.timestamp` as actualClosingTime as a solution, but that would raise the question if that is correct in this case or not. An another solution would be to log both the pricefeed timestamp and the block.timestamp as well.
+
+## About DLC.Link
+DLC.Link is building infrastructure to empower decentralized applications and smart contract developers to easily leverage the power of DLCs (Discreet Log Contract - See section below:Dev Learning ). We provide companies and applications with a traditional REST API and a smart contract interface to create and manage DLCs for their use cases.
+
+Unlike other DLC Oracle server solutions, DLC.link allows the DLCs to be configured with a simple interface, API or via smart contract, and to act on a wide-set of events and data sources through our decentralized infrastructure. 
+
+There are two types of events / data sources supported by DLC.link.
+
+1. Off-chain pricing data, such as the current price of BTC, ETH, etc. In fact, any numeric data from Chainlink Oracle Network is supported. (Currently only supported from our Ethereum contract. Stacks support via the Redstone Oracle Network coming soon)
+
+2. On-chain events, such as a completed transaction, a function call, etc. (Currently supported on Stacks, EVM support coming soon). Also, because Stacks can read the state of the BTC blockchain, actions can be taken directly on Stacks in response to funding transactions of DLCs on BTC.
