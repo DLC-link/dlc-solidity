@@ -163,7 +163,7 @@ https://keepers.chain.link/kovan/2879
 # Known Issue
 The chainlink price feed is updated based on parameters. For example BTC/USD feed on ETH mainnet updates only every hour or if the price changes by 0.5%. Since the DLC closing uses the timestamp from the price feed (because that is the actual time the price was updated, which means that is the "real" actualClosingTime) it can happen that the `actualClosingTime` will be in the past relative to the closingTime supplied at DLC creation. We could use the `block.timestamp` as actualClosingTime as a solution, but that would raise the question if that is correct in this case or not. An another solution would be to log both the pricefeed timestamp and the block.timestamp as well.
 
-## About DLC.Link
+## About DLC Link
 DLC.Link is building infrastructure to empower decentralized applications and smart contract developers to easily leverage the power of DLCs (Discreet Log Contract - See section below:Dev Learning ). We provide companies and applications with a traditional REST API and a smart contract interface to create and manage DLCs for their use cases.
 
 Unlike other DLC Oracle server solutions, DLC.link allows the DLCs to be configured with a simple interface, API or via smart contract, and to act on a wide-set of events and data sources through our decentralized infrastructure. 
