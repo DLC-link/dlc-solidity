@@ -27,7 +27,7 @@ With the announcement hash, you are now able to set up the DLC between the two p
 The DLC gets closed one of two ways. 
 1. When the `closingTime` has passed the performUpkeep function will get called by the Chainlink keeper. This will get the price from the associated Chainlink data feed, save this price and time in the contract, and stamp that data on the ledger. 
 
-2. If the same contract that opened the DLC calls `cancelEarly`, then the same process will occur without waitnig for the Chainlink Keeper. The price will be fetched from the associated Chainlink data feed, the price and time will be saved in the contract, and that data will be stamped on the ledger. 
+2. If the `cancelEarly` function is called by the DLC creator identity, then the dlc will be closed without waiting for the Chainlink Keeper. The price will be fetched from the associated Chainlink data feed, the price and time will be saved in the contract, and that data will be stamped on the ledger. 
 
 Either way, our system listens to this, and closes the DLC in the DLC oracle with the associated data. An *attestation hash* is now created and like the announcement hash, can be acquired via the website or API (or eventually smart contract).
 
@@ -36,7 +36,6 @@ The attestation hash is what will be used by the participants (user, protocol, e
 # Contributing
 We are happy to have support and contribution from the community. Please find us on Discord and see below for developer details.
 ## Setup
------------------
 For reference, a sample of this deployed contract can be found here: [Discreet Log Manager](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)
 
 Add a `secrets.json` file with the following fields:
@@ -212,6 +211,6 @@ Unlike other DLC Oracle server solutions, DLC.link allows the DLCs to be configu
 
 There are two types of events / data sources supported by DLC.link.
 
-1. Off-chain pricing data, such as the current price of BTC, ETH, etc. In fact, any numeric data from Chainlink Oracle Network is supported. (Currently only supported from our Ethereum contract. Stacks support via the Redstone Oracle Network coming soon)
+1. Off-chain pricing data, such as the current price of BTC, ETH, etc. In fact, any numeric data from Chainlink Oracle Network is supported.
 
-2. On-chain events, such as a completed transaction, a function call, etc. (Currently supported on Stacks, EVM support coming soon). Also, because Stacks can read the state of the BTC blockchain, actions can be taken directly on Stacks in response to funding transactions of DLCs on BTC.
+2. On-chain events, such as a completed transaction, a function call, etc. 
