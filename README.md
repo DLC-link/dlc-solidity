@@ -23,7 +23,7 @@ The creation of a DLC can also be triggered with a traditional JSON API call (*c
 
 With the announcement hash, you are now able to set up the DLC between the two participants (users, user/protocol, etc.)
 
-## DLC Closing
+## Closing the DLC
 The DLC gets closed one of two ways. 
 1. When the `closingTime` has passed the performUpkeep function will get called by the Chainlink keeper. This will get the price from the associated Chainlink data feed, save this price and time in the contract, and stamp that data on the ledger. 
 
