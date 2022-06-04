@@ -18,9 +18,6 @@ When you register a DLC with this contract using the `requestCreateDLC` function
 
 The creation of a DLC can also be triggered with a traditional JSON API call (*coming soon TBD*)
 
-*Todo: add info about the DLC oracle server*
-*Todo: add info about the overall architecture*
-
 With the announcement hash, you are now able to set up the DLC between the two participants (users, user/protocol, etc.)
 
 ## Closing the DLC
