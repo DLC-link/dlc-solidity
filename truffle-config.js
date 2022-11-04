@@ -3,14 +3,15 @@ const secrets = require('./secrets.json');
 
 module.exports = {
   networks: {
-    kovan: {
-      network_id: 42,
+    goerli: {
+      network_id: 5,
       provider: () => {
         return new HDWalletProvider(
           [secrets.key],
           secrets.nodeUrl
         );
-      }
+      },
+      gas: 20000000
     },
     development: {
       host: "127.0.0.1",
