@@ -48,91 +48,180 @@ contract DiscreetLog {
     string[] public openUUIDs;
     mapping(string => DLC) public dlcs;
 
+    mapping(uint256 => Loan) public loans;
+    uint256 public numLoans = 0;
+
+    mapping(address => uint256) public loansPerAddress;
+
+    enum Status {
+        NotReady,
+        Ready,
+        Funded,
+        PreRepaid,
+        Repaid,
+        PreLiquidated,
+        Liquidated
+    }
+
+    Status public status;
+    mapping(Status => string) public statuses;
+
     struct DLC {
         string uuid;
-        string asset;
-        int256 strikePrice;
-        int256 closingPrice;
+        uint256 btcDeposit;
+        uint256 liquidationRatio;
+        uint256 liquidationFee;
         uint256 closingTime;
+        int256 closingPrice;
         uint256 actualClosingTime;
         uint256 emergencyRefundTime;
-        address feedAddress;
+        address creator;
+    }
+
+    struct Loan {
+        uint256 id;
+        string dlc_uuid;
+        string status;
+        uint256 vaultLoan; // the borrowed amount
+        uint256 vaultCollateral; // btc deposit in sats
+        uint256 liquidationRatio; // the collateral/loan ratio below which liquidation can happen, with two decimals precision (140% = u14000)
+        uint256 liquidationFee; // additional fee taken during liquidation, two decimals precision (10% = u1000)
+        uint256 closingPrice; // In case of liquidation, the closing BTC price will be stored here
+        address owner; // the stacks account owning this loan
+    }
+
+    constructor() {
+        statuses[Status.NotReady] = "not-ready";
+        statuses[Status.Ready] = "ready";
+        statuses[Status.Funded] = "funded";
+        statuses[Status.PreRepaid] = "pre-repaid";
+        statuses[Status.Repaid] = "repaid";
+        statuses[Status.PreLiquidated] = "pre-liquidated";
+        statuses[Status.Liquidated] = "liquidated";
+    }
+
+    // An example function to initiate the creation of a DLC loan.
+    // - Increments the loan-id
+    // - Calls the dlc-manager-contract's create-dlc function to initiate the creation
+    // The DLC Contract will call back into the provided 'target' contract with the resulting UUID (and the provided loan-id).
+    // Currently this 'target' must be the same contract as the one initiating the process, for authentication purposes.
+    // See scripts/setup-loan.ts for an example of calling it.
+    function setupLoan(
+        uint256 vaultLoanAmount,
+        uint256 btcDeposit,
+        uint256 liquidationRatio,
+        uint256 liquidationFee,
+        uint256 emergencyRefundTime
+    )
+        external returns (uint256)
+    {
+        loans[numLoans] = Loan({
+            id: numLoans,
+            dlc_uuid: "",
+            status: statuses[Status.NotReady],
+            vaultLoan: vaultLoanAmount,
+            vaultCollateral: btcDeposit,
+            liquidationRatio: liquidationRatio,
+            liquidationFee: liquidationFee,
+            closingPrice: 0,
+            owner: msg.sender
+        });
+
+        createDlc(
+            vaultLoanAmount,
+            btcDeposit,
+            liquidationRatio,
+            liquidationFee,
+            msg.sender,
+            emergencyRefundTime,
+            numLoans
+        );
+        loansPerAddress[msg.sender]++;
+        numLoans++;
+        return(numLoans - 1);
     }
 
     event CreateDLC(
-        string asset,
-        int256 strikePrice,
-        uint256 closingTime,
-        uint256 emergencyRefundTime,
+        uint256 vaultLoanAmount,
+        uint256 btcDeposit,
+        uint256 liquidationRatio,
+        uint256 liquidationFee,
         address creator,
-        address callbackContract,
+        uint256 emergencyRefundTime,
         uint256 nonce,
-        address feedAddress
+        string eventSource
     );
 
     function createDlc(
-        string calldata _asset,
-        int256 _strikePrice,
-        uint256 _closingTime,
+        uint256 _vaultLoanAmount,
+        uint256 _btcDeposit,
+        uint256 _liquidationRatio,
+        uint256 _liquidationFee,
+        address _creator,
         uint256 _emergencyRefundTime,
-        address _callbackContract,
-        uint256 _nonce,
-        address _feedAddress
-    ) external {
+        uint256 _nonce
+    ) public {
         emit CreateDLC(
-            _asset,
-            _strikePrice,
-            _closingTime,
+            _vaultLoanAmount,
+            _btcDeposit,
+            _liquidationRatio,
+            _liquidationFee,
+            _creator,
             _emergencyRefundTime,
-            msg.sender,
-            _callbackContract,
             _nonce,
-            _feedAddress
+            "dlclink:create-dlc:v0"
         );
     }
 
     event CreateDLCInternal(
         string uuid,
-        string asset,
-        int256 strikePrice,
-        uint256 closingTime,
+        uint256 btcDeposit,
+        uint256 liquidationRatio,
+        uint256 liquidationFee,
         uint256 emergencyRefundTime,
-        address caller,
-        address feedAddress
+        address creator,
+        string eventSource
     );
 
     function createDLCInternal(
         string memory _uuid,
-        string memory _asset,
-        int256 _strikePrice,
-        uint256 _closingTime,
+        uint256 _btcDeposit,
+        uint256 _liquidationRatio,
+        uint256 _liquidationFee,
         uint256 _emergencyRefundTime,
         address _creator,
-        // address _callbackContract, // to be used when we have the protocol sample contract
-        // uint256 _nonce,
-        address _feedAddress
+        uint256 _nonce
     ) external {
-        require(dlcs[_uuid].feedAddress == address(0), "DLC already added");
         dlcs[_uuid] = DLC({
             uuid: _uuid,
-            asset: _asset,
-            strikePrice: _strikePrice,
-            closingTime: _closingTime,
+            btcDeposit: _btcDeposit,
+            liquidationRatio: _liquidationRatio,
+            liquidationFee: _liquidationFee,
             closingPrice: 0,
+            closingTime: _emergencyRefundTime,
             actualClosingTime: 0,
             emergencyRefundTime: _emergencyRefundTime,
-            feedAddress: _feedAddress
+            creator: _creator
         });
         openUUIDs.push(_uuid);
+        loans[_nonce].dlc_uuid = _uuid;
+        loans[_nonce].status = statuses[Status.Ready];
         emit CreateDLCInternal(
             _uuid,
-            _asset,
-            _strikePrice,
-            _closingTime,
+            _btcDeposit,
+            _liquidationRatio,
+            _liquidationFee,
             _emergencyRefundTime,
             _creator,
-            _feedAddress
+            "dlclink:create-dlc-internal:v0"
         );
+    }
+
+    event SetStatusFunded(string uuid, string eventSource);
+
+    function setStatusFunded(string memory _uuid) external {
+        loans[findLoanIndex(_uuid)].status = statuses[Status.Funded];
+        emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
     event CloseDLC(
@@ -142,16 +231,54 @@ contract DiscreetLog {
         uint256 actualClosingTime
     );
 
-    function closeDlc(string calldata _uuid) external {
+    //     (define-public (repay-loan (loan-id uint))
+    //   (let (
+    //     (loan (unwrap! (get-loan loan-id) err-unknown-loan-contract))
+    //     (uuid (unwrap! (get dlc_uuid loan) err-cant-unwrap))
+    //     )
+    //     (begin
+    //       (map-set loans loan-id (merge loan { status: status-pre-repaid }))
+    //       (print { uuid: uuid, status: status-pre-repaid })
+    //       (unwrap! (ok (as-contract (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.dlc-manager-loan-v0 close-dlc uuid))) err-contract-call-failed)
+    //     )
+    //   )
+    // )
+
+    function repayLoan(uint256 loanId) external {
+        closeDlc(loans[loanId].dlc_uuid);
+        loans[loanId].status = statuses[Status.Repaid];
+    }
+
+    function liquidateLoan(uint256 loanId) external {
+        closeDlcLiquidate(loans[loanId].dlc_uuid);
+        loans[loanId].status = statuses[Status.Liquidated];
+    }
+
+    function closeDlc(string memory _uuid) public {
         DLC storage dlc = dlcs[_uuid];
         require(
             dlc.closingTime <= block.timestamp && dlc.actualClosingTime == 0,
             "Validation failed for closeDlc"
         );
 
-        (int256 price, uint256 timestamp) = getLatestPrice(dlc.feedAddress);
+        int256 payoutRatio = 0; //This is where the loan stuff goes
+        removeClosedDLC(findIndex(_uuid));
+        emit CloseDLC(_uuid, payoutRatio, 0, block.timestamp);
+    }
+
+    function closeDlcLiquidate(string memory _uuid) public {
+        DLC storage dlc = dlcs[_uuid];
+        require(
+            dlc.closingTime <= block.timestamp && dlc.actualClosingTime == 0,
+            "Validation failed for closeDlc"
+        );
+
+        (int256 price, uint256 timestamp) = getLatestPrice(
+            address(0xA39434A63A52E749F02807ae27335515BA4b07F7)
+        );
         dlc.closingPrice = price;
-        int256 payoutRatio = dlc.strikePrice > price ? int256(0) : int256(1);
+        // int256 payoutRatio = dlc.strikePrice > price ? int256(0) : int256(1);
+        int256 payoutRatio = 0; //This is where the loan stuff goes
 
         removeClosedDLC(findIndex(_uuid));
         emit CloseDLC(_uuid, payoutRatio, price, timestamp);
@@ -205,5 +332,33 @@ contract DiscreetLog {
             }
         }
         revert("Not Found"); // should not happen just in case
+    }
+
+    function getAllLoansForAddress(address _addy) public view returns (Loan[] memory) {
+        Loan[] memory ownedLoans = new Loan[](loansPerAddress[_addy]);
+        uint256 j = 0;
+        for (uint256 i = 0; i < numLoans; i++) {
+            if (loans[i].owner == _addy) {
+                ownedLoans[j++] = loans[i];
+            }
+        }
+        return ownedLoans;
+    }
+
+    function findLoanIndex(string memory _uuid) private view returns (uint256) {
+        // find the recently closed uuid index
+        for (uint256 i = 0; i < numLoans; i++) {
+            if (
+                keccak256(abi.encodePacked(loans[i].dlc_uuid)) ==
+                keccak256(abi.encodePacked(_uuid))
+            ) {
+                return i;
+            }
+        }
+        revert("Not Found"); // should not happen just in case
+    }
+
+    function getAllUUIDs() public view returns (string[] memory) {
+        return openUUIDs;
     }
 }

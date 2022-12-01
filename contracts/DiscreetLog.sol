@@ -11,7 +11,9 @@ contract DiscreetLog {
     mapping(string => DLC) public dlcs;
 
     mapping(uint256 => Loan) public loans;
-    uint256 private lastLoanId = 0;
+    uint256 public numLoans = 0;
+
+    mapping(address => uint256) public loansPerAddress;
 
     enum Status {
         NotReady,
@@ -39,6 +41,7 @@ contract DiscreetLog {
     }
 
     struct Loan {
+        uint256 id;
         string dlc_uuid;
         string status;
         uint256 vaultLoan; // the borrowed amount
@@ -70,9 +73,12 @@ contract DiscreetLog {
         uint256 btcDeposit,
         uint256 liquidationRatio,
         uint256 liquidationFee,
-        uint256 emergencyRefundTime //Keeping this here now just to match the stacks version
-    ) external {
-        loans[lastLoanId] = Loan({
+        uint256 emergencyRefundTime
+    )
+        external returns (uint256)
+    {
+        loans[numLoans] = Loan({
+            id: numLoans,
             dlc_uuid: "",
             status: statuses[Status.NotReady],
             vaultLoan: vaultLoanAmount,
@@ -89,10 +95,12 @@ contract DiscreetLog {
             liquidationRatio,
             liquidationFee,
             msg.sender,
-            lastLoanId
+            emergencyRefundTime,
+            numLoans
         );
-
-        lastLoanId++;
+        loansPerAddress[msg.sender]++;
+        numLoans++;
+        return(numLoans - 1);
     }
 
     event CreateDLC(
@@ -101,6 +109,7 @@ contract DiscreetLog {
         uint256 liquidationRatio,
         uint256 liquidationFee,
         address creator,
+        uint256 emergencyRefundTime,
         uint256 nonce,
         string eventSource
     );
@@ -111,6 +120,7 @@ contract DiscreetLog {
         uint256 _liquidationRatio,
         uint256 _liquidationFee,
         address _creator,
+        uint256 _emergencyRefundTime,
         uint256 _nonce
     ) public {
         emit CreateDLC(
@@ -119,6 +129,7 @@ contract DiscreetLog {
             _liquidationRatio,
             _liquidationFee,
             _creator,
+            _emergencyRefundTime,
             _nonce,
             "dlclink:create-dlc:v0"
         );
@@ -168,8 +179,11 @@ contract DiscreetLog {
         );
     }
 
+    event SetStatusFunded(string uuid, string eventSource);
+
     function setStatusFunded(string memory _uuid) external {
         loans[findLoanIndex(_uuid)].status = statuses[Status.Funded];
+        emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
     event CloseDLC(
@@ -194,12 +208,12 @@ contract DiscreetLog {
 
     function repayLoan(uint256 loanId) external {
         closeDlc(loans[loanId].dlc_uuid);
-        loans[loanId].status = statuses[Status.PreRepaid];
+        loans[loanId].status = statuses[Status.Repaid];
     }
 
     function liquidateLoan(uint256 loanId) external {
         closeDlcLiquidate(loans[loanId].dlc_uuid);
-        loans[loanId].status = statuses[Status.PreRepaid];
+        loans[loanId].status = statuses[Status.Liquidated];
     }
 
     function closeDlc(string memory _uuid) public {
@@ -282,9 +296,20 @@ contract DiscreetLog {
         revert("Not Found"); // should not happen just in case
     }
 
+    function getAllLoansForAddress(address _addy) public view returns (Loan[] memory) {
+        Loan[] memory ownedLoans = new Loan[](loansPerAddress[_addy]);
+        uint256 j = 0;
+        for (uint256 i = 0; i < numLoans; i++) {
+            if (loans[i].owner == _addy) {
+                ownedLoans[j++] = loans[i];
+            }
+        }
+        return ownedLoans;
+    }
+
     function findLoanIndex(string memory _uuid) private view returns (uint256) {
         // find the recently closed uuid index
-        for (uint256 i = 0; i < lastLoanId; i++) {
+        for (uint256 i = 0; i < numLoans; i++) {
             if (
                 keccak256(abi.encodePacked(loans[i].dlc_uuid)) ==
                 keccak256(abi.encodePacked(_uuid))
@@ -293,5 +318,9 @@ contract DiscreetLog {
             }
         }
         revert("Not Found"); // should not happen just in case
+    }
+
+    function getAllUUIDs() public view returns (string[] memory) {
+        return openUUIDs;
     }
 }

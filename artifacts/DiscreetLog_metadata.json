@@ -648,7 +648,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"contracts/DiscreetLog.sol": "DiscreetLog"
+			"DiscreetLog_flat.sol": "DiscreetLog"
 		},
 		"evmVersion": "london",
 		"libraries": {},
@@ -662,20 +662,12 @@
 		"remappings": []
 	},
 	"sources": {
-		"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol": {
-			"keccak256": "0x6e6e4b0835904509406b070ee173b5bc8f677c19421b76be38aea3b1b3d30846",
+		"DiscreetLog_flat.sol": {
+			"keccak256": "0x7fbbb417d148d43fc4ed32464edca6592f4bf352a8f9559b4c71b269fcd0c0e9",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://b3beaa37ee61e4ab615e250fbf01601ae481de843fd0ef55e6b44fd9d5fff8a7",
-				"dweb:/ipfs/QmeZUVwd26LzK4Mfp8Zba5JbQNkZFfTzFu1A6FVMMZDg9c"
-			]
-		},
-		"contracts/DiscreetLog.sol": {
-			"keccak256": "0x0caf8e8912c9c0569a3cbc62537ac33584ec370842ba11f3bf398b4875710769",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://5a9a4097f517ca550c4f83ee3d53caf61dcd35d0486d360607d58a6aa8093542",
-				"dweb:/ipfs/QmdvSMag7LCSKR31B4zKVd4pXg2Kx6LD42eH47Ncd2ubLM"
+				"bzz-raw://ead41f67113a29352eb4658fe11f2ac9263b566ab1a0dc1f85b2ee6cef504d10",
+				"dweb:/ipfs/QmPX2ueTiqMtMoTsohvMoZq5st89oj87DQ7fGF2VQquqd2"
 			]
 		}
 	},
