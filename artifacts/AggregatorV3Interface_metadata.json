@@ -145,11 +145,11 @@
 	},
 	"sources": {
 		"DiscreetLog_flat.sol": {
-			"keccak256": "0x7fbbb417d148d43fc4ed32464edca6592f4bf352a8f9559b4c71b269fcd0c0e9",
+			"keccak256": "0xe3ceefdde6a7d161edeb82d331b9e083e38469d9c93ad62543e0d1b2a8bdb0a4",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://ead41f67113a29352eb4658fe11f2ac9263b566ab1a0dc1f85b2ee6cef504d10",
-				"dweb:/ipfs/QmPX2ueTiqMtMoTsohvMoZq5st89oj87DQ7fGF2VQquqd2"
+				"bzz-raw://36ea577837d914e8f104afe25bae6de52b4227708f9759d425907817470d9026",
+				"dweb:/ipfs/QmQS23WKBQP2djSddsby98FrwEgr9AeLuLRPD7PynzGdtA"
 			]
 		}
 	},

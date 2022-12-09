@@ -3,10 +3,13 @@ pragma solidity ^0.8.7;
 
 // import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract DiscreetLog {
+    IERC20 private USDC = IERC20(0x88B21d13E5d8E40109Ebaa00204C9868441710Fd);
+
     string[] public openUUIDs;
     mapping(string => DLC) public dlcs;
 
@@ -74,9 +77,7 @@ contract DiscreetLog {
         uint256 liquidationRatio,
         uint256 liquidationFee,
         uint256 emergencyRefundTime
-    )
-        external returns (uint256)
-    {
+    ) external returns (uint256) {
         loans[numLoans] = Loan({
             id: numLoans,
             dlc_uuid: "",
@@ -100,7 +101,7 @@ contract DiscreetLog {
         );
         loansPerAddress[msg.sender]++;
         numLoans++;
-        return(numLoans - 1);
+        return (numLoans - 1);
     }
 
     event CreateDLC(
@@ -182,7 +183,10 @@ contract DiscreetLog {
     event SetStatusFunded(string uuid, string eventSource);
 
     function setStatusFunded(string memory _uuid) external {
-        loans[findLoanIndex(_uuid)].status = statuses[Status.Funded];
+        Loan storage loan = loans[findLoanIndex(_uuid)];
+        loan.status = statuses[Status.Funded];
+
+        USDC.transfer(loan.owner, loan.vaultLoan * (10 ** 18));
         emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
@@ -207,8 +211,12 @@ contract DiscreetLog {
     // )
 
     function repayLoan(uint256 loanId) external {
-        closeDlc(loans[loanId].dlc_uuid);
-        loans[loanId].status = statuses[Status.Repaid];
+        // User should have already called increaseAllowance to a suitable number
+        Loan storage loan = loans[loanId];
+        closeDlc(loan.dlc_uuid);
+        
+        USDC.transferFrom(loan.owner, address(this), loan.vaultLoan * (10 ** 18));
+        loan.status = statuses[Status.Repaid];
     }
 
     function liquidateLoan(uint256 loanId) external {
@@ -296,7 +304,11 @@ contract DiscreetLog {
         revert("Not Found"); // should not happen just in case
     }
 
-    function getAllLoansForAddress(address _addy) public view returns (Loan[] memory) {
+    function getAllLoansForAddress(address _addy)
+        public
+        view
+        returns (Loan[] memory)
+    {
         Loan[] memory ownedLoans = new Loan[](loansPerAddress[_addy]);
         uint256 j = 0;
         for (uint256 i = 0; i < numLoans; i++) {

@@ -1,4 +1,89 @@
 
+// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+
+// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
+interface IERC20 {
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `to`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address to, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `from` to `to` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+}
+
 // File: @chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol
 
 
@@ -42,9 +127,12 @@ pragma solidity ^0.8.7;
 // import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
 
 
+
 // import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract DiscreetLog {
+    IERC20 private USDC = IERC20(0x88B21d13E5d8E40109Ebaa00204C9868441710Fd);
+
     string[] public openUUIDs;
     mapping(string => DLC) public dlcs;
 
@@ -112,9 +200,7 @@ contract DiscreetLog {
         uint256 liquidationRatio,
         uint256 liquidationFee,
         uint256 emergencyRefundTime
-    )
-        external returns (uint256)
-    {
+    ) external returns (uint256) {
         loans[numLoans] = Loan({
             id: numLoans,
             dlc_uuid: "",
@@ -138,7 +224,7 @@ contract DiscreetLog {
         );
         loansPerAddress[msg.sender]++;
         numLoans++;
-        return(numLoans - 1);
+        return (numLoans - 1);
     }
 
     event CreateDLC(
@@ -220,7 +306,10 @@ contract DiscreetLog {
     event SetStatusFunded(string uuid, string eventSource);
 
     function setStatusFunded(string memory _uuid) external {
-        loans[findLoanIndex(_uuid)].status = statuses[Status.Funded];
+        Loan storage loan = loans[findLoanIndex(_uuid)];
+        loan.status = statuses[Status.Funded];
+
+        USDC.transfer(loan.owner, loan.vaultLoan * (10 ** 18));
         emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
@@ -245,8 +334,12 @@ contract DiscreetLog {
     // )
 
     function repayLoan(uint256 loanId) external {
-        closeDlc(loans[loanId].dlc_uuid);
-        loans[loanId].status = statuses[Status.Repaid];
+        // User should have already called increaseAllowance to a suitable number
+        Loan storage loan = loans[loanId];
+        closeDlc(loan.dlc_uuid);
+        
+        USDC.transferFrom(loan.owner, address(this), loan.vaultLoan * (10 ** 18));
+        loan.status = statuses[Status.Repaid];
     }
 
     function liquidateLoan(uint256 loanId) external {
@@ -334,7 +427,11 @@ contract DiscreetLog {
         revert("Not Found"); // should not happen just in case
     }
 
-    function getAllLoansForAddress(address _addy) public view returns (Loan[] memory) {
+    function getAllLoansForAddress(address _addy)
+        public
+        view
+        returns (Loan[] memory)
+    {
         Loan[] memory ownedLoans = new Loan[](loansPerAddress[_addy]);
         uint256 j = 0;
         for (uint256 i = 0; i < numLoans; i++) {
