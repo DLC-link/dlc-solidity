@@ -1,14 +1,14 @@
 // // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity >=0.8.17;
 
 // import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import "hardhat/console.sol";
 // import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract DiscreetLog {
-    IERC20 private USDC = IERC20(0x88B21d13E5d8E40109Ebaa00204C9868441710Fd);
+    IERC20 private _usdc = IERC20(0x88B21d13E5d8E40109Ebaa00204C9868441710Fd);
 
     string[] public openUUIDs;
     mapping(string => DLC) public dlcs;
@@ -45,7 +45,7 @@ contract DiscreetLog {
 
     struct Loan {
         uint256 id;
-        string dlc_uuid;
+        string dlcUUID;
         string status;
         uint256 vaultLoan; // the borrowed amount
         uint256 vaultCollateral; // btc deposit in sats
@@ -80,7 +80,7 @@ contract DiscreetLog {
     ) external returns (uint256) {
         loans[numLoans] = Loan({
             id: numLoans,
-            dlc_uuid: "",
+            dlcUUID: "",
             status: statuses[Status.NotReady],
             vaultLoan: vaultLoanAmount,
             vaultCollateral: btcDeposit,
@@ -167,7 +167,7 @@ contract DiscreetLog {
             creator: _creator
         });
         openUUIDs.push(_uuid);
-        loans[_nonce].dlc_uuid = _uuid;
+        loans[_nonce].dlcUUID = _uuid;
         loans[_nonce].status = statuses[Status.Ready];
         emit CreateDLCInternal(
             _uuid,
@@ -183,10 +183,10 @@ contract DiscreetLog {
     event SetStatusFunded(string uuid, string eventSource);
 
     function setStatusFunded(string memory _uuid) external {
-        Loan storage loan = loans[findLoanIndex(_uuid)];
+        Loan storage loan = loans[_findLoanIndex(_uuid)];
         loan.status = statuses[Status.Funded];
 
-        USDC.transfer(loan.owner, loan.vaultLoan * (10 ** 18));
+        _usdc.transfer(loan.owner, loan.vaultLoan * (10 ** 18));
         emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
@@ -200,7 +200,7 @@ contract DiscreetLog {
     //     (define-public (repay-loan (loan-id uint))
     //   (let (
     //     (loan (unwrap! (get-loan loan-id) err-unknown-loan-contract))
-    //     (uuid (unwrap! (get dlc_uuid loan) err-cant-unwrap))
+    //     (uuid (unwrap! (get dlcUUID loan) err-cant-unwrap))
     //     )
     //     (begin
     //       (map-set loans loan-id (merge loan { status: status-pre-repaid }))
@@ -213,14 +213,14 @@ contract DiscreetLog {
     function repayLoan(uint256 loanId) external {
         // User should have already called increaseAllowance to a suitable number
         Loan storage loan = loans[loanId];
-        closeDlc(loan.dlc_uuid);
-        
-        USDC.transferFrom(loan.owner, address(this), loan.vaultLoan * (10 ** 18));
+        closeDlc(loan.dlcUUID);
+
+        _usdc.transferFrom(loan.owner, address(this), loan.vaultLoan * (10 ** 18));
         loan.status = statuses[Status.Repaid];
     }
 
     function liquidateLoan(uint256 loanId) external {
-        closeDlcLiquidate(loans[loanId].dlc_uuid);
+        closeDlcLiquidate(loans[loanId].dlcUUID);
         loans[loanId].status = statuses[Status.Liquidated];
     }
 
@@ -232,7 +232,7 @@ contract DiscreetLog {
         );
 
         int256 payoutRatio = 0; //This is where the loan stuff goes
-        removeClosedDLC(findIndex(_uuid));
+        _removeClosedDLC(_findIndex(_uuid));
         emit CloseDLC(_uuid, payoutRatio, 0, block.timestamp);
     }
 
@@ -243,14 +243,14 @@ contract DiscreetLog {
             "Validation failed for closeDlc"
         );
 
-        (int256 price, uint256 timestamp) = getLatestPrice(
+        (int256 price, uint256 timestamp) = _getLatestPrice(
             address(0xA39434A63A52E749F02807ae27335515BA4b07F7)
         );
         dlc.closingPrice = price;
         // int256 payoutRatio = dlc.strikePrice > price ? int256(0) : int256(1);
         int256 payoutRatio = 0; //This is where the loan stuff goes
 
-        removeClosedDLC(findIndex(_uuid));
+        _removeClosedDLC(_findIndex(_uuid));
         emit CloseDLC(_uuid, payoutRatio, price, timestamp);
     }
 
@@ -271,7 +271,7 @@ contract DiscreetLog {
     //     return openUUIDs;
     // }
 
-    function getLatestPrice(address _feedAddress)
+    function _getLatestPrice(address _feedAddress)
         internal
         view
         returns (int256, uint256)
@@ -282,7 +282,7 @@ contract DiscreetLog {
     }
 
     // note: this remove not preserving the order
-    function removeClosedDLC(uint256 index) private returns (string[] memory) {
+    function _removeClosedDLC(uint256 index) private returns (string[] memory) {
         require(index < openUUIDs.length);
         // Move the last element to the deleted spot
         openUUIDs[index] = openUUIDs[openUUIDs.length - 1];
@@ -291,7 +291,7 @@ contract DiscreetLog {
         return openUUIDs;
     }
 
-    function findIndex(string memory _uuid) private view returns (uint256) {
+    function _findIndex(string memory _uuid) private view returns (uint256) {
         // find the recently closed uuid index
         for (uint256 i = 0; i < openUUIDs.length; i++) {
             if (
@@ -319,11 +319,11 @@ contract DiscreetLog {
         return ownedLoans;
     }
 
-    function findLoanIndex(string memory _uuid) private view returns (uint256) {
+    function _findLoanIndex(string memory _uuid) private view returns (uint256) {
         // find the recently closed uuid index
         for (uint256 i = 0; i < numLoans; i++) {
             if (
-                keccak256(abi.encodePacked(loans[i].dlc_uuid)) ==
+                keccak256(abi.encodePacked(loans[i].dlcUUID)) ==
                 keccak256(abi.encodePacked(_uuid))
             ) {
                 return i;
