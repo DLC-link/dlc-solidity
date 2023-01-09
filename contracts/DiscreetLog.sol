@@ -4,22 +4,21 @@ pragma solidity >=0.8.17;
 // import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
+import "./DLCLinkCompatible.sol";
 // import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract DiscreetLog {
-    string[] public openUUIDs;
-    uint256 _nonce = 0;
+    bytes32[] public openUUIDs;
+    uint256 private _localNonce = 0;
 
     struct DLC {
-        string uuid;
-        uint256 closingTime;
-        int256 closingPrice;
+        bytes32 uuid;
         uint256 actualClosingTime;
         uint256 emergencyRefundTime;
         address creator;
+        uint256 nonce;
     }
-    mapping(string => DLC) public dlcs;
+    mapping(bytes32 => DLC) public dlcs;
 
     constructor() {}
 
@@ -31,50 +30,56 @@ contract DiscreetLog {
         bytes32 uuid,
         address creator,
         uint256 emergencyRefundTime,
+        uint256 nonce,
         string eventSource
     );
 
     // TODO: there is some confusion about tx.origin and msg.sender in my head.
     // We should also probably store the msg.sender, as it will be used to call back to in the post-create-dlc phase, if that is doable. Protocol contract should implement some interface (like a trait in clarity). We should store contract references on DLC creation. And call back into them during any callbacks.
-    function createDLC(uint256 _emergencyRefundTime) public returns (bytes32) {
-        bytes32 _uuid = _generateUUID(tx.origin, ++_nonce);
+    function createDLC(uint256 _emergencyRefundTime, uint256 _nonce) public returns (bytes32) {
+        // We cap ERT in about 3110 years just to be safe
+        require(_emergencyRefundTime < 99999999999, 'Emergency Refund Time is too high');
+
+        bytes32 _uuid = _generateUUID(tx.origin, ++_localNonce);
         emit CreateDLC(
             _uuid,
             msg.sender,
             _emergencyRefundTime,
+            _nonce,
             "dlclink:create-dlc:v0"
         );
         return _uuid;
     }
 
     event PostCreateDLC(
-        string uuid,
-        uint256 emergencyRefundTime,
+        bytes32 uuid,
         address creator,
+        uint256 emergencyRefundTime,
+        uint256 nonce,
         string eventSource
     );
 
     function postCreateDLC(
-        string memory _uuid,
+        bytes32 _uuid,
         uint256 _emergencyRefundTime,
+        uint256 _nonce,
         address _creator
     ) external {
         dlcs[_uuid] = DLC({
             uuid: _uuid,
-            closingPrice: 0,
-            closingTime: _emergencyRefundTime,
             actualClosingTime: 0,
             emergencyRefundTime: _emergencyRefundTime,
+            nonce: _nonce,
             creator: _creator
         });
         openUUIDs.push(_uuid);
-        // loans[_nonce].dlcUUID = _uuid;
-        // loans[_nonce].status = statuses[Status.Ready];
+        DLCLinkCompatible(_creator).postCreateDLCHandler(_nonce);
         emit PostCreateDLC(
             _uuid,
-            _emergencyRefundTime,
             _creator,
-            "dlclink:create-dlc-internal:v0"
+            _emergencyRefundTime,
+            _nonce,
+            "dlclink:post-create-dlc:v0"
         );
     }
 
@@ -230,7 +235,7 @@ contract DiscreetLog {
     //     revert("Not Found"); // should not happen just in case
     // }
 
-    function getAllUUIDs() public view returns (string[] memory) {
+    function getAllUUIDs() public view returns (bytes32[] memory) {
         return openUUIDs;
     }
 }
