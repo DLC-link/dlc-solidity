@@ -1,4 +1,4 @@
-// // SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
 // import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
@@ -34,8 +34,6 @@ contract DiscreetLog {
         string eventSource
     );
 
-    // TODO: there is some confusion about tx.origin and msg.sender in my head.
-    // We should also probably store the msg.sender, as it will be used to call back to in the post-create-dlc phase, if that is doable. Protocol contract should implement some interface (like a trait in clarity). We should store contract references on DLC creation. And call back into them during any callbacks.
     function createDLC(uint256 _emergencyRefundTime, uint256 _nonce) public returns (bytes32) {
         // We cap ERT in about 3110 years just to be safe
         require(_emergencyRefundTime < 99999999999, 'Emergency Refund Time is too high');
