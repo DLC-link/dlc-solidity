@@ -28,15 +28,20 @@ struct Loan {
     address owner; // the account owning this loan
 }
 
+// TODO: setup access control, which will also change the tests
+
 contract ProtocolContract is DLCLinkCompatible {
     DiscreetLog private _dlcManager = new DiscreetLog();
-    IERC20 private _usdc = IERC20(0x88B21d13E5d8E40109Ebaa00204C9868441710Fd);
+    IERC20 private _usdc;
 
     uint256 public numLoans = 0;
     mapping(uint256 => Loan) public loans;
+    mapping(bytes32 => uint256) public loanIDsByUUID;
     mapping(address => uint256) public loansPerAddress;
 
-    constructor() {}
+    constructor(address _usdcAddress) {
+      _usdc = IERC20(_usdcAddress);
+    }
 
     event StatusUpdate(
       Status previousStatus,
@@ -74,6 +79,8 @@ contract ProtocolContract is DLCLinkCompatible {
             owner: msg.sender
         });
 
+        loanIDsByUUID[_uuid] = numLoans;
+
         emit SetupLoan(
             _uuid,
             btcDeposit,
@@ -92,16 +99,28 @@ contract ProtocolContract is DLCLinkCompatible {
         return (numLoans - 1);
     }
 
-    function postCreateDLCHandler(uint256 _nonce) public {
-      require(loans[_nonce].dlcUUID != 0, "Invalid loan nonce");
-      require(loans[_nonce].status != Status.Ready, "Loan is already ready");
+    function postCreateDLCHandler(bytes32 _uuid) public {
+        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, "No such loan");
+        require(loans[loanIDsByUUID[_uuid]].status != Status.Ready, "Loan is already ready");
 
-      emit StatusUpdate(loans[_nonce].status, Status.Ready);
-      loans[_nonce].status = Status.Ready;
+        emit StatusUpdate(loans[loanIDsByUUID[_uuid]].status, Status.Ready);
+        loans[loanIDsByUUID[_uuid]].status = Status.Ready;
+    }
+
+    function setStatusFunded(bytes32 _uuid) public {
+        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, "No such loan");
+        require(loans[loanIDsByUUID[_uuid]].status != Status.Funded, "Loan is already funded");
+
+        emit StatusUpdate(loans[loanIDsByUUID[_uuid]].status, Status.Funded);
+        loans[loanIDsByUUID[_uuid]].status = Status.Funded;
     }
 
     function getLoan(uint256 _nonce) public view returns(Loan memory) {
-      return loans[_nonce];
+        return loans[_nonce];
+    }
+
+    function getLoanByUUID(bytes32 _uuid) public view returns(Loan memory) {
+        return loans[loanIDsByUUID[_uuid]];
     }
 
 }

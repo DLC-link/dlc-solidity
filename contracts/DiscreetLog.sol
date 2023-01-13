@@ -5,7 +5,9 @@ pragma solidity >=0.8.17;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./DLCLinkCompatible.sol";
-// import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+
+// TODO: add access control using openzeppelin
 
 contract DiscreetLog {
     bytes32[] public openUUIDs;
@@ -24,6 +26,10 @@ contract DiscreetLog {
 
     function _generateUUID(address sender, uint256 nonce) private view returns (bytes32) {
         return keccak256(abi.encodePacked(sender, nonce, blockhash(block.number - 1)));
+    }
+
+    function getDLC(bytes32 _uuid) public view returns(DLC memory) {
+      return dlcs[_uuid];
     }
 
     event CreateDLC(
@@ -71,7 +77,7 @@ contract DiscreetLog {
             creator: _creator
         });
         openUUIDs.push(_uuid);
-        DLCLinkCompatible(_creator).postCreateDLCHandler(_nonce);
+        DLCLinkCompatible(_creator).postCreateDLCHandler(_uuid);
         emit PostCreateDLC(
             _uuid,
             _creator,
@@ -81,15 +87,15 @@ contract DiscreetLog {
         );
     }
 
-    // event SetStatusFunded(string uuid, string eventSource);
+    event SetStatusFunded(
+        bytes32 uuid,
+        string eventSource
+    );
 
-    // function setStatusFunded(string memory _uuid) external {
-    //     Loan storage loan = loans[_findLoanIndex(_uuid)];
-    //     loan.status = statuses[Status.Funded];
-
-    //     _usdc.transfer(loan.owner, loan.vaultLoan * (10 ** 18));
-    //     emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
-    // }
+    function setStatusFunded(bytes32 _uuid) external {
+        DLCLinkCompatible(dlcs[_uuid].creator).setStatusFunded(_uuid);
+        emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
+    }
 
     // event CloseDLC(
     //     string uuid,

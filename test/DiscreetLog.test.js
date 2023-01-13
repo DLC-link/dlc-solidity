@@ -16,14 +16,25 @@ describe('DiscreetLog', () => {
   let dlcManager;
   let protocolContract;
   let emergencyRefundTime;
+  let deployer, protocol, user;
 
   beforeEach(async () => {
     emergencyRefundTime = 1988622969;
 
+    // Setup accounts
+    accounts = await ethers.getSigners();
+    deployer = accounts[0];
+    protocol = accounts[1];
+    user = accounts[2];
+
     const DiscreetLog = await ethers.getContractFactory('DiscreetLog');
     dlcManager = await DiscreetLog.deploy();
-    const ProtocolContract = await ethers.getContractFactory('ProtocolContract');
-    protocolContract = await ProtocolContract.deploy();
+    await dlcManager.deployTransaction.wait();
+
+    const ProtocolContract = await ethers.getContractFactory('ProtocolContract', protocol);
+    // not really the usdc address, but we aren't testing borrow-repay in this file
+    protocolContract = await ProtocolContract.deploy('0xe7f1725e7734ce288f8367e1bb143e90bb3f0512');
+    await protocolContract.deployTransaction.wait();
   })
 
   describe('createDLC', () => {
@@ -51,11 +62,14 @@ describe('DiscreetLog', () => {
     })
   })
 
+  // TODO:
+  // - access control checking
+  // - can't call it twice on same uuid
   describe('postCreateDLC', async () => {
     let uuid, nonce, owner, creator;
 
     beforeEach(async () => {
-      const setupLoanTx = await protocolContract.setupLoan(1, 14000, 1000, emergencyRefundTime);
+      const setupLoanTx = await protocolContract.connect(user).setupLoan(1, 14000, 1000, emergencyRefundTime);
       const txReceipt = await setupLoanTx.wait();
 
       const setupLoanEvent = txReceipt.events.find(event => event.event == 'SetupLoan');
@@ -78,20 +92,94 @@ describe('DiscreetLog', () => {
     })
 
     it('calls back into the provided protocol contract', async () => {
+      // check if postCreateDLCHandler was called successfully
+      // by checking if loan status has been updated
+      let loan = await protocolContract.getLoan(nonce);
+
+      // Not Ready before tx
+      expect(loan.status).to.equal(Status.NotReady);
+
       const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
       const txReceipt2 = await postCreateTx.wait();
 
-      // check if postCreateDLCHandler was called successfully
-      // by checking if its status has been updated
-      const loan = await protocolContract.getLoan(nonce);
-
+      // Ready after tx
+      loan = await protocolContract.getLoan(nonce);
       expect(loan.status).to.equal(Status.Ready);
       expect(loan.owner).to.equal(owner);
       expect(loan.dlcUUID).to.equal(uuid);
 
     })
+
+    it('creates a DLC object', async () => {
+      // Before tx
+      let dlc = await dlcManager.getDLC(uuid);
+      expect(dlc.uuid).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+
+      const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const txReceipt2 = await postCreateTx.wait();
+
+      // After tx
+      dlc = await dlcManager.getDLC(uuid);
+
+      expect(dlc.uuid).to.not.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+      expect(dlc.uuid).to.equal(uuid);
+      expect(dlc.emergencyRefundTime).to.equal(emergencyRefundTime);
+      expect(dlc.creator).to.equal(creator);
+      expect(dlc.nonce).to.equal(nonce);
+    })
+
+    it('adds the UUID to the openUUIDs array', async () => {
+      let openUUIDs = await dlcManager.getAllUUIDs();
+      expect(openUUIDs).to.be.empty;
+
+      const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const txReceipt2 = await postCreateTx.wait();
+
+      openUUIDs = await dlcManager.getAllUUIDs();
+      expect(openUUIDs).to.contain(uuid);
+    })
+
+
   })
 
+  describe('setStatusFunded', async () => {
+    let uuid, nonce, owner, creator;
 
+    beforeEach(async () => {
+      const setupLoanTx = await protocolContract.connect(user).setupLoan(1, 14000, 1000, emergencyRefundTime);
+      const txReceipt = await setupLoanTx.wait();
+
+      const setupLoanEvent = txReceipt.events.find(event => event.event == 'SetupLoan');
+      uuid = setupLoanEvent.args.dlcUUID;
+      nonce = setupLoanEvent.args.numLoans;
+      owner = setupLoanEvent.args.owner // the user, not the protocol-contract
+      creator = setupLoanEvent.address; // the protocol-contract
+
+      const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      await postCreateTx.wait();
+    })
+
+    it('calls back into the creator contract', async () => {
+      let loan = await protocolContract.getLoan(nonce);
+      expect(loan.status).to.not.equal(Status.Funded);
+
+      const setFundedTx = await dlcManager.setStatusFunded(uuid);
+      await setFundedTx.wait();
+
+      // Ready after tx
+      loan = await protocolContract.getLoan(nonce);
+      expect(loan.status).to.equal(Status.Funded);
+    })
+
+    it('emits an event with correct data', async () => {
+      const setFundedTx = await dlcManager.setStatusFunded(uuid);
+      const txReceipt = await setFundedTx.wait();
+      const event = txReceipt.events.find(event => event.event == 'SetStatusFunded');
+
+      expect(event.args.uuid).to.equal(uuid);
+      expect(event.args.eventSource).to.equal('dlclink:set-status-funded:v0');
+    })
+
+  })
 
 })

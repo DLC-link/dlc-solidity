@@ -2,5 +2,6 @@
 pragma solidity >=0.8.17;
 
 interface DLCLinkCompatible {
-  function postCreateDLCHandler(uint256 _nonce) external;
+  function postCreateDLCHandler(bytes32 uuid) external;
+  function setStatusFunded(bytes32 uuid) external;
 }
