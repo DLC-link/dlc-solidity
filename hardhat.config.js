@@ -2,6 +2,8 @@
 
 require("@nomicfoundation/hardhat-toolbox");
 require('@openzeppelin/hardhat-upgrades');
+require('hardhat-ethernal');
+require('dotenv').config();
 
 module.exports = {
   defaultNetwork: 'hardhat',
@@ -21,4 +23,8 @@ module.exports = {
       },
     },
   },
+  ethernal: {
+    email: process.env.ETHERNAL_EMAIL,
+    password: process.env.ETHERNAL_PASSWORD
+  }
 };
