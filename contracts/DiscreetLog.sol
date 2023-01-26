@@ -28,7 +28,7 @@ contract DiscreetLog {
         return keccak256(abi.encodePacked(sender, nonce, blockhash(block.number - 1)));
     }
 
-    function getDLC(bytes32 _uuid) public view returns(DLC memory) {
+    function getDLC(bytes32 _uuid) public view returns (DLC memory) {
       return dlcs[_uuid];
     }
 

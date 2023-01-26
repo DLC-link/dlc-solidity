@@ -1,6 +1,15 @@
 # Dev notes:
 Currently `npm i` only works with the --legacy-peer-deps flag, because of a dependency bug in: https://github.com/tryethernal/hardhat-ethernal/issues/22
 
+To run a local hardhat node:
+```bash
+$ npx hardhat node
+# To run a deployment script:
+$ npx hardhat run --network localhost scripts/deploy-all-ethernal.js
+```
+
+This will use the `ethernal` plugin and on `https://app.tryethernal.com/blocks` after login/connection you can browse the chain in a visual explorer.
+
 # DLC Manager Smart Contract
 
 This smart contract is the interface for creating and closing DLCs via the DLC.Link infrastructure. For cases where the DLC requires market prices of assets (e.g. BTC price) this contract is responsible for fetching that (via Chainlink) as part of it's closing criteria.

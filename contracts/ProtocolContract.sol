@@ -43,11 +43,6 @@ contract ProtocolContract is DLCLinkCompatible {
       _usdc = IERC20(_usdcAddress);
     }
 
-    event StatusUpdate(
-      Status previousStatus,
-      Status newStatus
-    );
-
     event SetupLoan(
         bytes32 dlcUUID,
         uint256 btcDeposit,
@@ -91,7 +86,7 @@ contract ProtocolContract is DLCLinkCompatible {
             msg.sender
         );
 
-        emit StatusUpdate(Status.None, Status.NotReady);
+        emit StatusUpdate(numLoans, _uuid, Status.NotReady);
 
         loansPerAddress[msg.sender]++;
         numLoans++;
@@ -99,27 +94,47 @@ contract ProtocolContract is DLCLinkCompatible {
         return (numLoans - 1);
     }
 
+
+    event StatusUpdate(
+      uint256 loanid,
+      bytes32 dlcUUID,
+      Status newStatus
+    );
+
+    function _updateStatus(uint256 _loanID, Status _status) internal {
+        Loan storage _loan = loans[_loanID];
+        require(_loan.status != _status, "Status already set");
+        _loan.status = _status;
+        require(_loan.status == _status, "Failed to set status");
+        emit StatusUpdate(_loanID, _loan.dlcUUID, _status);
+    }
+
     function postCreateDLCHandler(bytes32 _uuid) public {
         require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, "No such loan");
-        require(loans[loanIDsByUUID[_uuid]].status != Status.Ready, "Loan is already ready");
-
-        emit StatusUpdate(loans[loanIDsByUUID[_uuid]].status, Status.Ready);
-        loans[loanIDsByUUID[_uuid]].status = Status.Ready;
+        _updateStatus(loanIDsByUUID[_uuid], Status.Ready);
     }
 
     function setStatusFunded(bytes32 _uuid) public {
         require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, "No such loan");
-        require(loans[loanIDsByUUID[_uuid]].status != Status.Funded, "Loan is already funded");
-
-        emit StatusUpdate(loans[loanIDsByUUID[_uuid]].status, Status.Funded);
-        loans[loanIDsByUUID[_uuid]].status = Status.Funded;
+        _updateStatus(loanIDsByUUID[_uuid], Status.Funded);
     }
 
-    function getLoan(uint256 _nonce) public view returns(Loan memory) {
-        return loans[_nonce];
+    function borrow(uint256 _loanID, uint256 _amount) public {
+      Loan memory _loan = loans[_loanID];
+      require(_loan.owner == msg.sender, 'Unathorized');
+      require(_loan.status == Status.Funded, 'Loan not funded');
+      // Other requires:
+      //  - current contract should have enough money,
+      //  - user shouldnt be able to overborrow (based on collateral value)
+      // require(_loan.vaultLoan ... )
+      _usdc.transfer(_loan.owner, _amount);
     }
 
-    function getLoanByUUID(bytes32 _uuid) public view returns(Loan memory) {
+    function getLoan(uint256 _loanID) public view returns (Loan memory) {
+        return loans[_loanID];
+    }
+
+    function getLoanByUUID(bytes32 _uuid) public view returns (Loan memory) {
         return loans[loanIDsByUUID[_uuid]];
     }
 

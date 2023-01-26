@@ -32,15 +32,15 @@ async function main() {
     address: usdc.address
   });
 
-    // Sample Protocol Contract deployment
-    const ProtocolContract = await hre.ethers.getContractFactory('ProtocolContract', protocol);
-    const protocolContract = await ProtocolContract.deploy(usdc.address);
-    await protocolContract.deployed();
+  // Sample Protocol Contract deployment
+  const ProtocolContract = await hre.ethers.getContractFactory('ProtocolContract', protocol);
+  const protocolContract = await ProtocolContract.deploy(usdc.address);
+  await protocolContract.deployed();
 
-    await hre.ethernal.push({
-      name: 'ProtocolContract',
-      address: protocolContract.address
-    });
+  await hre.ethernal.push({
+    name: 'ProtocolContract',
+    address: protocolContract.address
+  });
 
 }
 
