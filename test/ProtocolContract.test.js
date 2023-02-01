@@ -42,7 +42,19 @@ describe('ProtocolContract', () => {
   });
 
   describe('borrow', () => {
-    it('')
+
+    it('fails if not called by the owner of the loan', async () => {
+      await expect(protocolContract.borrow(123, 10)).to.be.revertedWith(
+        "Unathorized"
+      );
+    })
+
+    // TODO: this should be called with the correct acc
+    it('fails if loan does not exist', async () => {
+      await expect(protocolContract.borrow(123, 10)).to.be.revertedWith(
+        "Loan does not exist"
+      );
+    })
   })
 
 })
