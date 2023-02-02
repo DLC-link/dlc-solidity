@@ -29,6 +29,8 @@ describe('ProtocolContract', () => {
     const ProtocolContract = await ethers.getContractFactory('ProtocolContract', protocol);
     protocolContract = await ProtocolContract.deploy(usdc.address);
     await protocolContract.deployTransaction.wait();
+
+    await usdc.mint(protocolContract.address, 100000000);
   })
 
   it('is deployed for the tests', async () => {
@@ -36,25 +38,46 @@ describe('ProtocolContract', () => {
   })
 
   describe('setupLoan', () => {
-    it('emits an event with loan data', ()=>{});
-    it('emits a StatusUpdate event', () => {});
-    it('sets up a new loan object with the correct status', () => {});
+    xit('emits an event with loan data', ()=>{});
+    xit('emits a StatusUpdate event', () => {});
+    xit('sets up a new loan object with the correct status', () => {});
   });
 
   describe('borrow', () => {
 
-    it('fails if not called by the owner of the loan', async () => {
+    it('reverts if not called by the owner of the loan', async () => {
       await expect(protocolContract.borrow(123, 10)).to.be.revertedWith(
         "Unathorized"
       );
     })
 
-    // TODO: this should be called with the correct acc
-    // it('fails if loan does not exist', async () => {
-    //   await expect(protocolContract.borrow(123, 10)).to.be.revertedWith(
-    //     "Loan does not exist"
-    //   );
-    // })
+    it('reverts if loan is not funded', async () => {
+      const tx = await protocolContract.connect(user).setupLoan(0, 0, 0, 0);
+      const txF = await tx.wait();
+      await expect(protocolContract.connect(user).borrow(0, 10)).to.be.revertedWith(
+        "Loan not funded"
+      );
+    })
+
+    xit('reverts if user is undercollaterized', async () => {
+
+    })
+
+    it('transfers the amount to the user', async () => {
+      const tx = await protocolContract.connect(user).setupLoan(0, 0, 0, 0);
+      const txF = await tx.wait();
+      const tx2 = await protocolContract.connect(protocol).setStatusFunded(txF.events[1].args.dlcUUID);
+      const txF2 = await tx2.wait();
+
+      const amount = 1000;
+
+      await expect(protocolContract.connect(user).borrow(0, amount)).to.changeTokenBalances(
+        usdc,
+        [protocolContract, user],
+        [-amount, amount]
+      );
+    })
+
   })
 
 })

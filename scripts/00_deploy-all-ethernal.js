@@ -42,6 +42,8 @@ async function main() {
     address: protocolContract.address
   });
 
+  await usdc.mint(protocolContract.address, 100000000);
+
 }
 
 main().catch((error) => {

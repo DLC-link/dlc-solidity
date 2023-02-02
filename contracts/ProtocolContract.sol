@@ -120,13 +120,11 @@ contract ProtocolContract is DLCLinkCompatible {
     }
 
     function borrow(uint256 _loanID, uint256 _amount) public {
-      Loan memory _loan = loans[_loanID];
+      Loan storage _loan = loans[_loanID];
       require(_loan.owner == msg.sender, 'Unathorized');
-      require(_loan.dlcUUID != 0, 'Loan does not exist');
       require(_loan.status == Status.Funded, 'Loan not funded');
       // Other requires:
       //  - current contract should have enough money,
-      // - loan should exist
       //  - user shouldnt be able to overborrow (based on collateral value)
       // require(_loan.vaultLoan ... )
       _usdc.transfer(_loan.owner, _amount);
