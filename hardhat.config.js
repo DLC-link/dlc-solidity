@@ -4,7 +4,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require('@openzeppelin/hardhat-upgrades');
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@nomiclabs/hardhat-solhint");
-require('hardhat-ethernal');
+// require('hardhat-ethernal');
 require('dotenv').config();
 
 module.exports = {
@@ -25,8 +25,8 @@ module.exports = {
       },
     },
   },
-  ethernal: {
-    email: process.env.ETHERNAL_EMAIL,
-    password: process.env.ETHERNAL_PASSWORD
-  }
+  // ethernal: {
+  //   email: process.env.ETHERNAL_EMAIL,
+  //   password: process.env.ETHERNAL_PASSWORD
+  // }
 };
