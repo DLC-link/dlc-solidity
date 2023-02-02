@@ -2,6 +2,7 @@
 pragma solidity >=0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./DiscreetLog.sol";
 import "./DLCLinkCompatible.sol";
 
@@ -31,6 +32,7 @@ struct Loan {
 // TODO: setup access control, which will also change the tests
 
 contract ProtocolContract is DLCLinkCompatible {
+    using SafeMath for uint256;
     DiscreetLog private _dlcManager = new DiscreetLog();
     IERC20 private _usdc;
 
@@ -123,11 +125,19 @@ contract ProtocolContract is DLCLinkCompatible {
       Loan storage _loan = loans[_loanID];
       require(_loan.owner == msg.sender, 'Unathorized');
       require(_loan.status == Status.Funded, 'Loan not funded');
-      // Other requires:
-      //  - current contract should have enough money,
+      // TODO:
       //  - user shouldnt be able to overborrow (based on collateral value)
       // require(_loan.vaultLoan ... )
       _usdc.transfer(_loan.owner, _amount);
+      _loan.vaultLoan = _loan.vaultLoan.add(_amount);
+    }
+
+    function repay(uint256 _loanID, uint256 _amount) public {
+        Loan storage _loan = loans[_loanID];
+        require(_loan.owner == msg.sender, 'Unathorized');
+        require(_loan.vaultLoan >= _amount, 'Amount too large');
+        _usdc.transferFrom(_loan.owner, address(this), _amount);
+        _loan.vaultLoan = _loan.vaultLoan.sub(_amount);
     }
 
     function getLoan(uint256 _loanID) public view returns (Loan memory) {
