@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./DiscreetLog.sol";
@@ -33,16 +34,17 @@ struct Loan {
 
 contract ProtocolContract is DLCLinkCompatible {
     using SafeMath for uint256;
-    DiscreetLog private _dlcManager = new DiscreetLog();
+    DiscreetLog private _dlcManager;
     IERC20 private _usdc;
 
-    uint256 public numLoans = 0;
+    uint256 public index = 0;
     mapping(uint256 => Loan) public loans;
     mapping(bytes32 => uint256) public loanIDsByUUID;
     mapping(address => uint256) public loansPerAddress;
 
-    constructor(address _usdcAddress) {
-      _usdc = IERC20(_usdcAddress);
+    constructor(address _dlcManagerAddress, address _usdcAddress) {
+        _dlcManager = DiscreetLog(_dlcManagerAddress);
+        _usdc = IERC20(_usdcAddress);
     }
 
     event SetupLoan(
@@ -51,7 +53,7 @@ contract ProtocolContract is DLCLinkCompatible {
         uint256 liquidationRatio,
         uint256 liquidationFee,
         uint256 emergencyRefundTime,
-        uint256 numLoans,
+        uint256 index,
         address owner
     );
 
@@ -62,10 +64,10 @@ contract ProtocolContract is DLCLinkCompatible {
         uint256 emergencyRefundTime
     ) external returns (uint256) {
         // Calling the dlc-manager contract & getting a uuid
-        bytes32 _uuid = _dlcManager.createDLC(emergencyRefundTime, numLoans);
+        bytes32 _uuid = _dlcManager.createDLC(emergencyRefundTime, index);
 
-        loans[numLoans] = Loan({
-            id: numLoans,
+        loans[index] = Loan({
+            id: index,
             dlcUUID: _uuid,
             status: Status.NotReady,
             vaultLoan: 0,
@@ -76,7 +78,7 @@ contract ProtocolContract is DLCLinkCompatible {
             owner: msg.sender
         });
 
-        loanIDsByUUID[_uuid] = numLoans;
+        loanIDsByUUID[_uuid] = index;
 
         emit SetupLoan(
             _uuid,
@@ -84,16 +86,16 @@ contract ProtocolContract is DLCLinkCompatible {
             liquidationRatio,
             liquidationFee,
             emergencyRefundTime,
-            numLoans,
+            index,
             msg.sender
         );
 
-        emit StatusUpdate(numLoans, _uuid, Status.NotReady);
+        emit StatusUpdate(index, _uuid, Status.NotReady);
 
         loansPerAddress[msg.sender]++;
-        numLoans++;
+        index++;
 
-        return (numLoans - 1);
+        return (index - 1);
     }
 
 
@@ -140,6 +142,56 @@ contract ProtocolContract is DLCLinkCompatible {
         _loan.vaultLoan = _loan.vaultLoan.sub(_amount);
     }
 
+    function closeLoan(uint256 _loanID, uint256 _payoutRatio) public {
+        Loan storage _loan = loans[_loanID];
+        require(_loan.owner == msg.sender, 'Unathorized');
+        require(_loan.vaultLoan == 0, 'Loan not repaid');
+        // Regular, 0 outcome closing
+        _updateStatus(_loanID, Status.PreRepaid);
+        _dlcManager.closeDLC(_loan.dlcUUID, _payoutRatio);
+    }
+
+    function postCloseDLCHandler(bytes32 _uuid) external {
+        // Access control? dlc-manager?
+        Loan storage _loan = loans[loanIDsByUUID[_uuid]];
+        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, 'No such loan');
+        require(_loan.status == Status.PreRepaid || _loan.status == Status.PreLiquidated, 'Invalid Loan Status');
+        _updateStatus(_loan.id, _loan.status == Status.PreRepaid ? Status.Repaid : Status.Liquidated);
+    }
+
+    function attemptLiquidate(uint256 _loanID) public {
+        // Access control?
+        _updateStatus(_loanID, Status.PreLiquidated);
+        _dlcManager.getBTCPriceWithCallback(loans[_loanID].dlcUUID);
+    }
+
+    function getBtcPriceCallback(bytes32 _uuid, int256 _price, uint256 _timestamp) external {
+
+        // TODO:
+        // require(checkLiquidation(loanIDsByUUID[_uuid], _price), 'Does Not Need Liquidation');
+
+        uint payoutRatio = calculatePayoutRatio(loanIDsByUUID[_uuid], _price);
+
+        closeLoan(loanIDsByUUID[_uuid], payoutRatio);
+    }
+
+    function checkLiquidation(uint256 _loanID, int256 _price) public view returns (bool) {
+        // TODO:
+        // _getCollateralValue(_loanID, _price) .....
+        return true;
+    }
+
+    function calculatePayoutRatio(uint256 _loanID, int256 _price) public view returns (uint16) {
+        // Should return a number between 0-100.00
+        // TODO:
+        return 0;
+    }
+
+    function _getCollateralValue(uint256 _loanID, int256 _price) internal view returns (uint256) {
+        // TODO:
+        return loans[_loanID].vaultCollateral * uint256(_price);
+    }
+
     function getLoan(uint256 _loanID) public view returns (Loan memory) {
         return loans[_loanID];
     }
@@ -147,5 +199,44 @@ contract ProtocolContract is DLCLinkCompatible {
     function getLoanByUUID(bytes32 _uuid) public view returns (Loan memory) {
         return loans[loanIDsByUUID[_uuid]];
     }
+
+    // function _getLatestPrice(address _feedAddress)
+    //     internal
+    //     view
+    //     returns (int256, uint256)
+    // {
+    //     AggregatorV3Interface priceFeed = AggregatorV3Interface(_feedAddress);
+    //     (, int256 price, , uint256 timeStamp, ) = priceFeed.latestRoundData();
+    //     return (price, timeStamp);
+    // }
+
+    function getAllLoansForAddress(address _addy)
+        public
+        view
+        returns (Loan[] memory)
+    {
+        Loan[] memory ownedLoans = new Loan[](loansPerAddress[_addy]);
+        uint256 j = 0;
+        for (uint256 i = 0; i < index; i++) {
+            if (loans[i].owner == _addy) {
+                ownedLoans[j++] = loans[i];
+            }
+        }
+        return ownedLoans;
+    }
+
+    // function _findLoanIndex(string memory _uuid) private view returns (uint256) {
+    //     // find the recently closed uuid index
+    //     for (uint256 i = 0; i < numLoans; i++) {
+    //         if (
+    //             keccak256(abi.encodePacked(loans[i].dlcUUID)) ==
+    //             keccak256(abi.encodePacked(_uuid))
+    //         ) {
+    //             return i;
+    //         }
+    //     }
+    //     revert("Not Found"); // should not happen just in case
+    // }
+
 
 }

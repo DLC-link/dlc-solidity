@@ -7,22 +7,31 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./DLCLinkCompatible.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-// TODO: add access control using openzeppelin
 
-contract DiscreetLog {
+contract DiscreetLog is AccessControl {
+    bytes32 public constant DLC_ADMIN_ROLE = keccak256("DLC_ADMIN_ROLE");
     bytes32[] public openUUIDs;
     uint256 private _localNonce = 0;
+    address public btcPriceFeedAddress;
 
     struct DLC {
         bytes32 uuid;
-        uint256 actualClosingTime;
         uint256 emergencyRefundTime;
         address creator;
+        uint256 outcome;
         uint256 nonce;
     }
     mapping(bytes32 => DLC) public dlcs;
 
-    constructor() {}
+    constructor(address _adminAddress, address _btcPriceFeedAddress) {
+        // set the admin of the contract
+        _setupRole(DLC_ADMIN_ROLE, _adminAddress);
+        // Grant the contract deployer the default admin role: it will be able
+        // to grant and revoke any roles in the future if required
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
+        btcPriceFeedAddress = _btcPriceFeedAddress;
+    }
 
     function _generateUUID(address sender, uint256 nonce) private view returns (bytes32) {
         return keccak256(abi.encodePacked(sender, nonce, blockhash(block.number - 1)));
@@ -40,6 +49,7 @@ contract DiscreetLog {
         string eventSource
     );
 
+// NOTE: creator (msg.sender) must be a DLCLinkCompatible contract. tx.origin can be a user address
     function createDLC(uint256 _emergencyRefundTime, uint256 _nonce) public returns (bytes32) {
         // We cap ERT in about 3110 years just to be safe
         require(_emergencyRefundTime < 99999999999, 'Emergency Refund Time is too high');
@@ -68,12 +78,12 @@ contract DiscreetLog {
         uint256 _emergencyRefundTime,
         uint256 _nonce,
         address _creator
-    ) external {
+    ) external onlyRole(DLC_ADMIN_ROLE) {
         dlcs[_uuid] = DLC({
             uuid: _uuid,
-            actualClosingTime: 0,
             emergencyRefundTime: _emergencyRefundTime,
             nonce: _nonce,
+            outcome: 0,
             creator: _creator
         });
         openUUIDs.push(_uuid);
@@ -92,154 +102,83 @@ contract DiscreetLog {
         string eventSource
     );
 
-    function setStatusFunded(bytes32 _uuid) external {
+    function setStatusFunded(bytes32 _uuid) external onlyRole(DLC_ADMIN_ROLE) {
         DLCLinkCompatible(dlcs[_uuid].creator).setStatusFunded(_uuid);
         emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
-    // event CloseDLC(
-    //     string uuid,
-    //     int256 payoutRatio,
-    //     int256 closingPrice,
-    //     uint256 actualClosingTime
-    // );
+    event CloseDLC(
+        bytes32 uuid,
+        uint256 outcome,
+        address creator,
+        string eventSource
+    );
 
-    // //     (define-public (repay-loan (loan-id uint))
-    // //   (let (
-    // //     (loan (unwrap! (get-loan loan-id) err-unknown-loan-contract))
-    // //     (uuid (unwrap! (get dlcUUID loan) err-cant-unwrap))
-    // //     )
-    // //     (begin
-    // //       (map-set loans loan-id (merge loan { status: status-pre-repaid }))
-    // //       (print { uuid: uuid, status: status-pre-repaid })
-    // //       (unwrap! (ok (as-contract (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.dlc-manager-loan-v0 close-dlc uuid))) err-contract-call-failed)
-    // //     )
-    // //   )
-    // // )
+    function closeDLC(bytes32 _uuid, uint256 _outcome) public {
+        // Access control?
+        DLC storage _dlc = dlcs[_uuid];
+        require(_dlc.uuid != 0, 'Unknown DLC');
+        _dlc.outcome = _outcome;    // Saving requested outcome
+        emit CloseDLC(_uuid, _outcome, dlcs[_uuid].creator, "dlclink:close-dlc:v0");
+    }
 
-    // function repayLoan(uint256 loanId) external {
-    //     // User should have already called increaseAllowance to a suitable number
-    //     Loan storage loan = loans[loanId];
-    //     closeDlc(loan.dlcUUID);
+    event PostCloseDLC(
+        bytes32 uuid,
+        uint256 outcome,
+        uint256 actualClosingTime,
+        string eventSource
+    );
 
-    //     _usdc.transferFrom(loan.owner, address(this), loan.vaultLoan * (10 ** 18));
-    //     loan.status = statuses[Status.Repaid];
-    // }
+    function postCloseDLC(bytes32 _uuid, uint256 _oracleOutcome) external onlyRole(DLC_ADMIN_ROLE) {
+        DLC storage _dlc = dlcs[_uuid];
+        require(_dlc.uuid != 0, 'Unknown DLC');
+        require(_dlc.outcome == _oracleOutcome, 'Different Outcomes');
 
-    // function liquidateLoan(uint256 loanId) external {
-    //     closeDlcLiquidate(loans[loanId].dlcUUID);
-    //     loans[loanId].status = statuses[Status.Liquidated];
-    // }
+        _removeClosedDLC(_findIndex(_uuid));
+        DLCLinkCompatible(_dlc.creator).postCloseDLCHandler(_uuid);
+        emit PostCloseDLC(_uuid, _oracleOutcome, block.timestamp, "dlclink:post-close-dlc:v0");
+    }
 
-    // function closeDlc(string memory _uuid) public {
-    //     DLC storage dlc = dlcs[_uuid];
-    //     require(
-    //         dlc.closingTime <= block.timestamp && dlc.actualClosingTime == 0,
-    //         "Validation failed for closeDlc"
-    //     );
+    function getBTCPriceWithCallback(bytes32 _uuid) external returns (int256) {
+        (int256 price, uint256 timestamp) = _getLatestPrice(btcPriceFeedAddress);
+        DLCLinkCompatible(dlcs[_uuid].creator).getBtcPriceCallback(_uuid, price, timestamp);
+        return price;
+    }
 
-    //     int256 payoutRatio = 0; //This is where the loan stuff goes
-    //     _removeClosedDLC(_findIndex(_uuid));
-    //     emit CloseDLC(_uuid, payoutRatio, 0, block.timestamp);
-    // }
+    function _getLatestPrice(address _feedAddress)
+        internal
+        view
+        returns (int256, uint256)
+    {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(_feedAddress);
+        (, int256 price, , uint256 timeStamp, ) = priceFeed.latestRoundData();
+        return (price, timeStamp);
+    }
 
-    // function closeDlcLiquidate(string memory _uuid) public {
-    //     DLC storage dlc = dlcs[_uuid];
-    //     require(
-    //         dlc.closingTime <= block.timestamp && dlc.actualClosingTime == 0,
-    //         "Validation failed for closeDlc"
-    //     );
+    // note: this remove not preserving the order
+    function _removeClosedDLC(uint256 index) private returns (bytes32[] memory) {
+        require(index < openUUIDs.length);
+        // Move the last element to the deleted spot
+        openUUIDs[index] = openUUIDs[openUUIDs.length - 1];
+        // Remove the last element
+        openUUIDs.pop();
+        return openUUIDs;
+    }
 
-    //     (int256 price, uint256 timestamp) = _getLatestPrice(
-    //         address(0xA39434A63A52E749F02807ae27335515BA4b07F7)
-    //     );
-    //     dlc.closingPrice = price;
-    //     // int256 payoutRatio = dlc.strikePrice > price ? int256(0) : int256(1);
-    //     int256 payoutRatio = 0; //This is where the loan stuff goes
+    function _findIndex(bytes32 _uuid) private view returns (uint256) {
+        // find the recently closed uuid index
+        for (uint256 i = 0; i < openUUIDs.length; i++) {
+            if (
+                keccak256(abi.encodePacked(openUUIDs[i])) ==
+                keccak256(abi.encodePacked(_uuid))
+            ) {
+                return i;
+            }
+        }
+        revert("Not Found"); // should not happen just in case
+    }
 
-    //     _removeClosedDLC(_findIndex(_uuid));
-    //     emit CloseDLC(_uuid, payoutRatio, price, timestamp);
-    // }
-
-    // // function closingPriceAndTimeOfDLC(string memory _uuid)
-    // //     external
-    // //     view
-    // //     returns (int256, uint256)
-    // // {
-    // //     DLC memory dlc = dlcs[_uuid];
-    // //     require(
-    // //         dlc.actualClosingTime > 0,
-    // //         "The requested DLC is not closed yet"
-    // //     );
-    // //     return (dlc.closingPrice, dlc.actualClosingTime);
-    // // }
-
-    // // function allOpenDLC() external view returns (string[] memory) {
-    // //     return openUUIDs;
-    // // }
-
-    // function _getLatestPrice(address _feedAddress)
-    //     internal
-    //     view
-    //     returns (int256, uint256)
-    // {
-    //     AggregatorV3Interface priceFeed = AggregatorV3Interface(_feedAddress);
-    //     (, int256 price, , uint256 timeStamp, ) = priceFeed.latestRoundData();
-    //     return (price, timeStamp);
-    // }
-
-    // // note: this remove not preserving the order
-    // function _removeClosedDLC(uint256 index) private returns (string[] memory) {
-    //     require(index < openUUIDs.length);
-    //     // Move the last element to the deleted spot
-    //     openUUIDs[index] = openUUIDs[openUUIDs.length - 1];
-    //     // Remove the last element
-    //     openUUIDs.pop();
-    //     return openUUIDs;
-    // }
-
-    // function _findIndex(string memory _uuid) private view returns (uint256) {
-    //     // find the recently closed uuid index
-    //     for (uint256 i = 0; i < openUUIDs.length; i++) {
-    //         if (
-    //             keccak256(abi.encodePacked(openUUIDs[i])) ==
-    //             keccak256(abi.encodePacked(_uuid))
-    //         ) {
-    //             return i;
-    //         }
-    //     }
-    //     revert("Not Found"); // should not happen just in case
-    // }
-
-    // function getAllLoansForAddress(address _addy)
-    //     public
-    //     view
-    //     returns (Loan[] memory)
-    // {
-    //     Loan[] memory ownedLoans = new Loan[](loansPerAddress[_addy]);
-    //     uint256 j = 0;
-    //     for (uint256 i = 0; i < numLoans; i++) {
-    //         if (loans[i].owner == _addy) {
-    //             ownedLoans[j++] = loans[i];
-    //         }
-    //     }
-    //     return ownedLoans;
-    // }
-
-    // function _findLoanIndex(string memory _uuid) private view returns (uint256) {
-    //     // find the recently closed uuid index
-    //     for (uint256 i = 0; i < numLoans; i++) {
-    //         if (
-    //             keccak256(abi.encodePacked(loans[i].dlcUUID)) ==
-    //             keccak256(abi.encodePacked(_uuid))
-    //         ) {
-    //             return i;
-    //         }
-    //     }
-    //     revert("Not Found"); // should not happen just in case
-    // }
-
-    function getAllUUIDs() public view returns (bytes32[] memory) {
+    function getAllOpenUUIDs() public view returns (bytes32[] memory) {
         return openUUIDs;
     }
 }

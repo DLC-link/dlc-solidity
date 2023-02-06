@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
 describe('ProtocolContract', () => {
-
+  let mockV3Aggregator;
   let dlcManager;
   let usdc;
   let protocolContract;
@@ -19,8 +19,12 @@ describe('ProtocolContract', () => {
     user = accounts[2];
     someRandomAccount = accounts[3];
 
+    const MockV3Aggregator = await ethers.getContractFactory('MockV3Aggregator');
+    mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
+    await mockV3Aggregator.deployTransaction.wait();
+
     const DiscreetLog = await ethers.getContractFactory('DiscreetLog');
-    dlcManager = await DiscreetLog.deploy();
+    dlcManager = await DiscreetLog.deploy(deployer.address, mockV3Aggregator.address);
     await dlcManager.deployTransaction.wait();
 
     const USDC = await ethers.getContractFactory('USDStableCoinForDLCs');
@@ -28,7 +32,7 @@ describe('ProtocolContract', () => {
     await usdc.deployed();
 
     const ProtocolContract = await ethers.getContractFactory('ProtocolContract', protocol);
-    protocolContract = await ProtocolContract.deploy(usdc.address);
+    protocolContract = await ProtocolContract.deploy(dlcManager.address, usdc.address);
     await protocolContract.deployTransaction.wait();
 
     await usdc.mint(protocolContract.address, ethers.utils.parseUnits("10000","ether"));
@@ -80,7 +84,7 @@ describe('ProtocolContract', () => {
       );
     })
 
-    it('reduces the vaultLoan amount', async () => {
+    xit('reduces the vaultLoan amount', async () => {
 
     })
   })
@@ -135,12 +139,8 @@ describe('ProtocolContract', () => {
         [amountBig, amountBigNeg]
       );
     })
-
-
-
-
-
-
   })
+
+
 
 })
