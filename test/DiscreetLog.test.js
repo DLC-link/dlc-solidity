@@ -12,7 +12,7 @@ const Status = {
   Liquidated: 7
 }
 
-describe('DiscreetLog', () => {
+describe('DLCManager', () => {
   let mockV3Aggregator;
   let dlcManager;
   let protocolContract;
@@ -32,8 +32,8 @@ describe('DiscreetLog', () => {
     mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); //NOTE:
     await mockV3Aggregator.deployTransaction.wait();
 
-    const DiscreetLog = await ethers.getContractFactory('DiscreetLog');
-    dlcManager = await DiscreetLog.deploy(deployer.address, mockV3Aggregator.address);
+    const DLCManager = await ethers.getContractFactory('DLCManager');
+    dlcManager = await DLCManager.deploy(deployer.address, mockV3Aggregator.address);
     await dlcManager.deployTransaction.wait();
 
     const ProtocolContract = await ethers.getContractFactory('ProtocolContract', protocol);

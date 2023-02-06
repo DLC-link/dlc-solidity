@@ -8,7 +8,7 @@ import "./DLCLinkCompatible.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 
-contract DiscreetLog is AccessControl {
+contract DLCManager is AccessControl {
     bytes32 public constant DLC_ADMIN_ROLE = keccak256("DLC_ADMIN_ROLE");
     bytes32[] public openUUIDs;
     uint256 private _localNonce = 0;
@@ -145,6 +145,7 @@ contract DiscreetLog is AccessControl {
         return price;
     }
 
+    // Gives back BTC price data. 8 decimals, e.g. $22,836 = 2283600000000
     function _getLatestPrice(address _feedAddress)
         internal
         view

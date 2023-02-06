@@ -119,7 +119,7 @@ interface AggregatorV3Interface {
     );
 }
 
-// File: contracts/DiscreetLog.sol
+// File: contracts/DLCManager.sol
 
 // // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
@@ -130,7 +130,7 @@ pragma solidity ^0.8.7;
 
 // import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract DiscreetLog {
+contract DLCManager {
     IERC20 private USDC = IERC20(0x88B21d13E5d8E40109Ebaa00204C9868441710Fd);
 
     string[] public openUUIDs;
@@ -337,7 +337,7 @@ contract DiscreetLog {
         // User should have already called increaseAllowance to a suitable number
         Loan storage loan = loans[loanId];
         closeDlc(loan.dlc_uuid);
-        
+
         USDC.transferFrom(loan.owner, address(this), loan.vaultLoan * (10 ** 18));
         loan.status = statuses[Status.Repaid];
     }

@@ -4,7 +4,7 @@ pragma solidity >=0.8.17;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./DiscreetLog.sol";
+import "./DLCManager.sol";
 import "./DLCLinkCompatible.sol";
 
 enum Status {
@@ -34,7 +34,7 @@ struct Loan {
 
 contract ProtocolContract is DLCLinkCompatible {
     using SafeMath for uint256;
-    DiscreetLog private _dlcManager;
+    DLCManager private _dlcManager;
     IERC20 private _usdc;
 
     uint256 public index = 0;
@@ -43,7 +43,7 @@ contract ProtocolContract is DLCLinkCompatible {
     mapping(address => uint256) public loansPerAddress;
 
     constructor(address _dlcManagerAddress, address _usdcAddress) {
-        _dlcManager = DiscreetLog(_dlcManagerAddress);
+        _dlcManager = DLCManager(_dlcManagerAddress);
         _usdc = IERC20(_usdcAddress);
     }
 
@@ -142,13 +142,12 @@ contract ProtocolContract is DLCLinkCompatible {
         _loan.vaultLoan = _loan.vaultLoan.sub(_amount);
     }
 
-    function closeLoan(uint256 _loanID, uint256 _payoutRatio) public {
+    function closeLoan(uint256 _loanID) public {
         Loan storage _loan = loans[_loanID];
         require(_loan.owner == msg.sender, 'Unathorized');
         require(_loan.vaultLoan == 0, 'Loan not repaid');
-        // Regular, 0 outcome closing
         _updateStatus(_loanID, Status.PreRepaid);
-        _dlcManager.closeDLC(_loan.dlcUUID, _payoutRatio);
+        _dlcManager.closeDLC(_loan.dlcUUID, 0);
     }
 
     function postCloseDLCHandler(bytes32 _uuid) external {
@@ -166,29 +165,40 @@ contract ProtocolContract is DLCLinkCompatible {
     }
 
     function getBtcPriceCallback(bytes32 _uuid, int256 _price, uint256 _timestamp) external {
+        require(checkLiquidation(loanIDsByUUID[_uuid], _price), 'Does Not Need Liquidation');
+        uint16 payoutRatio = calculatePayoutRatio(loanIDsByUUID[_uuid], _price);
+        _liquidateLoan(loanIDsByUUID[_uuid], payoutRatio);
+    }
 
-        // TODO:
-        // require(checkLiquidation(loanIDsByUUID[_uuid], _price), 'Does Not Need Liquidation');
-
-        uint payoutRatio = calculatePayoutRatio(loanIDsByUUID[_uuid], _price);
-
-        closeLoan(loanIDsByUUID[_uuid], payoutRatio);
+    function _liquidateLoan(uint256 _loanID, uint16 _payoutRatio) internal {
+        _updateStatus(_loanID, Status.Liquidated);
+        _dlcManager.closeDLC(loans[_loanID].dlcUUID, _payoutRatio);
     }
 
     function checkLiquidation(uint256 _loanID, int256 _price) public view returns (bool) {
         // TODO:
         // _getCollateralValue(_loanID, _price) .....
+
+        // if liquidationRatio is 14000 (140.00%)
+        // and collateralvalue is 2.9E20
+        // and price is 2283600000000
+
         return true;
     }
 
     function calculatePayoutRatio(uint256 _loanID, int256 _price) public view returns (uint16) {
         // Should return a number between 0-100.00
         // TODO:
+
         return 0;
     }
 
     function _getCollateralValue(uint256 _loanID, int256 _price) internal view returns (uint256) {
         // TODO:
+        //  _price is 8 decimals, e.g. $22,836 = 2283600000000
+        // If collateral is 1.3 BTC, stored as 130000000 sats
+        // collateralValue is 130000000 * 2283600000000 = 2.9E20
+
         return loans[_loanID].vaultCollateral * uint256(_price);
     }
 

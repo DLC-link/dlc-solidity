@@ -13,12 +13,12 @@ async function main() {
   const user = accounts[2];
 
   // DLC Manager deployment
-  const DiscreetLog = await hre.ethers.getContractFactory('DiscreetLog');
-  const dlcManager = await DiscreetLog.deploy();
+  const DLCManager = await hre.ethers.getContractFactory('DLCManager');
+  const dlcManager = await DLCManager.deploy();
   await dlcManager.deployed();
 
   await hre.ethernal.push({
-    name: 'DiscreetLog',
+    name: 'DLCManager',
     address: dlcManager.address
   });
 

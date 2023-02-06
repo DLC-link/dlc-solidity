@@ -23,8 +23,8 @@ describe('ProtocolContract', () => {
     mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
     await mockV3Aggregator.deployTransaction.wait();
 
-    const DiscreetLog = await ethers.getContractFactory('DiscreetLog');
-    dlcManager = await DiscreetLog.deploy(deployer.address, mockV3Aggregator.address);
+    const DLCManager = await ethers.getContractFactory('DLCManager');
+    dlcManager = await DLCManager.deploy(deployer.address, mockV3Aggregator.address);
     await dlcManager.deployTransaction.wait();
 
     const USDC = await ethers.getContractFactory('USDStableCoinForDLCs');
