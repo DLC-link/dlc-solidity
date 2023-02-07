@@ -35,7 +35,7 @@ describe('ProtocolContract', () => {
     protocolContract = await ProtocolContract.deploy(dlcManager.address, usdc.address);
     await protocolContract.deployTransaction.wait();
 
-    await usdc.mint(protocolContract.address, ethers.utils.parseUnits("10000","ether"));
+    await usdc.mint(protocolContract.address, ethers.utils.parseUnits("10000", "ether"));
   })
 
   it('is deployed for the tests', async () => {
@@ -43,9 +43,9 @@ describe('ProtocolContract', () => {
   })
 
   describe('setupLoan', () => {
-    xit('emits an event with loan data', ()=>{});
-    xit('emits a StatusUpdate event', () => {});
-    xit('sets up a new loan object with the correct status', () => {});
+    xit('emits an event with loan data', () => { });
+    xit('emits a StatusUpdate event', () => { });
+    xit('sets up a new loan object with the correct status', () => { });
   });
 
   describe('borrow', () => {
@@ -89,9 +89,9 @@ describe('ProtocolContract', () => {
     })
   })
 
-  describe('repay', async() => {
+  describe('repay', async () => {
     const amount = 100;
-    const amountBig = ethers.utils.parseUnits(amount.toString(),"ether")
+    const amountBig = ethers.utils.parseUnits(amount.toString(), "ether")
 
     beforeEach(async () => {
       const tx = await protocolContract.connect(user).setupLoan(100000000, 0, amountBig, 0);
@@ -139,6 +139,31 @@ describe('ProtocolContract', () => {
         [amountBig, amountBigNeg]
       );
     })
+
+    xit('reverts if user is undercollaterized', async () => {
+
+    })
+
+    it('transfers the amount to the user', async () => {
+      const tx = await protocolContract.connect(user).setupLoan(100000000, 0, 0, 0);
+      const txF = await tx.wait();
+      const tx2 = await protocolContract.connect(protocol).setStatusFunded(txF.events[1].args.dlcUUID);
+      const txF2 = await tx2.wait();
+
+      const amount = 100;
+      const amountBig = ethers.utils.parseUnits(amount.toString(), "ether")
+      const amountBigNeg = ethers.utils.parseUnits((0 - amount).toString(), "ether")
+
+      await expect(protocolContract.connect(user).borrow(0, amountBig)).to.changeTokenBalances(
+        usdc,
+        [protocolContract, user],
+        [amountBigNeg, amountBig]
+      );
+    })
+
+    xit('reduces the vaultLoan amount', async () => {
+
+    })
   })
 
   describe('getCollateralValue', () => {
@@ -146,7 +171,7 @@ describe('ProtocolContract', () => {
     let amount = 130000000; // 1.3 BTC
     let price = 2283600000000;
 
-    beforeEach( async () => {
+    beforeEach(async () => {
       const tx = await protocolContract.connect(user).setupLoan(amount, 0, 0, 0);
       const txF = await tx.wait();
     })
@@ -165,7 +190,7 @@ describe('ProtocolContract', () => {
     let price = 2283600000000;
     let borrowedAmount = 2000;
 
-    beforeEach( async () => {
+    beforeEach(async () => {
       const tx = await protocolContract.connect(user).setupLoan(collateralAmount, 0, 0, 0);
       const txF = await tx.wait();
     })

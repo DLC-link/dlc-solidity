@@ -4,10 +4,10 @@ pragma solidity >=0.8.17;
 // import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./DLCLinkCompatible.sol";
+import "../DLCLinkCompatible.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract DLCManager is AccessControl {
+contract MockDLCManager is AccessControl {
     bytes32 public constant DLC_ADMIN_ROLE = keccak256("DLC_ADMIN_ROLE");
     bytes32[] public openUUIDs;
     uint256 private _localNonce = 0;
@@ -37,9 +37,7 @@ contract DLCManager is AccessControl {
         uint256 nonce
     ) private view returns (bytes32) {
         return
-            keccak256(
-                abi.encodePacked(sender, nonce, blockhash(block.number - 1))
-            );
+            0x126d6d95b8b724bbe0b2b91baa3b836eb8b601272ab945c23b68db3b1cfdcdc3;
     }
 
     function getDLC(bytes32 _uuid) public view returns (DLC memory) {
@@ -118,7 +116,7 @@ contract DLCManager is AccessControl {
     event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit);
 
     function mintBtcNft(bytes32 _uuid, uint256 _collateral) external {
-        uint256 index = _findIndex(_uuid); // Reverts if DLC is not in the list of open DLCs
+        // uint256 index = _findIndex(_uuid); // Reverts if DLC is not in the list of open DLCs
         emit MintBtcNft(_uuid, _collateral);
     }
 

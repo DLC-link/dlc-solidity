@@ -1,10 +1,10 @@
 # Dev notes:
 Currently `npm i` only works with the --legacy-peer-deps flag, because of a dependency bug in: https://github.com/tryethernal/hardhat-ethernal/issues/22
 
-To run a local hardhat node:
+To run a local hardhat node and IPFS instance:
 ```bash
-$ npx hardhat node
-# To run a deployment script:
+$ ./start-local-environment.sh
+# To run a deployment script in another terminal:
 $ npx hardhat run --network localhost scripts/deploy-all-ethernal.js
 ```
 
