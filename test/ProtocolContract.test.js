@@ -159,4 +159,17 @@ describe('ProtocolContract', () => {
 
   })
 
+  describe('checkLiquidation', () => {
+
+    let collateralAmount = 100000000; // 1 BTC
+    let price = 2283600000000;
+    let borrowedAmount = 2000;
+
+    beforeEach( async () => {
+      const tx = await protocolContract.connect(user).setupLoan(collateralAmount, 0, 0, 0);
+      const txF = await tx.wait();
+    })
+
+  })
+
 })

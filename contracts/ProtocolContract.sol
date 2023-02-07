@@ -182,11 +182,19 @@ contract ProtocolContract is DLCLinkCompatible {
         // if liquidationRatio is 14000 (140.00%)
         // and collateralvalue is 2968680000000
         // and price is 2283600000000
-        // and vaultLoan is 2000 USDLC -- 20000000000000000000
+        // and vaultLoan is 2000 USDLC -- 20000000000000000000 (16 decimals)
+        // We need to check if the collateral/loan ratio is below liquidationRatio%
 
+        uint256 _collateralValue = getCollateralValue(_loanID, _price); // 8 decimals
+        uint256 _strikePrice = SafeMath.div(SafeMath.mul(loans[_loanID].vaultLoan, loans[_loanID].liquidationRatio), 10 ** 10); // 16 + 2 - 10 = 8 decimals
 
-        return true;
+        return _collateralValue <= _strikePrice;
     }
+
+    // (collateral-value (get-collateral-value (get vault-collateral loan) btc-price))
+    // (strike-price (/ (* (get vault-loan loan) (get liquidation-ratio loan)) u100000000))
+    // )
+    // (ok (<= collateral-value strike-price))
 
     function calculatePayoutRatio(uint256 _loanID, int256 _price) public view returns (uint16) {
         // Should return a number between 0-100.00
