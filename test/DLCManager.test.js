@@ -134,13 +134,13 @@ describe('DLCManager', () => {
     })
 
     it('adds the UUID to the openUUIDs array', async () => {
-      let openUUIDs = await dlcManager.getAllOpenUUIDs();
+      let openUUIDs = await dlcManager.getAllUUIDs();
       expect(openUUIDs).to.be.empty;
 
       const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
       const txReceipt2 = await postCreateTx.wait();
 
-      openUUIDs = await dlcManager.getAllOpenUUIDs();
+      openUUIDs = await dlcManager.getAllUUIDs();
       expect(openUUIDs).to.contain(uuid);
     })
 

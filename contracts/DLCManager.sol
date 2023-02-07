@@ -179,7 +179,7 @@ contract DLCManager is AccessControl {
         revert("Not Found"); // should not happen just in case
     }
 
-    function getAllOpenUUIDs() public view returns (bytes32[] memory) {
+    function getAllUUIDs() public view returns (bytes32[] memory) {
         return openUUIDs;
     }
 }
