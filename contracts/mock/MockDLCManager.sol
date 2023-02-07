@@ -129,9 +129,9 @@ contract MockDLCManager is AccessControl {
 
     function closeDLC(bytes32 _uuid, uint256 _outcome) public {
         // Access control?
-        DLC storage _dlc = dlcs[_uuid];
-        require(_dlc.uuid != 0, "Unknown DLC");
-        _dlc.outcome = _outcome; // Saving requested outcome
+        // DLC storage _dlc = dlcs[_uuid];
+        // require(_dlc.uuid != 0, "Unknown DLC");
+        // _dlc.outcome = _outcome; // Saving requested outcome
         emit CloseDLC(
             _uuid,
             _outcome,

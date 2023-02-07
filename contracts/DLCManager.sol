@@ -118,7 +118,7 @@ contract DLCManager is AccessControl {
     event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit);
 
     function mintBtcNft(bytes32 _uuid, uint256 _collateral) external {
-        uint256 index = _findIndex(_uuid); // Reverts if DLC is not in the list of open DLCs
+        _findIndex(_uuid); // Reverts if DLC is not in the list of open DLCs
         emit MintBtcNft(_uuid, _collateral);
     }
 

@@ -33,12 +33,12 @@ describe('BrokerContract', () => {
         mockDlcManager = await MockDLCManager.deploy(deployer.address, mockV3Aggregator.address);
         await mockDlcManager.deployTransaction.wait();
 
-        const BtcNft = await ethers.getContractFactory('BtcNft');
-        btcNftContract = await BtcNft.deploy();
-        await btcNftContract.deployed();
+        const MockBtcNft = await ethers.getContractFactory('MockBtcNft');
+        MockBtcNftContract = await MockBtcNft.deploy();
+        await MockBtcNftContract.deployed();
 
         const BrokerContract = await ethers.getContractFactory('DlcBroker', broker);
-        brokerContract = await BrokerContract.deploy(mockDlcManager.address, btcNftContract.address);
+        brokerContract = await BrokerContract.deploy(mockDlcManager.address, MockBtcNftContract.address);
         await brokerContract.deployTransaction.wait();
     })
 
@@ -62,10 +62,10 @@ describe('BrokerContract', () => {
         beforeEach(async () => {
             await brokerContract.connect(user).setupVault(btcCollateral, emergencyRefundTime);
         })
-
         // move this to the dlcManager
         it('emits a create NFT event from the DLCManager contract', async () => {
-            const postCreateTx = await brokerContract.postCreateDLCHandler(mockDlcUUID)
+            await brokerContract.postCreateDLCHandler(mockDlcUUID)
+            const postCreateTx = await brokerContract.setStatusFunded(mockDlcUUID)
             const txReceipt = await postCreateTx.wait();
             const event = txReceipt.events.find(ev => ev.event == 'MintBtcNft');
             expect(event.args).to.eql([mockDlcUUID, BigNumber.from(btcCollateral)])
@@ -88,6 +88,22 @@ describe('BrokerContract', () => {
                 expect(vault).to.eql(
                     [BigNumber.from(0), mockDlcUUID, ReadyStatus, BigNumber.from(btcCollateral), BigNumber.from(1), user.address],
                 );
+            })
+        })
+        describe('after the mintNft callback returns from the DLCManager', async () => {
+            let postMintEvent;
+            beforeEach(async () => {
+                await brokerContract.postMintBtcNft(mockDlcUUID, 1)
+                const vaultId = await brokerContract.getVaultByUUID(mockDlcUUID)
+                console.log(vaultId.id)
+                const postCreateTx = await brokerContract.closeVault(vaultId.id)
+                const txReceipt = await postCreateTx.wait()
+                postMintEvent = txReceipt.events.find(ev => ev.event == 'BurnBtcNft')
+                await brokerContract.postCreateDLCHandler(mockDlcUUID) // updates the status to ready
+            })
+            it('emits the burnDlcNft event from the broker contract', async () => {
+                expect(postMintEvent.args).to.eql([mockDlcUUID, BigNumber.from(1)])
+                expect(postMintEvent.address).to.equal(brokerContract.address);
             })
         })
     })
