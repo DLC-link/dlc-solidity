@@ -139,9 +139,17 @@ contract DLCManager is AccessControl {
         emit PostCloseDLC(_uuid, _oracleOutcome, block.timestamp, "dlclink:post-close-dlc:v0");
     }
 
+    event BTCPriceFetching(
+        bytes32 uuid,
+        address caller,
+        int256 price,
+        string eventSource
+    );
+
     function getBTCPriceWithCallback(bytes32 _uuid) external returns (int256) {
         (int256 price, uint256 timestamp) = _getLatestPrice(btcPriceFeedAddress);
         DLCLinkCompatible(dlcs[_uuid].creator).getBtcPriceCallback(_uuid, price, timestamp);
+        emit BTCPriceFetching(_uuid, msg.sender, price, "dlc-link:get-btc-price-with-callback:v0");
         return price;
     }
 
