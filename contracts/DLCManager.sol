@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./DLCLinkCompatible.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-
 contract DLCManager is AccessControl {
     bytes32 public constant DLC_ADMIN_ROLE = keccak256("DLC_ADMIN_ROLE");
     bytes32[] public openUUIDs;
@@ -33,12 +32,19 @@ contract DLCManager is AccessControl {
         btcPriceFeedAddress = _btcPriceFeedAddress;
     }
 
-    function _generateUUID(address sender, uint256 nonce) private view returns (bytes32) {
-        return keccak256(abi.encodePacked(sender, nonce, blockhash(block.number - 1)));
+    function _generateUUID(address sender, uint256 nonce)
+        private
+        view
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encodePacked(sender, nonce, blockhash(block.number - 1))
+            );
     }
 
     function getDLC(bytes32 _uuid) public view returns (DLC memory) {
-      return dlcs[_uuid];
+        return dlcs[_uuid];
     }
 
     event CreateDLC(
@@ -49,10 +55,16 @@ contract DLCManager is AccessControl {
         string eventSource
     );
 
-// NOTE: creator (msg.sender) must be a DLCLinkCompatible contract. tx.origin can be a user address
-    function createDLC(uint256 _emergencyRefundTime, uint256 _nonce) public returns (bytes32) {
+    // NOTE: creator (msg.sender) must be a DLCLinkCompatible contract. tx.origin can be a user address
+    function createDLC(uint256 _emergencyRefundTime, uint256 _nonce)
+        public
+        returns (bytes32)
+    {
         // We cap ERT in about 3110 years just to be safe
-        require(_emergencyRefundTime < 99999999999, 'Emergency Refund Time is too high');
+        require(
+            _emergencyRefundTime < 99999999999,
+            "Emergency Refund Time is too high"
+        );
 
         bytes32 _uuid = _generateUUID(tx.origin, ++_localNonce);
         emit CreateDLC(
@@ -97,10 +109,7 @@ contract DLCManager is AccessControl {
         );
     }
 
-    event SetStatusFunded(
-        bytes32 uuid,
-        string eventSource
-    );
+    event SetStatusFunded(bytes32 uuid, string eventSource);
 
     function setStatusFunded(bytes32 _uuid) external onlyRole(DLC_ADMIN_ROLE) {
         DLCLinkCompatible(dlcs[_uuid].creator).setStatusFunded(_uuid);
@@ -117,9 +126,14 @@ contract DLCManager is AccessControl {
     function closeDLC(bytes32 _uuid, uint256 _outcome) public {
         // Access control?
         DLC storage _dlc = dlcs[_uuid];
-        require(_dlc.uuid != 0, 'Unknown DLC');
-        _dlc.outcome = _outcome;    // Saving requested outcome
-        emit CloseDLC(_uuid, _outcome, dlcs[_uuid].creator, "dlclink:close-dlc:v0");
+        require(_dlc.uuid != 0, "Unknown DLC");
+        _dlc.outcome = _outcome; // Saving requested outcome
+        emit CloseDLC(
+            _uuid,
+            _outcome,
+            dlcs[_uuid].creator,
+            "dlclink:close-dlc:v0"
+        );
     }
 
     event PostCloseDLC(
@@ -129,14 +143,22 @@ contract DLCManager is AccessControl {
         string eventSource
     );
 
-    function postCloseDLC(bytes32 _uuid, uint256 _oracleOutcome) external onlyRole(DLC_ADMIN_ROLE) {
+    function postCloseDLC(bytes32 _uuid, uint256 _oracleOutcome)
+        external
+        onlyRole(DLC_ADMIN_ROLE)
+    {
         DLC storage _dlc = dlcs[_uuid];
-        require(_dlc.uuid != 0, 'Unknown DLC');
-        require(_dlc.outcome == _oracleOutcome, 'Different Outcomes');
+        require(_dlc.uuid != 0, "Unknown DLC");
+        require(_dlc.outcome == _oracleOutcome, "Different Outcomes");
 
         _removeClosedDLC(_findIndex(_uuid));
         DLCLinkCompatible(_dlc.creator).postCloseDLCHandler(_uuid);
-        emit PostCloseDLC(_uuid, _oracleOutcome, block.timestamp, "dlclink:post-close-dlc:v0");
+        emit PostCloseDLC(
+            _uuid,
+            _oracleOutcome,
+            block.timestamp,
+            "dlclink:post-close-dlc:v0"
+        );
     }
 
     event BTCPriceFetching(
@@ -147,9 +169,20 @@ contract DLCManager is AccessControl {
     );
 
     function getBTCPriceWithCallback(bytes32 _uuid) external returns (int256) {
-        (int256 price, uint256 timestamp) = _getLatestPrice(btcPriceFeedAddress);
-        DLCLinkCompatible(dlcs[_uuid].creator).getBtcPriceCallback(_uuid, price, timestamp);
-        emit BTCPriceFetching(_uuid, msg.sender, price, "dlc-link:get-btc-price-with-callback:v0");
+        (int256 price, uint256 timestamp) = _getLatestPrice(
+            btcPriceFeedAddress
+        );
+        DLCLinkCompatible(dlcs[_uuid].creator).getBtcPriceCallback(
+            _uuid,
+            price,
+            timestamp
+        );
+        emit BTCPriceFetching(
+            _uuid,
+            msg.sender,
+            price,
+            "dlc-link:get-btc-price-with-callback:v0"
+        );
         return price;
     }
 
@@ -165,7 +198,10 @@ contract DLCManager is AccessControl {
     }
 
     // note: this remove not preserving the order
-    function _removeClosedDLC(uint256 index) private returns (bytes32[] memory) {
+    function _removeClosedDLC(uint256 index)
+        private
+        returns (bytes32[] memory)
+    {
         require(index < openUUIDs.length);
         // Move the last element to the deleted spot
         openUUIDs[index] = openUUIDs[openUUIDs.length - 1];

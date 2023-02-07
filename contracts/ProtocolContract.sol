@@ -98,12 +98,7 @@ contract ProtocolContract is DLCLinkCompatible {
         return (index - 1);
     }
 
-
-    event StatusUpdate(
-      uint256 loanid,
-      bytes32 dlcUUID,
-      Status newStatus
-    );
+    event StatusUpdate(uint256 loanid, bytes32 dlcUUID, Status newStatus);
 
     function _updateStatus(uint256 _loanID, Status _status) internal {
         Loan storage _loan = loans[_loanID];
@@ -124,28 +119,28 @@ contract ProtocolContract is DLCLinkCompatible {
     }
 
     function borrow(uint256 _loanID, uint256 _amount) public {
-      Loan storage _loan = loans[_loanID];
-      require(_loan.owner == msg.sender, 'Unathorized');
-      require(_loan.status == Status.Funded, 'Loan not funded');
-      // TODO:
-      //  - user shouldnt be able to overborrow (based on collateral value)
-      // require(_loan.vaultLoan ... )
-      _usdc.transfer(_loan.owner, _amount);
-      _loan.vaultLoan = _loan.vaultLoan.add(_amount);
+        Loan storage _loan = loans[_loanID];
+        require(_loan.owner == msg.sender, "Unathorized");
+        require(_loan.status == Status.Funded, "Loan not funded");
+        // TODO:
+        //  - user shouldnt be able to overborrow (based on collateral value)
+        // require(_loan.vaultLoan ... )
+        _usdc.transfer(_loan.owner, _amount);
+        _loan.vaultLoan = _loan.vaultLoan.add(_amount);
     }
 
     function repay(uint256 _loanID, uint256 _amount) public {
         Loan storage _loan = loans[_loanID];
-        require(_loan.owner == msg.sender, 'Unathorized');
-        require(_loan.vaultLoan >= _amount, 'Amount too large');
+        require(_loan.owner == msg.sender, "Unathorized");
+        require(_loan.vaultLoan >= _amount, "Amount too large");
         _usdc.transferFrom(_loan.owner, address(this), _amount);
         _loan.vaultLoan = _loan.vaultLoan.sub(_amount);
     }
 
     function closeLoan(uint256 _loanID) public {
         Loan storage _loan = loans[_loanID];
-        require(_loan.owner == msg.sender, 'Unathorized');
-        require(_loan.vaultLoan == 0, 'Loan not repaid');
+        require(_loan.owner == msg.sender, "Unathorized");
+        require(_loan.vaultLoan == 0, "Loan not repaid");
         _updateStatus(_loanID, Status.PreRepaid);
         _dlcManager.closeDLC(_loan.dlcUUID, 0);
     }
@@ -153,9 +148,16 @@ contract ProtocolContract is DLCLinkCompatible {
     function postCloseDLCHandler(bytes32 _uuid) external {
         // Access control? dlc-manager?
         Loan storage _loan = loans[loanIDsByUUID[_uuid]];
-        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, 'No such loan');
-        require(_loan.status == Status.PreRepaid || _loan.status == Status.PreLiquidated, 'Invalid Loan Status');
-        _updateStatus(_loan.id, _loan.status == Status.PreRepaid ? Status.Repaid : Status.Liquidated);
+        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, "No such loan");
+        require(
+            _loan.status == Status.PreRepaid ||
+                _loan.status == Status.PreLiquidated,
+            "Invalid Loan Status"
+        );
+        _updateStatus(
+            _loan.id,
+            _loan.status == Status.PreRepaid ? Status.Repaid : Status.Liquidated
+        );
     }
 
     function attemptLiquidate(uint256 _loanID) public {
@@ -164,8 +166,15 @@ contract ProtocolContract is DLCLinkCompatible {
         _dlcManager.getBTCPriceWithCallback(loans[_loanID].dlcUUID);
     }
 
-    function getBtcPriceCallback(bytes32 _uuid, int256 _price, uint256 _timestamp) external {
-        require(checkLiquidation(loanIDsByUUID[_uuid], _price), 'Does Not Need Liquidation');
+    function getBtcPriceCallback(
+        bytes32 _uuid,
+        int256 _price,
+        uint256 _timestamp
+    ) external {
+        require(
+            checkLiquidation(loanIDsByUUID[_uuid], _price),
+            "Does Not Need Liquidation"
+        );
         uint16 payoutRatio = calculatePayoutRatio(loanIDsByUUID[_uuid], _price);
         _liquidateLoan(loanIDsByUUID[_uuid], payoutRatio);
     }
@@ -175,7 +184,11 @@ contract ProtocolContract is DLCLinkCompatible {
         _dlcManager.closeDLC(loans[_loanID].dlcUUID, _payoutRatio);
     }
 
-    function checkLiquidation(uint256 _loanID, int256 _price) public view returns (bool) {
+    function checkLiquidation(uint256 _loanID, int256 _price)
+        public
+        view
+        returns (bool)
+    {
         // TODO:
         // _getCollateralValue(_loanID, _price) .....
 
@@ -186,7 +199,13 @@ contract ProtocolContract is DLCLinkCompatible {
         // We need to check if the collateral/loan ratio is below liquidationRatio%
 
         uint256 _collateralValue = getCollateralValue(_loanID, _price); // 8 decimals
-        uint256 _strikePrice = SafeMath.div(SafeMath.mul(loans[_loanID].vaultLoan, loans[_loanID].liquidationRatio), 10 ** 10); // 16 + 2 - 10 = 8 decimals
+        uint256 _strikePrice = SafeMath.div(
+            SafeMath.mul(
+                loans[_loanID].vaultLoan,
+                loans[_loanID].liquidationRatio
+            ),
+            10**10
+        ); // 16 + 2 - 10 = 8 decimals
 
         return _collateralValue <= _strikePrice;
     }
@@ -196,19 +215,31 @@ contract ProtocolContract is DLCLinkCompatible {
     // )
     // (ok (<= collateral-value strike-price))
 
-    function calculatePayoutRatio(uint256 _loanID, int256 _price) public view returns (uint16) {
+    function calculatePayoutRatio(uint256 _loanID, int256 _price)
+        public
+        view
+        returns (uint16)
+    {
         // Should return a number between 0-100.00
         // TODO:
 
         return 0;
     }
 
-    function getCollateralValue(uint256 _loanID, int256 _price) public view returns (uint256) {
+    function getCollateralValue(uint256 _loanID, int256 _price)
+        public
+        view
+        returns (uint256)
+    {
         //  _price is 8 decimals, e.g. $22,836 = 2283600000000
         // If collateral is 1.3 BTC, stored as 130000000 sats
         // 130000000 * 2283600000000 = 2.9E20
         // we divide by 10**8 to get 2968680000000
-        return SafeMath.div((loans[_loanID].vaultCollateral * uint256(_price)), 10 ** 8);
+        return
+            SafeMath.div(
+                (loans[_loanID].vaultCollateral * uint256(_price)),
+                10**8
+            );
     }
 
     function getLoan(uint256 _loanID) public view returns (Loan memory) {
@@ -246,6 +277,4 @@ contract ProtocolContract is DLCLinkCompatible {
     //     }
     //     revert("Not Found"); // should not happen just in case
     // }
-
-
 }
