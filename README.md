@@ -86,7 +86,7 @@ truffle migrate --network kovan
 -----------------
 **_NOTE:_**  this step is required for UpKeep registration
 ```console
-truffle run verify DiscreetLog --network kovan
+truffle run verify DLCManager --network kovan
 ```
 After Verification Register Keeper Upkeep for the Contract
 ## Keeper Configuraton
@@ -143,7 +143,7 @@ const signer = new ethers.Wallet("private-key", provider);
 
 
 const contractAddress = "0x1b82CBECfC306F9D5Db19BeD0c7b725DE8E4b7a7";
-const contract = new ethers.Contract(contractAddress, DiscreetLog.abi, signer);
+const contract = new ethers.Contract(contractAddress, DLCManager.abi, signer);
 
 // contract call
 await contract.addNewDLC("fakeUUID", "feedAddress", 1649739612);

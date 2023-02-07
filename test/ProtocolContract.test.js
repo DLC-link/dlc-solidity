@@ -139,5 +139,62 @@ describe('ProtocolContract', () => {
         [amountBig, amountBigNeg]
       );
     })
+
+    xit('reverts if user is undercollaterized', async () => {
+
+    })
+
+    it('transfers the amount to the user', async () => {
+      const tx = await protocolContract.connect(user).setupLoan(100000000, 0, 0, 0);
+      const txF = await tx.wait();
+      const tx2 = await protocolContract.connect(protocol).setStatusFunded(txF.events[1].args.dlcUUID);
+      const txF2 = await tx2.wait();
+
+      const amount = 100;
+      const amountBig = ethers.utils.parseUnits(amount.toString(), "ether")
+      const amountBigNeg = ethers.utils.parseUnits((0 - amount).toString(), "ether")
+
+      await expect(protocolContract.connect(user).borrow(0, amountBig)).to.changeTokenBalances(
+        usdc,
+        [protocolContract, user],
+        [amountBigNeg, amountBig]
+      );
+    })
+
+    xit('reduces the vaultLoan amount', async () => {
+
+    })
   })
+
+  describe('getCollateralValue', () => {
+
+    let amount = 130000000; // 1.3 BTC
+    let price = 2283600000000;
+
+    beforeEach(async () => {
+      const tx = await protocolContract.connect(user).setupLoan(amount, 0, 0, 0);
+      const txF = await tx.wait();
+    })
+
+    it('returns a value with correct format', async () => {
+      const tx = await protocolContract.getCollateralValue(0, price);
+      const value = tx.toNumber();
+      expect(value).to.equal(amount * price / 10 ** 8);
+    })
+
+  })
+
+  describe('checkLiquidation', () => {
+
+    let collateralAmount = 100000000; // 1 BTC
+    let price = 2283600000000;
+    let borrowedAmount = 2000;
+
+    beforeEach(async () => {
+      const tx = await protocolContract.connect(user).setupLoan(collateralAmount, 0, 0, 0);
+      const txF = await tx.wait();
+    })
+
+  })
+
 })

@@ -1,4 +1,4 @@
-let dlc = await DiscreetLog.deployed()
+let dlc = await DLCManager.deployed()
 let agg = await MockV3Aggregator.deployed()
 let accounts = await web3.eth.getAccounts()
 
