@@ -23,6 +23,7 @@ struct Vault {
     bytes32 dlcUUID;
     Status status;
     uint256 vaultCollateral; // btc deposit in sats
+    uint256 nftId;
     address owner; // the account owning this Vault
 }
 
@@ -63,6 +64,7 @@ contract DlcBroker is DLCLinkCompatible {
             dlcUUID: _uuid,
             status: Status.NotReady,
             vaultCollateral: btcDeposit,
+            nftId: 0,
             owner: msg.sender
         });
 
@@ -100,7 +102,18 @@ contract DlcBroker is DLCLinkCompatible {
         Vault memory _vault = vaults[vaultIDsByUUID[_uuid]];
         require(_vault.dlcUUID != 0, "No such vault");
         _updateStatus(_vault.id, Status.Ready);
-        emit MintBtcNft(_uuid, _vault.vaultCollateral);
+        mintBtcNft(_uuid, _vault.vaultCollateral);
+    }
+
+    function mintBtcNft(bytes32 _uuid, uint256 _collateral) private {
+        _dlcManager.mintBtcNft(_uuid, _collateral);
+    }
+
+    function postMintBtcNft(bytes32 _uuid, uint256 _nftId) external {
+        Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
+        require(_vault.dlcUUID != 0, "No such vault");
+        _vault.nftId = _nftId;
+        emit MintBtcNft(_uuid, _nftId);
     }
 
     function setStatusFunded(bytes32 _uuid) public {

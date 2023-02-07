@@ -113,6 +113,13 @@ contract MockDLCManager is AccessControl {
         emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
+    event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit);
+
+    function mintBtcNft(bytes32 _uuid, uint256 _collateral) external {
+        // uint256 index = _findIndex(_uuid); // Reverts if DLC is not in the list of open DLCs
+        emit MintBtcNft(_uuid, _collateral);
+    }
+
     event CloseDLC(
         bytes32 uuid,
         uint256 outcome,
@@ -158,6 +165,13 @@ contract MockDLCManager is AccessControl {
         );
     }
 
+    event BTCPriceFetching(
+        bytes32 uuid,
+        address caller,
+        int256 price,
+        string eventSource
+    );
+
     function getBTCPriceWithCallback(bytes32 _uuid) external returns (int256) {
         (int256 price, uint256 timestamp) = _getLatestPrice(
             btcPriceFeedAddress
@@ -167,9 +181,16 @@ contract MockDLCManager is AccessControl {
             price,
             timestamp
         );
+        emit BTCPriceFetching(
+            _uuid,
+            msg.sender,
+            price,
+            "dlc-link:get-btc-price-with-callback:v0"
+        );
         return price;
     }
 
+    // Gives back BTC price data. 8 decimals, e.g. $22,836 = 2283600000000
     function _getLatestPrice(
         address _feedAddress
     ) internal view returns (int256, uint256) {
@@ -200,10 +221,10 @@ contract MockDLCManager is AccessControl {
                 return i;
             }
         }
-        revert("Not Found"); // should not happen just in case
+        revert("DLC Not Found");
     }
 
-    function getAllOpenUUIDs() public view returns (bytes32[] memory) {
+    function getAllUUIDs() public view returns (bytes32[] memory) {
         return openUUIDs;
     }
 }

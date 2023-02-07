@@ -115,6 +115,13 @@ contract DLCManager is AccessControl {
         emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
+    event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit);
+
+    function mintBtcNft(bytes32 _uuid, uint256 _collateral) external {
+        uint256 index = _findIndex(_uuid); // Reverts if DLC is not in the list of open DLCs
+        emit MintBtcNft(_uuid, _collateral);
+    }
+
     event CloseDLC(
         bytes32 uuid,
         uint256 outcome,
@@ -216,7 +223,7 @@ contract DLCManager is AccessControl {
                 return i;
             }
         }
-        revert("Not Found"); // should not happen just in case
+        revert("DLC Not Found");
     }
 
     function getAllUUIDs() public view returns (bytes32[] memory) {

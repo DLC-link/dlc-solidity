@@ -2,16 +2,21 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
+
+const mockDlcUUID = '0x126d6d95b8b724bbe0b2b91baa3b836eb8b601272ab945c23b68db3b1cfdcdc3';
+const ReadyStatus = 2;
+
 describe('BrokerContract', () => {
     let mockV3Aggregator;
     let mockDlcManager;
     let brokerContract;
     let emergencyRefundTime;
     let deployer, broker, user;
+    let btcCollateral;
 
     beforeEach(async () => {
         emergencyRefundTime = 1988622969;
-        mockDlcUUID = '0x126d6d95b8b724bbe0b2b91baa3b836eb8b601272ab945c23b68db3b1cfdcdc3';
+        btcCollateral = 1000;
 
         // Setup accounts
         accounts = await ethers.getSigners();
@@ -43,10 +48,11 @@ describe('BrokerContract', () => {
 
     describe('setupVault', async () => {
         it('emits an event with vault data', async () => {
-            const transaction = await brokerContract.setupVault(1000, emergencyRefundTime);
+            const transaction = await brokerContract.setupVault(btcCollateral, emergencyRefundTime);
             const txReceipt = await transaction.wait();
             const event = txReceipt.events.find(ev => ev.event == 'SetupVault');
-            expect(event.args).to.eql([mockDlcUUID, BigNumber.from(1000), BigNumber.from(emergencyRefundTime), BigNumber.from(0), broker.address])
+            // const dlcUUID = event.args.dlcUUID
+            expect(event.args).to.eql([mockDlcUUID, BigNumber.from(btcCollateral), BigNumber.from(emergencyRefundTime), BigNumber.from(0), broker.address])
         });
         xit('emits a StatusUpdate event', () => { });
         xit('sets up a new vault object with the correct status', () => { });
@@ -54,13 +60,35 @@ describe('BrokerContract', () => {
 
     describe('mintNft', async () => {
         beforeEach(async () => {
-            await brokerContract.setupVault(1000, emergencyRefundTime);
+            await brokerContract.connect(user).setupVault(btcCollateral, emergencyRefundTime);
         })
-        it('emits a create NFT event to the observer', async () => {
+
+        // move this to the dlcManager
+        it('emits a create NFT event from the DLCManager contract', async () => {
             const postCreateTx = await brokerContract.postCreateDLCHandler(mockDlcUUID)
             const txReceipt = await postCreateTx.wait();
             const event = txReceipt.events.find(ev => ev.event == 'MintBtcNft');
-            expect(event.args).to.eql([mockDlcUUID, BigNumber.from(1000)])
+            expect(event.args).to.eql([mockDlcUUID, BigNumber.from(btcCollateral)])
+            expect(event.address).to.equal(mockDlcManager.address);
+        })
+        describe('after the mintNft callback returns from the DLCManager', async () => {
+            let postMintEvent;
+            beforeEach(async () => {
+                const postCreateTx = await brokerContract.postMintBtcNft(mockDlcUUID, 1)
+                const txReceipt = await postCreateTx.wait()
+                postMintEvent = txReceipt.events.find(ev => ev.event == 'MintBtcNft')
+                await brokerContract.postCreateDLCHandler(mockDlcUUID) // updates the status to ready
+            })
+            it('emits the mintDlcNft event from the broker contract', async () => {
+                expect(postMintEvent.args).to.eql([mockDlcUUID, BigNumber.from(1)])
+                expect(postMintEvent.address).to.equal(brokerContract.address);
+            })
+            it('stores the nftId after the mintNft callback', async () => {
+                const vault = await brokerContract.getVaultByUUID(mockDlcUUID);
+                expect(vault).to.eql(
+                    [BigNumber.from(0), mockDlcUUID, ReadyStatus, BigNumber.from(btcCollateral), BigNumber.from(1), user.address],
+                );
+            })
         })
     })
 })

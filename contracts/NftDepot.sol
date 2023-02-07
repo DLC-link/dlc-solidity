@@ -240,6 +240,8 @@ contract NftDepot is DLCLinkCompatible {
         return ownedLoans;
     }
 
+    function postMintBtcNft(bytes32 _uuid, uint256 _nftId) external {}
+
     // function _findLoanIndex(string memory _uuid) private view returns (uint256) {
     //     // find the recently closed uuid index
     //     for (uint256 i = 0; i < numLoans; i++) {
