@@ -210,11 +210,6 @@ contract ProtocolContract is DLCLinkCompatible {
         return _collateralValue <= _strikePrice;
     }
 
-    // (collateral-value (get-collateral-value (get vault-collateral loan) btc-price))
-    // (strike-price (/ (* (get vault-loan loan) (get liquidation-ratio loan)) u100000000))
-    // )
-    // (ok (<= collateral-value strike-price))
-
     function calculatePayoutRatio(uint256 _loanID, int256 _price)
         public
         view
