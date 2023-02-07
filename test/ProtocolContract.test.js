@@ -141,6 +141,22 @@ describe('ProtocolContract', () => {
     })
   })
 
+  describe('getCollateralValue', () => {
 
+    let amount = 130000000; // 1.3 BTC
+    let price = 2283600000000;
+
+    beforeEach( async () => {
+      const tx = await protocolContract.connect(user).setupLoan(amount, 0, 0, 0);
+      const txF = await tx.wait();
+    })
+
+    it('returns a value with correct format', async () => {
+      const tx = await protocolContract.getCollateralValue(0, price);
+      const value = tx.toNumber();
+      expect(value).to.equal(amount * price / 10 ** 8);
+    })
+
+  })
 
 })

@@ -180,8 +180,10 @@ contract ProtocolContract is DLCLinkCompatible {
         // _getCollateralValue(_loanID, _price) .....
 
         // if liquidationRatio is 14000 (140.00%)
-        // and collateralvalue is 2.9E20
+        // and collateralvalue is 2968680000000
         // and price is 2283600000000
+        // and vaultLoan is 2000 USDLC -- 20000000000000000000
+
 
         return true;
     }
@@ -193,13 +195,12 @@ contract ProtocolContract is DLCLinkCompatible {
         return 0;
     }
 
-    function _getCollateralValue(uint256 _loanID, int256 _price) internal view returns (uint256) {
-        // TODO:
+    function getCollateralValue(uint256 _loanID, int256 _price) public view returns (uint256) {
         //  _price is 8 decimals, e.g. $22,836 = 2283600000000
         // If collateral is 1.3 BTC, stored as 130000000 sats
-        // collateralValue is 130000000 * 2283600000000 = 2.9E20
-
-        return loans[_loanID].vaultCollateral * uint256(_price);
+        // 130000000 * 2283600000000 = 2.9E20
+        // we divide by 10**8 to get 2968680000000
+        return SafeMath.div((loans[_loanID].vaultCollateral * uint256(_price)), 10 ** 8);
     }
 
     function getLoan(uint256 _loanID) public view returns (Loan memory) {
@@ -209,16 +210,6 @@ contract ProtocolContract is DLCLinkCompatible {
     function getLoanByUUID(bytes32 _uuid) public view returns (Loan memory) {
         return loans[loanIDsByUUID[_uuid]];
     }
-
-    // function _getLatestPrice(address _feedAddress)
-    //     internal
-    //     view
-    //     returns (int256, uint256)
-    // {
-    //     AggregatorV3Interface priceFeed = AggregatorV3Interface(_feedAddress);
-    //     (, int256 price, , uint256 timeStamp, ) = priceFeed.latestRoundData();
-    //     return (price, timeStamp);
-    // }
 
     function getAllLoansForAddress(address _addy)
         public
