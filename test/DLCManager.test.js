@@ -12,7 +12,8 @@ const Status = {
   Liquidated: 7
 }
 
-describe('DiscreetLog', () => {
+describe('DLCManager', () => {
+  let mockV3Aggregator;
   let dlcManager;
   let protocolContract;
   let emergencyRefundTime;
@@ -27,13 +28,17 @@ describe('DiscreetLog', () => {
     protocol = accounts[1];
     user = accounts[2];
 
-    const DiscreetLog = await ethers.getContractFactory('DiscreetLog');
-    dlcManager = await DiscreetLog.deploy();
+    const MockV3Aggregator = await ethers.getContractFactory('MockV3Aggregator');
+    mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); //NOTE:
+    await mockV3Aggregator.deployTransaction.wait();
+
+    const DLCManager = await ethers.getContractFactory('DLCManager');
+    dlcManager = await DLCManager.deploy(deployer.address, mockV3Aggregator.address);
     await dlcManager.deployTransaction.wait();
 
     const ProtocolContract = await ethers.getContractFactory('ProtocolContract', protocol);
     // not really the usdc address, but we aren't testing borrow-repay in this file
-    protocolContract = await ProtocolContract.deploy('0xe7f1725e7734ce288f8367e1bb143e90bb3f0512');
+    protocolContract = await ProtocolContract.deploy(dlcManager.address, '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512');
     await protocolContract.deployTransaction.wait();
   })
 
@@ -74,13 +79,13 @@ describe('DiscreetLog', () => {
 
       const setupLoanEvent = txReceipt.events.find(event => event.event == 'SetupLoan');
       uuid = setupLoanEvent.args.dlcUUID;
-      nonce = setupLoanEvent.args.numLoans;
+      nonce = setupLoanEvent.args.index;
       owner = setupLoanEvent.args.owner // the user, not the protocol-contract
       creator = setupLoanEvent.address; // the protocol-contract
     })
 
     it('emits an event with correct data', async () => {
-      const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
       const txReceipt2 = await postCreateTx.wait();
       const event = txReceipt2.events.find(event => event.event == 'PostCreateDLC');
 
@@ -99,7 +104,7 @@ describe('DiscreetLog', () => {
       // Not Ready before tx
       expect(loan.status).to.equal(Status.NotReady);
 
-      const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
       const txReceipt2 = await postCreateTx.wait();
 
       // Ready after tx
@@ -115,7 +120,7 @@ describe('DiscreetLog', () => {
       let dlc = await dlcManager.getDLC(uuid);
       expect(dlc.uuid).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
 
-      const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
       const txReceipt2 = await postCreateTx.wait();
 
       // After tx
@@ -132,7 +137,7 @@ describe('DiscreetLog', () => {
       let openUUIDs = await dlcManager.getAllUUIDs();
       expect(openUUIDs).to.be.empty;
 
-      const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
       const txReceipt2 = await postCreateTx.wait();
 
       openUUIDs = await dlcManager.getAllUUIDs();
@@ -151,11 +156,11 @@ describe('DiscreetLog', () => {
 
       const setupLoanEvent = txReceipt.events.find(event => event.event == 'SetupLoan');
       uuid = setupLoanEvent.args.dlcUUID;
-      nonce = setupLoanEvent.args.numLoans;
+      nonce = setupLoanEvent.args.index;
       owner = setupLoanEvent.args.owner // the user, not the protocol-contract
       creator = setupLoanEvent.address; // the protocol-contract
 
-      const postCreateTx = await dlcManager.postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
       await postCreateTx.wait();
     })
 

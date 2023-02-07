@@ -32,7 +32,7 @@ struct Loan {
 
 // TODO: setup access control, which will also change the tests
 
-contract ProtocolContract is DLCLinkCompatible {
+contract NftDepot is DLCLinkCompatible {
     using SafeMath for uint256;
     DLCManager private _dlcManager;
     IERC20 private _usdc;
@@ -137,12 +137,13 @@ contract ProtocolContract is DLCLinkCompatible {
         _loan.vaultLoan = _loan.vaultLoan.sub(_amount);
     }
 
-    function closeLoan(uint256 _loanID) public {
+    function closeLoan(uint256 _loanID, uint256 _payoutRatio) public {
         Loan storage _loan = loans[_loanID];
         require(_loan.owner == msg.sender, "Unathorized");
         require(_loan.vaultLoan == 0, "Loan not repaid");
+        // Regular, 0 outcome closing
         _updateStatus(_loanID, Status.PreRepaid);
-        _dlcManager.closeDLC(_loan.dlcUUID, 0);
+        _dlcManager.closeDLC(_loan.dlcUUID, _payoutRatio);
     }
 
     function postCloseDLCHandler(bytes32 _uuid) external {
@@ -171,17 +172,15 @@ contract ProtocolContract is DLCLinkCompatible {
         int256 _price,
         uint256 _timestamp
     ) external {
-        require(
-            checkLiquidation(loanIDsByUUID[_uuid], _price),
-            "Does Not Need Liquidation"
-        );
-        uint16 payoutRatio = calculatePayoutRatio(loanIDsByUUID[_uuid], _price);
-        _liquidateLoan(loanIDsByUUID[_uuid], payoutRatio);
-    }
+        // TODO:
+        // require(checkLiquidation(loanIDsByUUID[_uuid], _price), 'Does Not Need Liquidation');
 
-    function _liquidateLoan(uint256 _loanID, uint16 _payoutRatio) internal {
-        _updateStatus(_loanID, Status.Liquidated);
-        _dlcManager.closeDLC(loans[_loanID].dlcUUID, _payoutRatio);
+        uint256 payoutRatio = calculatePayoutRatio(
+            loanIDsByUUID[_uuid],
+            _price
+        );
+
+        closeLoan(loanIDsByUUID[_uuid], payoutRatio);
     }
 
     function checkLiquidation(
@@ -190,29 +189,8 @@ contract ProtocolContract is DLCLinkCompatible {
     ) public view returns (bool) {
         // TODO:
         // _getCollateralValue(_loanID, _price) .....
-
-        // if liquidationRatio is 14000 (140.00%)
-        // and collateralvalue is 2968680000000
-        // and price is 2283600000000
-        // and vaultLoan is 2000 USDLC -- 20000000000000000000 (16 decimals)
-        // We need to check if the collateral/loan ratio is below liquidationRatio%
-
-        uint256 _collateralValue = getCollateralValue(_loanID, _price); // 8 decimals
-        uint256 _strikePrice = SafeMath.div(
-            SafeMath.mul(
-                loans[_loanID].vaultLoan,
-                loans[_loanID].liquidationRatio
-            ),
-            10 ** 10
-        ); // 16 + 2 - 10 = 8 decimals
-
-        return _collateralValue <= _strikePrice;
+        return true;
     }
-
-    // (collateral-value (get-collateral-value (get vault-collateral loan) btc-price))
-    // (strike-price (/ (* (get vault-loan loan) (get liquidation-ratio loan)) u100000000))
-    // )
-    // (ok (<= collateral-value strike-price))
 
     function calculatePayoutRatio(
         uint256 _loanID,
@@ -220,23 +198,15 @@ contract ProtocolContract is DLCLinkCompatible {
     ) public view returns (uint16) {
         // Should return a number between 0-100.00
         // TODO:
-
         return 0;
     }
 
-    function getCollateralValue(
+    function _getCollateralValue(
         uint256 _loanID,
         int256 _price
-    ) public view returns (uint256) {
-        //  _price is 8 decimals, e.g. $22,836 = 2283600000000
-        // If collateral is 1.3 BTC, stored as 130000000 sats
-        // 130000000 * 2283600000000 = 2.9E20
-        // we divide by 10**8 to get 2968680000000
-        return
-            SafeMath.div(
-                (loans[_loanID].vaultCollateral * uint256(_price)),
-                10 ** 8
-            );
+    ) internal view returns (uint256) {
+        // TODO:
+        return loans[_loanID].vaultCollateral * uint256(_price);
     }
 
     function getLoan(uint256 _loanID) public view returns (Loan memory) {
@@ -246,6 +216,16 @@ contract ProtocolContract is DLCLinkCompatible {
     function getLoanByUUID(bytes32 _uuid) public view returns (Loan memory) {
         return loans[loanIDsByUUID[_uuid]];
     }
+
+    // function _getLatestPrice(address _feedAddress)
+    //     internal
+    //     view
+    //     returns (int256, uint256)
+    // {
+    //     AggregatorV3Interface priceFeed = AggregatorV3Interface(_feedAddress);
+    //     (, int256 price, , uint256 timeStamp, ) = priceFeed.latestRoundData();
+    //     return (price, timeStamp);
+    // }
 
     function getAllLoansForAddress(
         address _addy
