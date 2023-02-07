@@ -82,10 +82,9 @@ contract BtcNft is
 
     // The following functions are overrides required by Solidity.
 
-    function _burn(uint256 tokenId)
-        internal
-        override(ERC721, ERC721URIStorage)
-    {
+    function _burn(
+        uint256 tokenId
+    ) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
     }
 
@@ -96,10 +95,10 @@ contract BtcNft is
      *
      * - `tokenId` must exist.
      */
-    function _setOriginalDepositor(uint256 tokenId, address _originalDepositor)
-        internal
-        virtual
-    {
+    function _setOriginalDepositor(
+        uint256 tokenId,
+        address _originalDepositor
+    ) internal virtual {
         require(
             _exists(tokenId),
             "ERC721URIStorage: URI set of nonexistent token"
@@ -122,7 +121,9 @@ contract BtcNft is
         _brokers[tokenId] = _broker;
     }
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         override(ERC721, ERC721Enumerable, AccessControl)
@@ -131,13 +132,11 @@ contract BtcNft is
         return super.supportsInterface(interfaceId);
     }
 
-    function getDLCNFTsByOwner(address owner)
-        public
-        view
-        returns (DLCNFT[] memory)
-    {
+    function getDLCNFTsByOwner(
+        address owner
+    ) public view returns (DLCNFT[] memory) {
         uint256 balance = balanceOf(owner);
-        DLCNFT[] memory tokenURIsForOwner = new DLCNFT[](balance);
+        DLCNFT[] memory dlcNftsByOwner = new DLCNFT[](balance);
         for (uint256 i = 0; i < balance; i++) {
             uint256 id = tokenOfOwnerByIndex(owner, i);
             DLCNFT memory x = DLCNFT({
@@ -146,17 +145,14 @@ contract BtcNft is
                 originalDepositor: _originalDepositors[id],
                 broker: _brokers[id]
             });
-            tokenURIsForOwner[i] = x;
+            dlcNftsByOwner[i] = x;
         }
-        return tokenURIsForOwner;
+        return dlcNftsByOwner;
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
         return super.tokenURI(tokenId);
     }
 }
