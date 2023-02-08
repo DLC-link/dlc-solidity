@@ -16,6 +16,12 @@ async function main() {
     const tx = await protocolContract.connect(user).setupLoan(amount, 0, 0, 0);
     const txF = await tx.wait();
 
+    // TODO: should we wait for the observer to call back into the chain or just fake it and let it run?
+
+    dlcManager.once('PostCreateDLC', async (_uuid, _creator, _emergencyRefundTime, _nonce, _eventSource) => {
+        console.log('psotcreatedlc calback running...')
+    })
+
 }
 
 main().catch((error) => {
