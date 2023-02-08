@@ -67,7 +67,7 @@ function deploymentInfo(hardhat, contract, contractName) {
 
 async function saveDeploymentInfo(info, filename = undefined) {
     if (!filename) {
-        filename = `${info.contract.name}.json`
+        filename = `deploymentFiles/${info.network}/${info.contract.name}.json`
     }
     console.log(`Writing deployment info to ${filename}`)
     const content = JSON.stringify(info, null, 2)

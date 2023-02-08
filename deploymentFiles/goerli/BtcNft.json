@@ -1,13 +1,14 @@
 {
-  "network": "localhost",
+  "network": "goerli",
   "contract": {
     "name": "BtcNft",
-    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    "signerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "address": "0x2CBE182D18e3795EeEE2314737F50A807bBA2Ef5",
+    "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
     "abi": [
       "constructor()",
       "event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)",
       "event ApprovalForAll(address indexed owner, address indexed operator, bool approved)",
+      "event NFTMinted(uint256 indexed _id)",
       "event Paused(address account)",
       "event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)",
       "event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)",
@@ -21,6 +22,7 @@
       "function balanceOf(address owner) view returns (uint256)",
       "function burn(uint256 tokenId)",
       "function getApproved(uint256 tokenId) view returns (address)",
+      "function getDLCNFTsByOwner(address owner) view returns (tuple(uint256 id, string uri, address originalDepositor, address broker)[])",
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",
@@ -31,13 +33,16 @@
       "function paused() view returns (bool)",
       "function renounceRole(bytes32 role, address account)",
       "function revokeRole(bytes32 role, address account)",
-      "function safeMint(address to, string uri)",
+      "function safeMint(address to, string uri, address broker)",
       "function safeTransferFrom(address from, address to, uint256 tokenId)",
       "function safeTransferFrom(address from, address to, uint256 tokenId, bytes data)",
       "function setApprovalForAll(address operator, bool approved)",
       "function supportsInterface(bytes4 interfaceId) view returns (bool)",
       "function symbol() view returns (string)",
+      "function tokenByIndex(uint256 index) view returns (uint256)",
+      "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
       "function tokenURI(uint256 tokenId) view returns (string)",
+      "function totalSupply() view returns (uint256)",
       "function transferFrom(address from, address to, uint256 tokenId)",
       "function unpause()"
     ]
