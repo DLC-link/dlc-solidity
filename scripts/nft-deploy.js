@@ -3,15 +3,7 @@ const { F_OK } = require('fs')
 const inquirer = require('inquirer')
 const config = require('getconfig')
 
-const CONTRACT_NAME = "BtcNft"
-const CONTRACT_SYMBOL = "DLC"
-
 async function main() {
-    const info = await deployContract(CONTRACT_NAME, CONTRACT_SYMBOL)
-    await saveDeploymentInfo(info, config.deploymentConfigFile)
-}
-
-async function deployContract(name, symbol) {
     const hardhat = require('hardhat')
     const accounts = await hardhat.ethers.getSigners();
     const deployer = accounts[0];
@@ -21,26 +13,34 @@ async function deployContract(name, symbol) {
     // DLC Manager deployment
     console.log(`deploying contract DLCManager to network "${network}"...`)
     const DLCManager = await hardhat.ethers.getContractFactory('DLCManager');
-    const dlcManager = await DLCManager.deploy(deployer.address, '0xA39434A63A52E749F02807ae27335515BA4b07F7');
+    const dlcManager = await DLCManager.deploy(deployer.address, '0xA39434A63A52E749F02807ae27335515BA4b07F7'); // Chainlink price feed goerli
     await dlcManager.deployed();
     console.log(`deployed contract DLCManager to ${dlcManager.address} (network: ${network})`);
     saveDeploymentInfo(deploymentInfo(hardhat, dlcManager, 'DlcManager'))
 
     // BTCNFT deployment
-    console.log(`deploying contract for nft ${name} (${symbol}) to network "${network}"...`)
-    const BtcNft = await hardhat.ethers.getContractFactory(CONTRACT_NAME)
+    console.log(`deploying contract for nft BtcNft (DLC) to network "${network}"...`)
+    const BtcNft = await hardhat.ethers.getContractFactory("BtcNft")
     const btcNft = await BtcNft.deploy()
     await btcNft.deployed()
-    console.log(`deployed contract for nft ${name} (${symbol}) to ${btcNft.address} (network: ${network})`);
+    console.log(`deployed contract for nft BtcNft (DLC) to ${btcNft.address} (network: ${network})`);
     saveDeploymentInfo(deploymentInfo(hardhat, btcNft, 'BtcNft'))
 
+    // DlcBroker deployment
+    console.log(`deploying contract DlcBroker to network "${network}"...`)
+    const DlcBroker = await hardhat.ethers.getContractFactory("DlcBroker")
+    const dlcBroker = await DlcBroker.deploy(dlcManager.address, btcNft.address)
+    await dlcBroker.deployed()
+    console.log(`deployed contract DlcBroker to ${dlcBroker.address} (network: ${network})`);
+    saveDeploymentInfo(deploymentInfo(hardhat, dlcBroker, 'DlcBroker'))
+
     // USDC contract deployment
-    console.log(`deploying contract for token ${name} (${symbol}) to network "${network}"...`)
+    console.log(`deploying contract for token USDStableCoinForDLCs (USDC) to network "${network}"...`)
     const USDC = await hardhat.ethers.getContractFactory('USDStableCoinForDLCs');
     const usdc = await USDC.deploy();
     await usdc.deployed();
-    console.log(`deployed contract for token ${name} (${symbol}) to ${usdc.address} (network: ${network})`);
-    saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'usdc'))
+    console.log(`deployed contract for token USDStableCoinForDLCs (USDC) to ${usdc.address} (network: ${network})`);
+    saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'USDC'))
 
     // Sample Protocol Contract deployment
     console.log(`deploying contract ProtocolContract to network "${network}"...`)
