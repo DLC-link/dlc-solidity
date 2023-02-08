@@ -184,10 +184,11 @@ contract ProtocolContract is DLCLinkCompatible {
         _dlcManager.closeDLC(loans[_loanID].dlcUUID, _payoutRatio);
     }
 
-    function checkLiquidation(
-        uint256 _loanID,
-        int256 _price
-    ) public view returns (bool) {
+    function checkLiquidation(uint256 _loanID, int256 _price)
+        public
+        view
+        returns (bool)
+    {
         // TODO:
         // _getCollateralValue(_loanID, _price) .....
 
@@ -203,31 +204,28 @@ contract ProtocolContract is DLCLinkCompatible {
                 loans[_loanID].vaultLoan,
                 loans[_loanID].liquidationRatio
             ),
-            10 ** 10
+            10**10
         ); // 16 + 2 - 10 = 8 decimals
 
         return _collateralValue <= _strikePrice;
     }
 
-    // (collateral-value (get-collateral-value (get vault-collateral loan) btc-price))
-    // (strike-price (/ (* (get vault-loan loan) (get liquidation-ratio loan)) u100000000))
-    // )
-    // (ok (<= collateral-value strike-price))
-
-    function calculatePayoutRatio(
-        uint256 _loanID,
-        int256 _price
-    ) public view returns (uint16) {
+    function calculatePayoutRatio(uint256 _loanID, int256 _price)
+        public
+        view
+        returns (uint16)
+    {
         // Should return a number between 0-100.00
         // TODO:
 
         return 0;
     }
 
-    function getCollateralValue(
-        uint256 _loanID,
-        int256 _price
-    ) public view returns (uint256) {
+    function getCollateralValue(uint256 _loanID, int256 _price)
+        public
+        view
+        returns (uint256)
+    {
         //  _price is 8 decimals, e.g. $22,836 = 2283600000000
         // If collateral is 1.3 BTC, stored as 130000000 sats
         // 130000000 * 2283600000000 = 2.9E20
@@ -235,7 +233,7 @@ contract ProtocolContract is DLCLinkCompatible {
         return
             SafeMath.div(
                 (loans[_loanID].vaultCollateral * uint256(_price)),
-                10 ** 8
+                10**8
             );
     }
 
@@ -247,9 +245,11 @@ contract ProtocolContract is DLCLinkCompatible {
         return loans[loanIDsByUUID[_uuid]];
     }
 
-    function getAllLoansForAddress(
-        address _addy
-    ) public view returns (Loan[] memory) {
+    function getAllLoansForAddress(address _addy)
+        public
+        view
+        returns (Loan[] memory)
+    {
         Loan[] memory ownedLoans = new Loan[](loansPerAddress[_addy]);
         uint256 j = 0;
         for (uint256 i = 0; i < index; i++) {
