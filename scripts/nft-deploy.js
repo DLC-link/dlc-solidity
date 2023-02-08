@@ -1,8 +1,6 @@
 const fs = require('fs/promises')
 const { F_OK } = require('fs')
-
 const inquirer = require('inquirer')
-const { BigNumber } = require('ethers')
 const config = require('getconfig')
 
 const CONTRACT_NAME = "BtcNft"
@@ -15,42 +13,62 @@ async function main() {
 
 async function deployContract(name, symbol) {
     const hardhat = require('hardhat')
+    const accounts = await hardhat.ethers.getSigners();
+    const deployer = accounts[0];
+    const protocol = accounts[1];
     const network = hardhat.network.name
 
-    console.log(`deploying contract for token ${name} (${symbol}) to network "${network}"...`)
+    // DLC Manager deployment
+    console.log(`deploying contract DLCManager to network "${network}"...`)
+    const DLCManager = await hardhat.ethers.getContractFactory('DLCManager');
+    const dlcManager = await DLCManager.deploy(deployer.address, '0xA39434A63A52E749F02807ae27335515BA4b07F7');
+    await dlcManager.deployed();
+    console.log(`deployed contract DLCManager to ${dlcManager.address} (network: ${network})`);
+    saveDeploymentInfo(deploymentInfo(hardhat, dlcManager, 'DlcManager'))
+
+    // BTCNFT deployment
+    console.log(`deploying contract for nft ${name} (${symbol}) to network "${network}"...`)
     const BtcNft = await hardhat.ethers.getContractFactory(CONTRACT_NAME)
     const btcNft = await BtcNft.deploy()
-
     await btcNft.deployed()
-    console.log(`deployed contract for token ${name} (${symbol}) to ${btcNft.address} (network: ${network})`);
+    console.log(`deployed contract for nft ${name} (${symbol}) to ${btcNft.address} (network: ${network})`);
+    saveDeploymentInfo(deploymentInfo(hardhat, btcNft, 'BtcNft'))
 
-    return deploymentInfo(hardhat, btcNft)
+    // USDC contract deployment
+    console.log(`deploying contract for token ${name} (${symbol}) to network "${network}"...`)
+    const USDC = await hardhat.ethers.getContractFactory('USDStableCoinForDLCs');
+    const usdc = await USDC.deploy();
+    await usdc.deployed();
+    console.log(`deployed contract for token ${name} (${symbol}) to ${usdc.address} (network: ${network})`);
+    saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'usdc'))
+
+    // Sample Protocol Contract deployment
+    console.log(`deploying contract ProtocolContract to network "${network}"...`)
+    const ProtocolContract = await hardhat.ethers.getContractFactory('ProtocolContract', protocol);
+    const protocolContract = await ProtocolContract.deploy(dlcManager.address, usdc.address);
+    await protocolContract.deployed();
+    console.log(`deployed contract ProtocolContract to ${protocolContract.address} (network: ${network})`);
+    saveDeploymentInfo(deploymentInfo(hardhat, protocolContract, 'ProtocolContract'))
 }
 
-function deploymentInfo(hardhat, btcNft) {
-    return {
+function deploymentInfo(hardhat, contract, contractName) {
+    const deployInfo = {
         network: hardhat.network.name,
         contract: {
-            name: CONTRACT_NAME,
-            address: btcNft.address,
-            signerAddress: btcNft.signer.address,
-            abi: btcNft.interface.format(),
+            name: contractName,
+            address: contract.address,
+            signerAddress: contract.signer.address,
+            abi: contract.interface.format(),
         },
     }
+    console.log(deployInfo)
+    return deployInfo
 }
 
 async function saveDeploymentInfo(info, filename = undefined) {
     if (!filename) {
-        filename = config.deploymentConfigFile || 'btcNft-deployment.json'
+        filename = `${info.contract.name}.json`
     }
-    const exists = await fileExists(filename)
-    if (exists) {
-        const overwrite = await confirmOverwrite(filename)
-        if (!overwrite) {
-            return false
-        }
-    }
-
     console.log(`Writing deployment info to ${filename}`)
     const content = JSON.stringify(info, null, 2)
     await fs.writeFile(filename, content, { encoding: 'utf-8' })
