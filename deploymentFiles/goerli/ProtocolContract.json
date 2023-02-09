@@ -2,7 +2,7 @@
   "network": "goerli",
   "contract": {
     "name": "ProtocolContract",
-    "address": "0x27379580004E9bcC8F63d811cE4ea09AEe317d60",
+    "address": "0xA848c248cbB003B7A69e1d0c67D4857a26ba7D48",
     "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
     "abi": [
       "constructor(address _dlcManagerAddress, address _usdcAddress)",

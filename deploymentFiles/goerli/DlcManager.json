@@ -2,7 +2,7 @@
   "network": "goerli",
   "contract": {
     "name": "DlcManager",
-    "address": "0xA5D0267c3bf601694F2F85edDbCf6Fc096A603d1",
+    "address": "0xDa7E7069a7B9eb0Dc2AFE4777cdEc48F637F16c4",
     "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
     "abi": [
       "constructor(address _adminAddress, address _btcPriceFeedAddress)",

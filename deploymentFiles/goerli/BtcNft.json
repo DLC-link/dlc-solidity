@@ -2,7 +2,7 @@
   "network": "goerli",
   "contract": {
     "name": "BtcNft",
-    "address": "0x2CBE182D18e3795EeEE2314737F50A807bBA2Ef5",
+    "address": "0xa8E35eEF34562C1AAA78ee4f3c83A0b090FcbB01",
     "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
     "abi": [
       "constructor()",
