@@ -4,6 +4,8 @@ require("@nomicfoundation/hardhat-toolbox");
 require('@openzeppelin/hardhat-upgrades');
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@nomiclabs/hardhat-solhint");
+require("@nomiclabs/hardhat-etherscan");
+
 // require('hardhat-ethernal');
 require('dotenv').config();
 const secrets = require('./secrets.json');
@@ -24,6 +26,12 @@ module.exports = {
       accounts: [secrets.key]
     },
   },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: secrets.etherscanApiKey
+  }
+
   // ethernal: {
   //   email: process.env.ETHERNAL_EMAIL,
   //   password: process.env.ETHERNAL_PASSWORD
