@@ -115,11 +115,12 @@ contract DLCManager is AccessControl {
         emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
     }
 
-    event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit);
+    event MintBtcNft(bytes32 dlcUUID, address creator, uint256 btcDeposit);
 
     function mintBtcNft(bytes32 _uuid, uint256 _collateral) external {
         _findIndex(_uuid); // Reverts if DLC is not in the list of open DLCs
-        emit MintBtcNft(_uuid, _collateral);
+        DLC storage _dlc = dlcs[_uuid];
+        emit MintBtcNft(_uuid, _dlc.creator, _collateral);
     }
 
     event CloseDLC(
