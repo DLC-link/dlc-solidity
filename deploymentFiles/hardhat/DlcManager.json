@@ -9,7 +9,7 @@
       "event BTCPriceFetching(bytes32 uuid, address caller, int256 price, string eventSource)",
       "event CloseDLC(bytes32 uuid, uint256 outcome, address creator, string eventSource)",
       "event CreateDLC(bytes32 uuid, address creator, uint256 emergencyRefundTime, uint256 nonce, string eventSource)",
-      "event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit)",
+      "event MintBtcNft(bytes32 dlcUUID, address creator, uint256 btcDeposit)",
       "event PostCloseDLC(bytes32 uuid, uint256 outcome, uint256 actualClosingTime, string eventSource)",
       "event PostCreateDLC(bytes32 uuid, address creator, uint256 emergencyRefundTime, uint256 nonce, string eventSource)",
       "event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)",

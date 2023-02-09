@@ -2,14 +2,14 @@
   "network": "goerli",
   "contract": {
     "name": "DlcManager",
-    "address": "0xdef62e5BF7fAF5F7B76860b05A087456805377EF",
+    "address": "0xA5D0267c3bf601694F2F85edDbCf6Fc096A603d1",
     "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
     "abi": [
       "constructor(address _adminAddress, address _btcPriceFeedAddress)",
       "event BTCPriceFetching(bytes32 uuid, address caller, int256 price, string eventSource)",
       "event CloseDLC(bytes32 uuid, uint256 outcome, address creator, string eventSource)",
       "event CreateDLC(bytes32 uuid, address creator, uint256 emergencyRefundTime, uint256 nonce, string eventSource)",
-      "event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit)",
+      "event MintBtcNft(bytes32 dlcUUID, address creator, uint256 btcDeposit)",
       "event PostCloseDLC(bytes32 uuid, uint256 outcome, uint256 actualClosingTime, string eventSource)",
       "event PostCreateDLC(bytes32 uuid, address creator, uint256 emergencyRefundTime, uint256 nonce, string eventSource)",
       "event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)",
