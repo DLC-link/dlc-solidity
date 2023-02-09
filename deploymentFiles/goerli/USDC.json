@@ -2,7 +2,7 @@
   "network": "goerli",
   "contract": {
     "name": "USDC",
-    "address": "0x5f5d49a4fb8e38cDe718C075419eb833fFA1eb58",
+    "address": "0x32D7fF41f89B48126Df62768393F33dBB6921787",
     "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
     "abi": [
       "constructor()",

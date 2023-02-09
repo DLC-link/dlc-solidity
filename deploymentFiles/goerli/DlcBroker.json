@@ -2,7 +2,7 @@
   "network": "goerli",
   "contract": {
     "name": "DlcBroker",
-    "address": "0xAd7E6c7CAfe47270Cf2C995d93e256960D5c7aE8",
+    "address": "0x6C17456Bce45289e431f6091946539135a53fbEf",
     "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
     "abi": [
       "constructor(address _dlcManagerAddress, address _dlcNftAddress)",
