@@ -47,7 +47,7 @@ async function main() {
     ]
 
     let tx;
-    const dlcManager = new ethers.Contract("0xdef62e5BF7fAF5F7B76860b05A087456805377EF", abi, signer)
+    const dlcManager = new ethers.Contract("0xDa7E7069a7B9eb0Dc2AFE4777cdEc48F637F16c4", abi, signer)
     const RoleInBytes = web3.utils.soliditySha3("DLC_ADMIN_ROLE");
     tx = await dlcManager.grantRole(RoleInBytes, '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9')
     console.log(tx);

@@ -17,6 +17,7 @@ contract DLCManager is AccessControl {
         bytes32 uuid;
         uint256 emergencyRefundTime;
         address creator;
+        address receiver;
         uint256 outcome;
         uint256 nonce;
     }
@@ -49,6 +50,7 @@ contract DLCManager is AccessControl {
     event CreateDLC(
         bytes32 uuid,
         address creator,
+        address receiver,
         uint256 emergencyRefundTime,
         uint256 nonce,
         string eventSource
@@ -69,6 +71,7 @@ contract DLCManager is AccessControl {
         emit CreateDLC(
             _uuid,
             msg.sender,
+            tx.origin,
             _emergencyRefundTime,
             _nonce,
             "dlclink:create-dlc:v0"
@@ -79,6 +82,7 @@ contract DLCManager is AccessControl {
     event PostCreateDLC(
         bytes32 uuid,
         address creator,
+        address receiver,
         uint256 emergencyRefundTime,
         uint256 nonce,
         string eventSource
@@ -88,20 +92,23 @@ contract DLCManager is AccessControl {
         bytes32 _uuid,
         uint256 _emergencyRefundTime,
         uint256 _nonce,
-        address _creator
+        address _creator,
+        address _receiver
     ) external onlyRole(DLC_ADMIN_ROLE) {
         dlcs[_uuid] = DLC({
             uuid: _uuid,
             emergencyRefundTime: _emergencyRefundTime,
             nonce: _nonce,
             outcome: 0,
-            creator: _creator
+            creator: _creator,
+            receiver: _receiver
         });
         openUUIDs.push(_uuid);
         DLCLinkCompatible(_creator).postCreateDLCHandler(_uuid);
         emit PostCreateDLC(
             _uuid,
             _creator,
+            _receiver,
             _emergencyRefundTime,
             _nonce,
             "dlclink:post-create-dlc:v0"

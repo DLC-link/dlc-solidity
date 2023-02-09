@@ -85,13 +85,15 @@ describe('DLCManager', () => {
     })
 
     it('emits an event with correct data', async () => {
-      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator, owner);
       const txReceipt2 = await postCreateTx.wait();
       const event = txReceipt2.events.find(event => event.event == 'PostCreateDLC');
 
+      expect(Object.keys(event.args).filter(key => isNaN(key)).length).to.equal(6) // for some reason the event args appear twice, once with a key and once without.
       expect(event.args.uuid).to.equal(uuid);
       expect(event.args.eventSource).to.equal('dlclink:post-create-dlc:v0');
       expect(event.args.creator).to.equal(creator);
+      expect(event.args.receiver).to.equal(owner);
       expect(event.args.emergencyRefundTime).to.equal(emergencyRefundTime);
       expect(event.args.nonce).to.equal(nonce);
     })
@@ -104,8 +106,8 @@ describe('DLCManager', () => {
       // Not Ready before tx
       expect(loan.status).to.equal(Status.NotReady);
 
-      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
-      const txReceipt2 = await postCreateTx.wait();
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator, owner);
+      await postCreateTx.wait();
 
       // Ready after tx
       loan = await protocolContract.getLoan(nonce);
@@ -120,13 +122,12 @@ describe('DLCManager', () => {
       let dlc = await dlcManager.getDLC(uuid);
       expect(dlc.uuid).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
 
-      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
-      const txReceipt2 = await postCreateTx.wait();
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator, owner);
+      await postCreateTx.wait();
 
       // After tx
       dlc = await dlcManager.getDLC(uuid);
 
-      expect(dlc.uuid).to.not.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
       expect(dlc.uuid).to.equal(uuid);
       expect(dlc.emergencyRefundTime).to.equal(emergencyRefundTime);
       expect(dlc.creator).to.equal(creator);
@@ -137,7 +138,7 @@ describe('DLCManager', () => {
       let openUUIDs = await dlcManager.getAllUUIDs();
       expect(openUUIDs).to.be.empty;
 
-      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator, owner);
       const txReceipt2 = await postCreateTx.wait();
 
       openUUIDs = await dlcManager.getAllUUIDs();
@@ -160,7 +161,7 @@ describe('DLCManager', () => {
       owner = setupLoanEvent.args.owner // the user, not the protocol-contract
       creator = setupLoanEvent.address; // the protocol-contract
 
-      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator);
+      const postCreateTx = await dlcManager.connect(deployer).postCreateDLC(uuid, emergencyRefundTime, nonce, creator, owner);
       await postCreateTx.wait();
     })
 
