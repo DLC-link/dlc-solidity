@@ -126,13 +126,30 @@ contract DLCManager is AccessControl {
         bytes32 dlcUUID,
         address creator,
         address receiver,
-        uint256 btcDeposit
+        uint256 btcDeposit,
+        string eventSource
     );
 
     function mintBtcNft(bytes32 _uuid, uint256 _collateral) external {
         _findIndex(_uuid); // Reverts if DLC is not in the list of open DLCs
         DLC storage _dlc = dlcs[_uuid];
-        emit MintBtcNft(_uuid, _dlc.creator, _dlc.receiver, _collateral);
+        emit MintBtcNft(
+            _uuid,
+            _dlc.creator,
+            _dlc.receiver,
+            _collateral,
+            "dlclink:mint-btc-nft:v0"
+        );
+    }
+
+    event PostMintBtcNft(bytes32 uuid, uint256 nftId, string eventSource);
+
+    function postMintBtcNft(
+        bytes32 _uuid,
+        uint256 _nftId
+    ) external onlyRole(DLC_ADMIN_ROLE) {
+        DLCLinkCompatible(dlcs[_uuid].creator).postMintBtcNft(_uuid, _nftId);
+        emit PostMintBtcNft(_uuid, _nftId, "dlclink:post-mint-btc-nft:v0");
     }
 
     event CloseDLC(

@@ -14,5 +14,5 @@ interface DLCLinkCompatible {
         uint256 timestamp
     ) external;
 
-    function postMintBtcNft(bytes32 uuid, uint256 collateral) external;
+    function postMintBtcNft(bytes32 uuid, uint256 nftId) external;
 }
