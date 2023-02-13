@@ -2,8 +2,8 @@
   "network": "goerli",
   "contract": {
     "name": "ProtocolContract",
-    "address": "0x0285E68DD9A0D000A5c4CbD279BFF9F790a0920f",
-    "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
+    "address": "0x14fAe4355F333453DBb6efF906F5154ac7a66FfF",
+    "signerAddress": "0x7038f8a64cE8F879705A48e962B55d56aEcd60D8",
     "abi": [
       "constructor(address _dlcManagerAddress, address _usdcAddress)",
       "event SetupLoan(bytes32 dlcUUID, uint256 btcDeposit, uint256 liquidationRatio, uint256 liquidationFee, uint256 emergencyRefundTime, uint256 index, address owner)",

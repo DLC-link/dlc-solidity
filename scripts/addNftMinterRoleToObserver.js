@@ -66,7 +66,7 @@ async function main() {
 
     let tx;
     // Creating and sending the transaction object
-    const btcNft = new ethers.Contract("0x3C9199d64ae50305976a32bCe336706f1E8C7203", abi, signer)
+    const btcNft = new ethers.Contract("0xa726f69681E7592825ce5cc0aBE1e6f6b4055397", abi, signer)
     const RoleInBytes = web3.utils.soliditySha3("PAUSER_ROLE");
     tx = await btcNft.grantRole(RoleInBytes, '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9')
     console.log(tx);

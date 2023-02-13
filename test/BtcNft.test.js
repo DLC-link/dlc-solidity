@@ -61,6 +61,29 @@ describe('BtcNft', () => {
         expect(await btcNftContract.ownerOf(tokenID)).to.equal(liquidator.address)
     })
 
+    it('can mint, burn, and mint again, and the IDs should be right', async () => {
+        // testing the emitted event
+        await expect(btcNftContract.safeMint(depositor.address, newMintItem.uri, broker.address))
+            .to.emit(btcNftContract, "NFTMinted")
+            .withArgs(newMintItem.id)
+
+        // testing the return value
+        const tokenURI = await btcNftContract.tokenURI(newMintItem.id)
+        expect(tokenURI).to.equal(`ipfs://${newMintItem.uri}`)
+
+        await (btcNftContract.connect(depositor).burn(newMintItem.id))
+
+        await expect(btcNftContract.safeMint(depositor.address, newMintItem.uri, broker.address))
+            .to.emit(btcNftContract, "NFTMinted")
+            .withArgs(0)
+
+        console.log(await btcNftContract.tokenURI(0))
+
+        // testing the return value
+        const tokenURI2 = await btcNftContract.tokenURI(newMintItem.id)
+        expect(tokenURI2).to.equal(`ipfs://${newMintItem.uri}`)
+    })
+
     describe('fetchNFTs', async () => {
         describe('when the owner is always the depositor', async () => {
             it('should return a list of DLC-NFT objects', async () => {

@@ -2,8 +2,8 @@
   "network": "goerli",
   "contract": {
     "name": "BtcNft",
-    "address": "0x87751d8b2e719C124Cbd4Da375b65f9985a280a9",
-    "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
+    "address": "0x04841c18303915ea8F868Db424e08694a0206b57",
+    "signerAddress": "0x7038f8a64cE8F879705A48e962B55d56aEcd60D8",
     "abi": [
       "constructor()",
       "event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)",

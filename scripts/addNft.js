@@ -66,7 +66,7 @@ async function main() {
 
     let tx;
     // Creating and sending the transaction object
-    const btcNft = new ethers.Contract("0x2CBE182D18e3795EeEE2314737F50A807bBA2Ef5", abi, signer)
+    const btcNft = new ethers.Contract("0x04841c18303915ea8F868Db424e08694a0206b57", abi, signer)
     const nftCount = await btcNft.totalSupply()
 
     const NFT_STORAGE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDNkOWIxRjg3QzhEMDZENjUxNjNjNTI5OTBhRTM3NjdCYkI4MjUyZEYiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3NTMxNDU4NTQxMywibmFtZSI6IkJ0Y05mdCJ9.29sT29mnYH5UZDuvOrLENAMjZ9Z3a3TXTQ0voYc0c4E'
@@ -77,20 +77,21 @@ async function main() {
         name: 'nft.storage store test',
         description: 'Test ERC-1155 compatible metadata. DLC Style!',
         image,
-        properties: {
-            custom: 'Custom data can appear here, files are auto uploaded.',
-            // file: new File(['<DATA>'], 'README.md', { type: 'text/plain' }),
-        }
+        // properties: {
+        //     custom: 'Custom data can appear here, files are auto uploaded.',
+        //     // file: new File(['<DATA>'], 'README.md', { type: 'text/plain' }),
+        // }
     })
     console.log('IPFS URL for the metadata:', metadata.url)
+    console.log('IPFS URL without protocol:', metadata.url.substring(7))
     console.log('metadata.json contents:\n', metadata.data)
     console.log('metadata.json with IPFS gateway URLs:\n', metadata.embed())
     console.log(metadata.data.image.host + metadata.data.image.pathname)
 
-    tx = await btcNft.safeMint('0x8BC0bf8B561a75d8c76834f11F35F905c09EeE76', metadata.data.image.host + metadata.data.image.pathname, signer.address)
+    tx = await btcNft.safeMint('0x980feAeD0D5d3BaFFeb828a27e8b59c0FE78F1f9', metadata.url.substring(7), signer.address, { gasLimit: 500000 })
     console.log(tx);
 
-    tx = await btcNft.getDLCNFTsByOwner('0x8BC0bf8B561a75d8c76834f11F35F905c09EeE76')
+    tx = await btcNft.getDLCNFTsByOwner('0x980feAeD0D5d3BaFFeb828a27e8b59c0FE78F1f9')
     console.log(tx);
 }
 

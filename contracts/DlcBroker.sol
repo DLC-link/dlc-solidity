@@ -143,14 +143,13 @@ contract DlcBroker is DLCLinkCompatible {
             _payoutRatio = ALL_FOR_BROKER;
             //closing a vault where I was not the depositor
         }
-        _btcNft.burn(_vault.nftId); //Should the NFT contract itself close the DLC?
+        _btcNft.burn(_vault.nftId);
         _updateStatus(_vaultID, Status.PreRepaid);
         emit BurnBtcNft(_vault.dlcUUID, _vault.nftId);
         _dlcManager.closeDLC(_vault.dlcUUID, _payoutRatio);
     }
 
     function postCloseDLCHandler(bytes32 _uuid) external {
-        // Access control? dlc-manager?
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
         require(vaults[vaultIDsByUUID[_uuid]].dlcUUID != 0, "No such vault");
         require(

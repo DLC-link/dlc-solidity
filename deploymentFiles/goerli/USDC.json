@@ -2,8 +2,8 @@
   "network": "goerli",
   "contract": {
     "name": "USDC",
-    "address": "0x010b1182f68d5aF23C4e81E77EcA5352F3520Ed5",
-    "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
+    "address": "0xdCf650471f8D1929DB9A10De0A421b60357e78B1",
+    "signerAddress": "0x7038f8a64cE8F879705A48e962B55d56aEcd60D8",
     "abi": [
       "constructor()",
       "event Approval(address indexed owner, address indexed spender, uint256 value)",

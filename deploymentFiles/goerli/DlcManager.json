@@ -2,8 +2,8 @@
   "network": "goerli",
   "contract": {
     "name": "DlcManager",
-    "address": "0xA93Df9f4B788Ce17aeAeEba140106ef93872CeE4",
-    "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
+    "address": "0xa726f69681E7592825ce5cc0aBE1e6f6b4055397",
+    "signerAddress": "0x7038f8a64cE8F879705A48e962B55d56aEcd60D8",
     "abi": [
       "constructor(address _adminAddress, address _btcPriceFeedAddress)",
       "event BTCPriceFetching(bytes32 uuid, address caller, int256 price, string eventSource)",

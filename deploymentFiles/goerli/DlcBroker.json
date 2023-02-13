@@ -2,8 +2,8 @@
   "network": "goerli",
   "contract": {
     "name": "DlcBroker",
-    "address": "0x88491Fa6561e80779c6D6558b5d9B8252d293b31",
-    "signerAddress": "0x824B43fC02EDf9DFE66486E47EBCE8BFcc4192a7",
+    "address": "0x66750B9870c5B0e836f47814739E50191Ec765cd",
+    "signerAddress": "0x7038f8a64cE8F879705A48e962B55d56aEcd60D8",
     "abi": [
       "constructor(address _dlcManagerAddress, address _dlcNftAddress)",
       "event BurnBtcNft(bytes32 dlcUUID, uint256 nftId)",
