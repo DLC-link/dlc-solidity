@@ -21,6 +21,9 @@ contract BtcNft is
     AccessControl,
     ERC721Burnable
 {
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIdCounter;
+
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
@@ -60,12 +63,17 @@ contract BtcNft is
         string memory uri,
         address broker
     ) public onlyRole(MINTER_ROLE) {
-        uint256 tokenId = totalSupply();
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
         _setOriginalDepositor(tokenId, to);
         _setBroker(tokenId, broker);
         emit NFTMinted(tokenId);
+    }
+
+    function getNextMintId() public view returns (uint256) {
+        return _tokenIdCounter.current();
     }
 
     function _beforeTokenTransfer(

@@ -72,16 +72,28 @@ describe('BtcNft', () => {
         expect(tokenURI).to.equal(`ipfs://${newMintItem.uri}`)
 
         await (btcNftContract.connect(depositor).burn(newMintItem.id))
+        await expect(btcNftContract.tokenURI(newMintItem.id)).to.be.revertedWith("ERC721: invalid token ID")
 
-        await expect(btcNftContract.safeMint(depositor.address, newMintItem.uri, broker.address))
+        await expect(btcNftContract.safeMint(depositor.address, newMintItem2.uri, broker.address))
             .to.emit(btcNftContract, "NFTMinted")
-            .withArgs(0)
-
-        console.log(await btcNftContract.tokenURI(0))
+            .withArgs(newMintItem2.id)
 
         // testing the return value
-        const tokenURI2 = await btcNftContract.tokenURI(newMintItem.id)
-        expect(tokenURI2).to.equal(`ipfs://${newMintItem.uri}`)
+        const tokenURI2 = await btcNftContract.tokenURI(newMintItem2.id)
+        expect(tokenURI2).to.equal(`ipfs://${newMintItem2.uri}`)
+    })
+
+    it('getNextMintId', async () => {
+        expect(await btcNftContract.getNextMintId()).to.equal(0)
+        // testing the emitted event
+        await btcNftContract.safeMint(depositor.address, newMintItem.uri, broker.address)
+        expect(await btcNftContract.getNextMintId()).to.equal(1)
+
+        await (btcNftContract.connect(depositor).burn(newMintItem.id))
+        expect(await btcNftContract.getNextMintId()).to.equal(1)
+
+        await expect(btcNftContract.safeMint(depositor.address, newMintItem2.uri, broker.address))
+        expect(await btcNftContract.getNextMintId()).to.equal(2)
     })
 
     describe('fetchNFTs', async () => {
