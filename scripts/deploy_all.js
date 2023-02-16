@@ -71,7 +71,7 @@ async function saveDeploymentInfo(info, filename = undefined) {
         filename = `deploymentFiles/${info.network}/${info.contract.name}.json`
     }
     console.log(`Writing deployment info to ${filename}`)
-    const content = JSON.stringify(info, null, 2)
+    const content = JSON.stringify(info, null, 2) + '\n'
     await fs.writeFile(filename, content, { encoding: 'utf-8' })
     return true
 }
