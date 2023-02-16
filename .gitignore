@@ -55,6 +55,7 @@ web_modules/
 
 # Optional npm cache directory
 .npm
+.deps
 
 # Optional eslint cache
 .eslintcache
@@ -233,9 +234,10 @@ blockchain/geth/**
 blockchain/keystore/**
 blockchain/history
 
-#truffle
-yarn.lock
-package-lock.json
-
 secrets.json
 # End of https://www.toptal.com/developers/gitignore/api/soliditytruffle,solidity,node
+
+# hardhat
+contracts/artifacts/build-info
+cache
+artifacts

@@ -1,3 +1,15 @@
+# Dev notes:
+Currently `npm i` only works with the --legacy-peer-deps flag, because of a dependency bug in: https://github.com/tryethernal/hardhat-ethernal/issues/22
+
+To run a local hardhat node and IPFS instance:
+```bash
+$ ./start-local-environment.sh
+# To run a deployment script in another terminal:
+$ npx hardhat run --network localhost scripts/deploy-all-ethernal.js
+```
+
+This will use the `ethernal` plugin and on `https://app.tryethernal.com/blocks` after login/connection you can browse the chain in a visual explorer.
+
 # DLC Manager Smart Contract
 
 This smart contract is the interface for creating and closing DLCs via the DLC.Link infrastructure. For cases where the DLC requires market prices of assets (e.g. BTC price) this contract is responsible for fetching that (via Chainlink) as part of it's closing criteria.
@@ -7,9 +19,9 @@ Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity-smart-contract#
 # Overview
 A DLC requires an oracle to attest to a specific outcome among the predefined set of outcomes. That means trust.
 
-This contract acts to feed the outcome of the DLC. By using a smart contract for this task, the implementation of the logic, as well as the data being used, is stamped on the chain, and is visible and reviewable by everyone. 
+This contract acts to feed the outcome of the DLC. By using a smart contract for this task, the implementation of the logic, as well as the data being used, is stamped on the chain, and is visible and reviewable by everyone.
 
-# How to interact with this contract 
+# How to interact with this contract
 
 ## Opening a DLC
 When you register a DLC with this contract using the `requestCreateDLC` function, a DLC is opened on our DLC server with the associated outcomes (CETs). The DLC *announcement hash*, which needed to fund the DLC, is available on the website, and eventually via an API call and on-chain.
@@ -21,10 +33,10 @@ The creation of a DLC can also be triggered with a traditional JSON API call (*c
 With the announcement hash, you are now able to set up the DLC between the two participants (users, user/protocol, etc.)
 
 ## Closing the DLC
-The DLC gets closed one of two ways. 
-1. When the `closingTime` has passed the performUpkeep function will get called by the Chainlink keeper. This will get the price from the associated Chainlink data feed, save this price and time in the contract, and stamp that data on the ledger. 
+The DLC gets closed one of two ways.
+1. When the `closingTime` has passed the performUpkeep function will get called by the Chainlink keeper. This will get the price from the associated Chainlink data feed, save this price and time in the contract, and stamp that data on the ledger.
 
-2. If the `cancelEarly` function is called by the DLC creator identity, then the dlc will be closed without waiting for the Chainlink Keeper. The price will be fetched from the associated Chainlink data feed, the price and time will be saved in the contract, and that data will be stamped on the ledger. 
+2. If the `cancelEarly` function is called by the DLC creator identity, then the dlc will be closed without waiting for the Chainlink Keeper. The price will be fetched from the associated Chainlink data feed, the price and time will be saved in the contract, and that data will be stamped on the ledger.
 
 Either way, our system listens to this, and closes the DLC in the DLC oracle with the associated data. An *attestation hash* is now created and like the announcement hash, can be acquired via the website or API (or eventually smart contract).
 
@@ -48,7 +60,7 @@ Add a `secrets.json` file with the following fields:
 
 `key`: your account private key you want to deploy from. Used by truffle.
 
-`nodeUrl`: your RPC node url. For example, infura.io. 
+`nodeUrl`: your RPC node url. For example, infura.io.
 
 ## Testing
 -----------------
@@ -74,7 +86,7 @@ truffle migrate --network kovan
 -----------------
 **_NOTE:_**  this step is required for UpKeep registration
 ```console
-truffle run verify DiscreetLog --network kovan
+truffle run verify DLCManager --network kovan
 ```
 After Verification Register Keeper Upkeep for the Contract
 ## Keeper Configuraton
@@ -131,7 +143,7 @@ const signer = new ethers.Wallet("private-key", provider);
 
 
 const contractAddress = "0x1b82CBECfC306F9D5Db19BeD0c7b725DE8E4b7a7";
-const contract = new ethers.Contract(contractAddress, DiscreetLog.abi, signer);
+const contract = new ethers.Contract(contractAddress, DLCManager.abi, signer);
 
 // contract call
 await contract.addNewDLC("fakeUUID", "feedAddress", 1649739612);
@@ -150,7 +162,7 @@ The close of the DLCs happens automatically with the help of [ChainLink Keepers]
 
 ## Closed DLC
 
-The `dlc.closingPrice` is not a scaled price, it must be converted by the client based on the quote decimals. 
+The `dlc.closingPrice` is not a scaled price, it must be converted by the client based on the quote decimals.
 
 For `dlc.actualClosingTime` the `updatedAt` timestamp is used from the pricefeed (See **Known Issue** section for more info).
 
@@ -202,12 +214,12 @@ DLC.Link is building infrastructure to empower decentralized applications and sm
 
 DLCs require an oracle to attest to a specific outcome among the predefined set of outcomes. That means trust.
 
-Why power DLC oracles with smart contracts? By using a smart contract for this task, the implementation of the logic, as well as the data being used, is stamped on the chain, and is *visible and reviewable* by everyone. 
+Why power DLC oracles with smart contracts? By using a smart contract for this task, the implementation of the logic, as well as the data being used, is stamped on the chain, and is *visible and reviewable* by everyone.
 
-Unlike other DLC Oracle server solutions, DLC.link allows the DLCs to be configured with a simple interface, API or via smart contract, and to act on a wide-set of events and data sources through our decentralized infrastructure. 
+Unlike other DLC Oracle server solutions, DLC.link allows the DLCs to be configured with a simple interface, API or via smart contract, and to act on a wide-set of events and data sources through our decentralized infrastructure.
 
 There are two types of events / data sources supported by DLC.link.
 
 1. Off-chain pricing data, such as the current price of BTC, ETH, etc. In fact, any numeric data from Chainlink Oracle Network is supported.
 
-2. On-chain events, such as a completed transaction, a function call, etc. 
+2. On-chain events, such as a completed transaction, a function call, etc.

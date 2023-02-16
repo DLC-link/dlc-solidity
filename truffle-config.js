@@ -1,16 +1,17 @@
 const HDWalletProvider = require('@truffle/hdwallet-provider');
-const secrets = require('./secrets.json');
+require('dotenv').config();
 
 module.exports = {
   networks: {
-    kovan: {
-      network_id: 42,
+    goerli: {
+      network_id: 5,
       provider: () => {
         return new HDWalletProvider(
-          [secrets.key],
-          secrets.nodeUrl
+          [process.env['KEY']],
+          process.env['NODE_URL']
         );
-      }
+      },
+      gas: 20000000
     },
     development: {
       host: "127.0.0.1",
@@ -22,7 +23,7 @@ module.exports = {
     }
   },
   api_keys: {
-    etherscan: secrets.etherscanApiKey
+    etherscan: process.env['ETHERSCAN_API_KEY']
   },
 
   plugins: ['truffle-plugin-verify'],
