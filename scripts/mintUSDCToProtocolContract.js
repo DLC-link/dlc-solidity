@@ -40,8 +40,8 @@ async function main() {
     ]
 
     let tx;
-    const usdc = new ethers.Contract("0x010b1182f68d5aF23C4e81E77EcA5352F3520Ed5", abi, signer)
-    tx = await usdc.mint('0x0285E68DD9A0D000A5c4CbD279BFF9F790a0920f', 100000000);
+    const usdc = new ethers.Contract("0xdCf650471f8D1929DB9A10De0A421b60357e78B1", abi, signer)
+    tx = await usdc.mint('0x14fAe4355F333453DBb6efF906F5154ac7a66FfF', ethers.utils.parseUnits('100000000', "ether"));
     console.log(tx);
 }
 

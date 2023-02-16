@@ -49,7 +49,7 @@ async function main() {
     console.log(`deployed contract ProtocolContract to ${protocolContract.address} (network: ${network})`);
     saveDeploymentInfo(deploymentInfo(hardhat, protocolContract, 'ProtocolContract'))
 
-    await usdc.mint(protocolContract.address, 100000000);
+    await usdc.mint(protocolContract.address, ethers.utils.parseUnits('100000000', "ether"));
 }
 
 function deploymentInfo(hardhat, contract, contractName) {
