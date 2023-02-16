@@ -1,7 +1,6 @@
 const fs = require('fs/promises')
 const { F_OK } = require('fs')
 const inquirer = require('inquirer')
-const config = require('getconfig')
 
 async function main() {
     const hardhat = require('hardhat')
@@ -75,22 +74,6 @@ async function saveDeploymentInfo(info, filename = undefined) {
     const content = JSON.stringify(info, null, 2)
     await fs.writeFile(filename, content, { encoding: 'utf-8' })
     return true
-}
-
-async function loadDeploymentInfo() {
-    let { deploymentConfigFile } = config
-    if (!deploymentConfigFile) {
-        console.log('no deploymentConfigFile field found in btcNft config. attempting to read from default path "./btcNft-deployment.json"')
-        deploymentConfigFile = 'btcNft-deployment.json'
-    }
-    const content = await fs.readFile(deploymentConfigFile, { encoding: 'utf8' })
-    deployInfo = JSON.parse(content)
-    try {
-        validateDeploymentInfo(deployInfo)
-    } catch (e) {
-        throw new Error(`error reading deploy info from ${deploymentConfigFile}: ${e.message}`)
-    }
-    return deployInfo
 }
 
 function validateDeploymentInfo(deployInfo) {

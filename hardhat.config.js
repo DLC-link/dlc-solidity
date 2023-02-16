@@ -8,7 +8,6 @@ require("@nomiclabs/hardhat-etherscan");
 
 // require('hardhat-ethernal');
 require('dotenv').config();
-const secrets = require('./secrets.json');
 
 module.exports = {
   defaultNetwork: 'hardhat',
@@ -22,14 +21,14 @@ module.exports = {
       gasPrice: 0x01,
     },
     goerli: {
-      url: secrets.nodeUrl,
-      accounts: [secrets.key]
+      url: process.env['NODE_URL'],
+      accounts: [process.env['KEY']]
     },
   },
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: secrets.etherscanApiKey
+    apiKey: process.env['ETHERSCAN_API_KEY']
   }
 
   // ethernal: {

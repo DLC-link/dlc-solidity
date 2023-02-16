@@ -1,6 +1,6 @@
 const { ethers } = require("ethers");
-const secrets = require('../secrets.json');
 const web3 = require('web3')
+require('dotenv').config();
 
 // The 'mime' npm package helps us set the correct file type on our File objects
 const mime = require('mime-types')
@@ -16,10 +16,10 @@ async function main() {
     const network = 'goerli';
     const provider = new ethers.providers.InfuraProvider(
         network,
-        'f98176005c9043ad94c883c2c977bf23'
+        process.env['INFURA_PROJECT_ID']
     );
     // Creating a signing account from a private key
-    const signer = new ethers.Wallet(secrets.key, provider);
+    const signer = new ethers.Wallet(process.env['KEY'], provider);
 
     const abi = [
         "constructor()",

@@ -1,6 +1,6 @@
 const { ethers } = require("ethers");
-const secrets = require('../secrets.json');
-const { NFTStorage, File } = require('nft.storage')
+const { File } = require('nft.storage')
+require('dotenv').config();
 
 // The 'mime' npm package helps us set the correct file type on our File objects
 const mime = require('mime-types')
@@ -16,10 +16,10 @@ async function main() {
     const network = 'goerli';
     const provider = new ethers.providers.InfuraProvider(
         network,
-        'f98176005c9043ad94c883c2c977bf23'
+        process.env['INFURA_PROJECT_ID']
     );
     // Creating a signing account from a private key
-    const signer = new ethers.Wallet(secrets.key, provider);
+    const signer = new ethers.Wallet(process.env['KEY'], provider);
 
     const abi = [
         "constructor()",
@@ -68,9 +68,6 @@ async function main() {
     // Creating and sending the transaction object
     const btcNft = new ethers.Contract("0x04841c18303915ea8F868Db424e08694a0206b57", abi, signer)
     const nftCount = await btcNft.totalSupply()
-
-    const NFT_STORAGE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDNkOWIxRjg3QzhEMDZENjUxNjNjNTI5OTBhRTM3NjdCYkI4MjUyZEYiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3NTMxNDU4NTQxMywibmFtZSI6IkJ0Y05mdCJ9.29sT29mnYH5UZDuvOrLENAMjZ9Z3a3TXTQ0voYc0c4E'
-    const client = new NFTStorage({ token: NFT_STORAGE_TOKEN })
 
     const image = await fileFromPath('./btcNft.png', `/nft/${nftCount}.png`)
     const metadata = await client.store({
