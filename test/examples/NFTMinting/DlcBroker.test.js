@@ -95,7 +95,6 @@ describe('BrokerContract', () => {
             beforeEach(async () => {
                 await brokerContract.postMintBtcNft(mockDlcUUID, 1)
                 const vaultId = await brokerContract.getVaultByUUID(mockDlcUUID)
-                console.log(vaultId.id)
                 const postCreateTx = await brokerContract.closeVault(vaultId.id)
                 const txReceipt = await postCreateTx.wait()
                 postMintEvent = txReceipt.events.find(ev => ev.event == 'BurnBtcNft')
