@@ -11,6 +11,12 @@ Learn more about the whole architecture on the documentation site here:
 https://docs.dlc.link/architecture/tech-stack
 
 # Getting Started
+
+## Example
+We have developed a few example applications which uses DLCs.
+
+You can find these examples under the contracts/examples folder.
+
 ## Import and Setup
 First import the DLCManager contract, and the interface, and construct an object to interact with it.
 
