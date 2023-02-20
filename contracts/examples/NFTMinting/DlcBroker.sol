@@ -4,8 +4,8 @@ pragma solidity >=0.8.17;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./BtcNft.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./DLCManager.sol";
-import "./DLCLinkCompatible.sol";
+import "../../DLCManager.sol";
+import "../../DLCLinkCompatible.sol";
 
 enum Status {
     None,

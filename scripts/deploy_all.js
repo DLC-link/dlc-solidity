@@ -42,14 +42,14 @@ async function main() {
     saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'USDC'))
 
     // Sample Protocol Contract deployment
-    console.log(`deploying contract ProtocolContract to network "${network}"...`)
-    const ProtocolContract = await hardhat.ethers.getContractFactory('ProtocolContract', protocol);
-    const protocolContract = await ProtocolContract.deploy(dlcManager.address, usdc.address);
-    await protocolContract.deployed();
-    console.log(`deployed contract ProtocolContract to ${protocolContract.address} (network: ${network})`);
-    saveDeploymentInfo(deploymentInfo(hardhat, protocolContract, 'ProtocolContract'))
+    console.log(`deploying contract LendingDemo to network "${network}"...`)
+    const LendingDemo = await hardhat.ethers.getContractFactory('LendingDemo', protocol);
+    const lendingDemo = await LendingDemo.deploy(dlcManager.address, usdc.address);
+    await lendingDemo.deployed();
+    console.log(`deployed contract LendingDemo to ${lendingDemo.address} (network: ${network})`);
+    saveDeploymentInfo(deploymentInfo(hardhat, lendingDemo, 'LendingDemo'))
 
-    await usdc.mint(protocolContract.address, ethers.utils.parseUnits('100000000', "ether"));
+    await usdc.mint(lendingDemo.address, ethers.utils.parseUnits('100000000', "ether"));
 }
 
 function deploymentInfo(hardhat, contract, contractName) {

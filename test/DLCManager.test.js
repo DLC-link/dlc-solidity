@@ -15,7 +15,7 @@ const Status = {
 describe('DLCManager', () => {
   let mockV3Aggregator;
   let dlcManager;
-  let protocolContract;
+  let lendingDemo;
   let emergencyRefundTime;
   let deployer, protocol, user;
 
@@ -36,10 +36,10 @@ describe('DLCManager', () => {
     dlcManager = await DLCManager.deploy(deployer.address, mockV3Aggregator.address);
     await dlcManager.deployTransaction.wait();
 
-    const ProtocolContract = await ethers.getContractFactory('ProtocolContract', protocol);
+    const LendingDemo = await ethers.getContractFactory('LendingDemo', protocol);
     // not really the usdc address, but we aren't testing borrow-repay in this file
-    protocolContract = await ProtocolContract.deploy(dlcManager.address, '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512');
-    await protocolContract.deployTransaction.wait();
+    lendingDemo = await LendingDemo.deploy(dlcManager.address, '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512');
+    await lendingDemo.deployTransaction.wait();
   })
 
   describe('createDLC', () => {
@@ -74,7 +74,7 @@ describe('DLCManager', () => {
     let uuid, nonce, owner, creator;
 
     beforeEach(async () => {
-      const setupLoanTx = await protocolContract.connect(user).setupLoan(1, 14000, 1000, emergencyRefundTime);
+      const setupLoanTx = await lendingDemo.connect(user).setupLoan(1, 14000, 1000, emergencyRefundTime);
       const txReceipt = await setupLoanTx.wait();
 
       const setupLoanEvent = txReceipt.events.find(event => event.event == 'SetupLoan');
@@ -101,7 +101,7 @@ describe('DLCManager', () => {
     it('calls back into the provided protocol contract', async () => {
       // check if postCreateDLCHandler was called successfully
       // by checking if loan status has been updated
-      let loan = await protocolContract.getLoan(nonce);
+      let loan = await lendingDemo.getLoan(nonce);
 
       // Not Ready before tx
       expect(loan.status).to.equal(Status.NotReady);
@@ -110,7 +110,7 @@ describe('DLCManager', () => {
       await postCreateTx.wait();
 
       // Ready after tx
-      loan = await protocolContract.getLoan(nonce);
+      loan = await lendingDemo.getLoan(nonce);
       expect(loan.status).to.equal(Status.Ready);
       expect(loan.owner).to.equal(owner);
       expect(loan.dlcUUID).to.equal(uuid);
@@ -152,7 +152,7 @@ describe('DLCManager', () => {
     let uuid, nonce, owner, creator;
 
     beforeEach(async () => {
-      const setupLoanTx = await protocolContract.connect(user).setupLoan(1, 14000, 1000, emergencyRefundTime);
+      const setupLoanTx = await lendingDemo.connect(user).setupLoan(1, 14000, 1000, emergencyRefundTime);
       const txReceipt = await setupLoanTx.wait();
 
       const setupLoanEvent = txReceipt.events.find(event => event.event == 'SetupLoan');
@@ -166,14 +166,14 @@ describe('DLCManager', () => {
     })
 
     it('calls back into the creator contract', async () => {
-      let loan = await protocolContract.getLoan(nonce);
+      let loan = await lendingDemo.getLoan(nonce);
       expect(loan.status).to.not.equal(Status.Funded);
 
       const setFundedTx = await dlcManager.setStatusFunded(uuid);
       await setFundedTx.wait();
 
       // Ready after tx
-      loan = await protocolContract.getLoan(nonce);
+      loan = await lendingDemo.getLoan(nonce);
       expect(loan.status).to.equal(Status.Funded);
     })
 

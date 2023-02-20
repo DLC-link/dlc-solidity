@@ -3,50 +3,50 @@ const hre = require("hardhat");
 
 async function main() {
 
-    // Resetting ethernal workspace
-    // await hre.ethernal.resetWorkspace('Local Hardhat');
+  // Resetting ethernal workspace
+  // await hre.ethernal.resetWorkspace('Local Hardhat');
 
-    // Setup accounts
-    const accounts = await hre.ethers.getSigners();
-    const deployer = accounts[0];
-    const protocol = accounts[1];
-    const user = accounts[2];
+  // Setup accounts
+  const accounts = await hre.ethers.getSigners();
+  const deployer = accounts[0];
+  const protocol = accounts[1];
+  const user = accounts[2];
 
-    const MockV3Aggregator = await ethers.getContractFactory('MockV3Aggregator');
-    const mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); //NOTE:
-    await mockV3Aggregator.deployTransaction.wait();
+  const MockV3Aggregator = await ethers.getContractFactory('MockV3Aggregator');
+  const mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); //NOTE:
+  await mockV3Aggregator.deployTransaction.wait();
 
-    // DLC Manager deployment
-    const DLCManager = await hre.ethers.getContractFactory('DLCManager', deployer);
-    const dlcManager = await DLCManager.connect(deployer).deploy(deployer.address, mockV3Aggregator.address);
-    await dlcManager.deployed();
+  // DLC Manager deployment
+  const DLCManager = await hre.ethers.getContractFactory('DLCManager', deployer);
+  const dlcManager = await DLCManager.connect(deployer).deploy(deployer.address, mockV3Aggregator.address);
+  await dlcManager.deployed();
 
-    // await hre.ethernal.push({
-    //     name: 'DLCManager',
-    //     address: dlcManager.address
-    // });
+  // await hre.ethernal.push({
+  //     name: 'DLCManager',
+  //     address: dlcManager.address
+  // });
 
-    // USDC contract deployment
-    const USDC = await hre.ethers.getContractFactory('USDStableCoinForDLCs');
-    const usdc = await USDC.deploy();
-    await usdc.deployed();
+  // USDC contract deployment
+  const USDC = await hre.ethers.getContractFactory('USDStableCoinForDLCs');
+  const usdc = await USDC.deploy();
+  await usdc.deployed();
 
-    // await hre.ethernal.push({
-    //     name: 'USDStableCoinForDLCs',
-    //     address: usdc.address
-    // });
+  // await hre.ethernal.push({
+  //     name: 'USDStableCoinForDLCs',
+  //     address: usdc.address
+  // });
 
-    // Sample Protocol Contract deployment
-    const ProtocolContract = await hre.ethers.getContractFactory('ProtocolContract', protocol);
-    const protocolContract = await ProtocolContract.connect(protocol).deploy(dlcManager.address, usdc.address);
-    await protocolContract.deployed();
+  // Sample Protocol Contract deployment
+  const LendingDemo = await hre.ethers.getContractFactory('LendingDemo', protocol);
+  const lendingDemo = await LendingDemo.connect(protocol).deploy(dlcManager.address, usdc.address);
+  await lendingDemo.deployed();
 
-    // await hre.ethernal.push({
-    //     name: 'ProtocolContract',
-    //     address: protocolContract.address
-    // });
+  // await hre.ethernal.push({
+  //     name: 'LendingDemo',
+  //     address: lendingDemo.address
+  // });
 
-    await usdc.mint(protocolContract.address, 100000000);
+  await usdc.mint(lendingDemo.address, 100000000);
 
 }
 

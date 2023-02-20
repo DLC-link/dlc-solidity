@@ -12,10 +12,10 @@ https://docs.dlc.link/architecture/tech-stack
 
 # Getting Started
 
-## Example
+## Examples
 We have developed a few example applications which uses DLCs.
 
-You can find these examples under the contracts/examples folder.
+You can find these examples under the contracts/examples folder. In each folder you will find a README describing the contract, as well as pointing to some frontend JS code where you can find examples of how we use the sample contracts for our web demos.
 
 ## Import and Setup
 First import the DLCManager contract, and the interface, and construct an object to interact with it.
@@ -87,7 +87,7 @@ function postCloseDLCHandler(bytes32 uuid) external;
 # Contributing
 We are happy to have support and contribution from the community. Please find us on Discord and see below for developer details.
 ## Setup
-For reference, a sample of this deployed contract can be found here: [Discreet Log Manager](https://kovan.etherscan.io/address/0x365441EC0974F6AC9871c704128e9da2BEdE10CE#code)
+For reference, you can find samples of the deployed contract by checking the deploymentFiles directory in this project.
 
 Add a `.env` file with the following fields:
 
@@ -110,7 +110,17 @@ $ npx hardhat run --network localhost scripts/deploy-all-ethernal.js
 
 This will use the `ethernal` plugin and on `https://app.tryethernal.com/blocks` after login/connection you can browse the chain in a visual explorer.
 
+## Scripts
+In the `scripts` directory you will find various helper scripts. This section will be updated with more details shortly, but feel free to look through.
 ## Testing
+
+### With Hardhat
+-----------------
+`npx hardhat test`
+
+*optionally, `--parallel` to speed this up a bit.
+
+Modify the hardhat.config.js for more testing / deployment options.
 
 ### With Ganache/Truffle
 -----------------
@@ -124,38 +134,11 @@ truffle compile
 truffle migrate
 truffle test
 ```
-#### Deploy to Kovan
+#### Deploy to Goerli
 -----------------
 ```console
 truffle compile
-truffle migrate --network kovan
-```
-### With Hardhat
------------------
-coming soon
-
-### Example with ether.js
-```javascript
-// Connect web3
-// Get signer method 1 (good for front-end)
-const provider = new ethers.providers.Web3Provider(window.ethereum);
-const signer = provider.getSigner();
-
-// Get signer method 2 (for back-end)
-const provider = new ethers.providers.JsonRpcProvider("yourRpcNodeUrl");
-const signer = new ethers.Wallet("private-key", provider);
-
-
-const contractAddress = "0x1b82CBECfC306F9D5Db19BeD0c7b725DE8E4b7a7";
-const contract = new ethers.Contract(contractAddress, DLCManager.abi, signer);
-
-// contract call
-await contract.addNewDLC("fakeUUID", "feedAddress", 1649739612);
-
-// listen to events
-contract.on("CloseDLC", (UUID, price, timeStamp) => {
-    console.log(`DLC closed with UUID: ${UUID} at price: ${price} at ${timeStamp}`);
-});
+truffle migrate --network goerli
 ```
 
 # Known Issues
