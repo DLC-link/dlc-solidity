@@ -1,116 +1,124 @@
-const fs = require('fs/promises')
-const { F_OK } = require('fs')
-const inquirer = require('inquirer')
+const fs = require('fs/promises');
+const { F_OK } = require('fs');
+const inquirer = require('inquirer');
+const web3 = require('web3');
+require('dotenv').config();
 
 async function main() {
-    const hardhat = require('hardhat')
-    const accounts = await hardhat.ethers.getSigners();
-    const deployer = accounts[0];
-    const protocol = accounts[1];
-    const network = hardhat.network.name
+  const hardhat = require('hardhat');
+  const accounts = await hardhat.ethers.getSigners();
+  const deployer = accounts[0];
+  const protocol = accounts[1];
+  const network = hardhat.network.name;
 
-    // DLC Manager deployment
-    console.log(`deploying contract DLCManager to network "${network}"...`)
-    const DLCManager = await hardhat.ethers.getContractFactory('DLCManager');
-    const dlcManager = await DLCManager.deploy(deployer.address, '0xA39434A63A52E749F02807ae27335515BA4b07F7'); // Chainlink price feed goerli
-    await dlcManager.deployed();
-    console.log(`deployed contract DLCManager to ${dlcManager.address} (network: ${network})`);
-    saveDeploymentInfo(deploymentInfo(hardhat, dlcManager, 'DlcManager'))
+  // DLC Manager deployment
+  console.log(`deploying contract DLCManager to network "${network}"...`);
+  const DLCManager = await hardhat.ethers.getContractFactory('DLCManager');
+  console.log('got contract');
+  const dlcManager = await DLCManager.deploy(deployer.address, '0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43'); // Chainlink price feed goerli
+  console.log('deploying contract...');
+  await dlcManager.deployed();
+  console.log(`deployed contract DLCManager to ${dlcManager.address} (network: ${network})`);
+  saveDeploymentInfo(deploymentInfo(hardhat, dlcManager, 'DlcManager'));
 
-    // BTCNFT deployment
-    console.log(`deploying contract for nft BtcNft (DLC) to network "${network}"...`)
-    const BtcNft = await hardhat.ethers.getContractFactory("BtcNft")
-    const btcNft = await BtcNft.deploy()
-    await btcNft.deployed()
-    console.log(`deployed contract for nft BtcNft (DLC) to ${btcNft.address} (network: ${network})`);
-    saveDeploymentInfo(deploymentInfo(hardhat, btcNft, 'BtcNft'))
+  await dlcManager.connect(deployer).grantRole(web3.utils.soliditySha3('DLC_ADMIN_ROLE'), process.env.OBSERVER_ADDRESS);
 
-    // DlcBroker deployment
-    console.log(`deploying contract DlcBroker to network "${network}"...`)
-    const DlcBroker = await hardhat.ethers.getContractFactory("DlcBroker")
-    const dlcBroker = await DlcBroker.deploy(dlcManager.address, btcNft.address)
-    await dlcBroker.deployed()
-    console.log(`deployed contract DlcBroker to ${dlcBroker.address} (network: ${network})`);
-    saveDeploymentInfo(deploymentInfo(hardhat, dlcBroker, 'DlcBroker'))
+  // BTCNFT deployment
+  console.log(`deploying contract for nft BtcNft (DLC) to network "${network}"...`);
+  const BtcNft = await hardhat.ethers.getContractFactory('BtcNft');
+  const btcNft = await BtcNft.deploy();
+  await btcNft.deployed();
+  console.log(`deployed contract for nft BtcNft (DLC) to ${btcNft.address} (network: ${network})`);
+  saveDeploymentInfo(deploymentInfo(hardhat, btcNft, 'BtcNft'));
 
-    // USDC contract deployment
-    console.log(`deploying contract for token USDStableCoinForDLCs (USDC) to network "${network}"...`)
-    const USDC = await hardhat.ethers.getContractFactory('USDStableCoinForDLCs');
-    const usdc = await USDC.deploy();
-    await usdc.deployed();
-    console.log(`deployed contract for token USDStableCoinForDLCs (USDC) to ${usdc.address} (network: ${network})`);
-    saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'USDC'))
+  await btcNft.connect(deployer).grantRole(web3.utils.soliditySha3('MINTER_ROLE'), process.env.OBSERVER_ADDRESS);
 
-    // Sample Protocol Contract deployment
-    console.log(`deploying contract LendingDemo to network "${network}"...`)
-    const LendingDemo = await hardhat.ethers.getContractFactory('LendingDemo', protocol);
-    const lendingDemo = await LendingDemo.deploy(dlcManager.address, usdc.address);
-    await lendingDemo.deployed();
-    console.log(`deployed contract LendingDemo to ${lendingDemo.address} (network: ${network})`);
-    saveDeploymentInfo(deploymentInfo(hardhat, lendingDemo, 'LendingDemo'))
+  // DlcBroker deployment
+  console.log(`deploying contract DlcBroker to network "${network}"...`);
+  const DlcBroker = await hardhat.ethers.getContractFactory('DlcBroker');
+  const dlcBroker = await DlcBroker.deploy(dlcManager.address, btcNft.address);
+  await dlcBroker.deployed();
+  console.log(`deployed contract DlcBroker to ${dlcBroker.address} (network: ${network})`);
+  saveDeploymentInfo(deploymentInfo(hardhat, dlcBroker, 'DlcBroker'));
 
-    await usdc.mint(lendingDemo.address, ethers.utils.parseUnits('100000000', "ether"));
+  // USDC contract deployment
+  console.log(`deploying contract for token USDStableCoinForDLCs (USDC) to network "${network}"...`);
+  const USDC = await hardhat.ethers.getContractFactory('USDStableCoinForDLCs');
+  const usdc = await USDC.deploy();
+  await usdc.deployed();
+  console.log(`deployed contract for token USDStableCoinForDLCs (USDC) to ${usdc.address} (network: ${network})`);
+  saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'USDC'));
+
+  // Sample Protocol Contract deployment
+  console.log(`deploying contract LendingDemo to network "${network}"...`);
+  const LendingDemo = await hardhat.ethers.getContractFactory('LendingDemo', protocol);
+  const lendingDemo = await LendingDemo.deploy(dlcManager.address, usdc.address);
+  await lendingDemo.deployed();
+  console.log(`deployed contract LendingDemo to ${lendingDemo.address} (network: ${network})`);
+  saveDeploymentInfo(deploymentInfo(hardhat, lendingDemo, 'LendingDemo'));
+
+  await usdc.mint(lendingDemo.address, ethers.utils.parseUnits('100000000', 'ether'));
 }
 
 function deploymentInfo(hardhat, contract, contractName) {
-    const deployInfo = {
-        network: hardhat.network.name,
-        contract: {
-            name: contractName,
-            address: contract.address,
-            signerAddress: contract.signer.address,
-            abi: contract.interface.format(),
-        },
-    }
-    console.log(deployInfo)
-    return deployInfo
+  const deployInfo = {
+    network: hardhat.network.name,
+    contract: {
+      name: contractName,
+      address: contract.address,
+      signerAddress: contract.signer.address,
+      abi: contract.interface.format(),
+    },
+  };
+  console.log(deployInfo);
+  return deployInfo;
 }
 
 async function saveDeploymentInfo(info, filename = undefined) {
-    if (!filename) {
-        filename = `deploymentFiles/${info.network}/${info.contract.name}.json`
-    }
-    console.log(`Writing deployment info to ${filename}`)
-    const content = JSON.stringify(info, null, 2) + '\n'
-    await fs.writeFile(filename, content, { encoding: 'utf-8' })
-    return true
+  if (!filename) {
+    filename = `deploymentFiles/${info.network}/${info.contract.name}.json`;
+  }
+  console.log(`Writing deployment info to ${filename}`);
+  const content = JSON.stringify(info, null, 2) + '\n';
+  await fs.writeFile(filename, content, { encoding: 'utf-8' });
+  return true;
 }
 
 function validateDeploymentInfo(deployInfo) {
-    const { contract } = deployInfo
-    if (!contract) {
-        throw new Error('required field "contract" not found')
+  const { contract } = deployInfo;
+  if (!contract) {
+    throw new Error('required field "contract" not found');
+  }
+  const required = (arg) => {
+    if (!deployInfo.contract.hasOwnProperty(arg)) {
+      throw new Error(`required field "contract.${arg}" not found`);
     }
-    const required = arg => {
-        if (!deployInfo.contract.hasOwnProperty(arg)) {
-            throw new Error(`required field "contract.${arg}" not found`)
-        }
-    }
+  };
 
-    required('name')
-    required('address')
-    required('abi')
+  required('name');
+  required('address');
+  required('abi');
 }
 
 async function fileExists(path) {
-    try {
-        await fs.access(path, F_OK)
-        return true
-    } catch (e) {
-        return false
-    }
+  try {
+    await fs.access(path, F_OK);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 async function confirmOverwrite(filename) {
-    const answers = await inquirer.prompt([
-        {
-            type: 'confirm',
-            name: 'overwrite',
-            message: `File ${filename} exists. Overwrite it?`,
-            default: false,
-        }
-    ])
-    return answers.overwrite
+  const answers = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'overwrite',
+      message: `File ${filename} exists. Overwrite it?`,
+      default: false,
+    },
+  ]);
+  return answers.overwrite;
 }
 
 // module.exports = {
@@ -120,6 +128,6 @@ async function confirmOverwrite(filename) {
 // }
 
 main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
+  console.error(error);
+  process.exitCode = 1;
 });
