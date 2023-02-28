@@ -2,7 +2,7 @@
   "network": "localhost",
   "contract": {
     "name": "BtcNft",
-    "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "address": "0x0E801D84Fa97b50751Dbf25036d067dCf18858bF",
     "signerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "abi": [
       "constructor()",
@@ -23,6 +23,7 @@
       "function burn(uint256 tokenId)",
       "function getApproved(uint256 tokenId) view returns (address)",
       "function getDLCNFTsByOwner(address owner) view returns (tuple(uint256 id, string uri, address originalDepositor, address broker)[])",
+      "function getNextMintId() view returns (uint256)",
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",

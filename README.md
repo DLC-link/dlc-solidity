@@ -1,3 +1,9 @@
+<center>
+Join our Discord server for news and support!
+
+![Discord Banner 2](https://discordapp.com/api/guilds/887360470955208745/widget.png?style=banner2)
+</center>
+
 # DLC Manager Smart Contract
 
 This smart contract is the interface for creating and closing DLCs via the DLC.Link infrastructure. For cases where the DLC requires market prices of assets (e.g. BTC price) this contract is responsible for fetching that (via Chainlink) as part of it's closing criteria.
@@ -99,19 +105,33 @@ ETHERSCAN_API_KEY="<ETHERSCAN_API_KEY>" # only needed for submitting the contrac
 ```
 
 # Dev notes:
-Currently `npm i` only works with the --legacy-peer-deps flag, because of a dependency bug in: https://github.com/tryethernal/hardhat-ethernal/issues/22
 
-To run a local hardhat node and IPFS instance:
+Create a `.env` based on the `.env.template` fields.
+Be sure to set the correct `HARDHAT_NETWORK` for the scripts to work properly. (Set 'localhost' when using hardhat).
+
+To start local hardhat node:
 ```bash
-$ ./start-local-environment.sh
-# To run a deployment script in another terminal:
-$ npx hardhat run --network localhost scripts/deploy-all-ethernal.js
+npx hardhat node
+```
+Alternatively to run a local hardhat node and IPFS instance too:
+```bash
+./start-local-environment.sh
 ```
 
-This will use the `ethernal` plugin and on `https://app.tryethernal.com/blocks` after login/connection you can browse the chain in a visual explorer.
-
 ## Scripts
-In the `scripts` directory you will find various helper scripts. This section will be updated with more details shortly, but feel free to look through.
+In the `scripts` directory you will find various helper scripts.
+
+The easiest way to use them is by running the package:
+```bash
+# If the following throws a 'command not found: dlc-link-eth' error, try running 'npm link' after 'npm i' to set up the symlink for your $PATH
+
+# To see help:
+dlc-link-eth --help
+# To deploy all contracts and set the correct roles:
+dlc-link-eth deploy-all
+```
+
+Note that properly testing the entire DLC creation flow requires an instance of a DLC.Link Observer running -- but contract-integration can still be tested thoroughly and easily:
 ## Testing
 
 ### With Hardhat
@@ -121,28 +141,6 @@ In the `scripts` directory you will find various helper scripts. This section wi
 *optionally, `--parallel` to speed this up a bit.
 
 Modify the hardhat.config.js for more testing / deployment options.
-
-### With Ganache/Truffle
------------------
-#### Start a Ganache server
-
-https://trufflesuite.com/docs/ganache/quickstart/
-
-#### Run
-```console
-truffle compile
-truffle migrate
-truffle test
-```
-#### Deploy to Goerli
------------------
-```console
-truffle compile
-truffle migrate --network goerli
-```
-
-# Known Issues
-The chainlink price feed is updated based on various parameters. For example, the BTC/USD feed on ETH mainnet updates only every hour or if the price changes by 0.5%. Since the DLC closing uses the timestamp from the price feed (because that is the actual time the price was updated, which means that is the "real" actualClosingTime) it can happen that the `actualClosingTime` will be in the past relative to the closingTime supplied at DLC creation. We could use the `block.timestamp` as actualClosingTime as a solution, but that would raise the question if that is correct in this case or not. Another solution would be to log both the pricefeed timestamp and the block.timestamp as well.
 
 # What Are DLCs
 [Discreet Log Contracts](https://dci.mit.edu/smart-contracts) (DLCs) facilitate conditional payments on Bitcoin between two or more parties. By creating a Discreet Log Contract, two parties can form a monetary contract redistributing their funds to each other without revealing any details to the blockchain. Its appearance on the Bitcoin blockchain will be no different than an ordinary multi-signature output, so no external observer can learn its existence or details from the public ledger. A DLC is similar to a 2-of-3 multisig transaction where the third participant is an “oracle”.  An oracle is a 3rd party source of data or information that the parties to the DLC trust as the source of truth for the contract. The oracle is incentivized to be a fair arbiter of the contract.
