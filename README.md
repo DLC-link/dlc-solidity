@@ -1,8 +1,6 @@
-<center>
 Join our Discord server for news and support!
 
-![Discord Banner 2](https://discordapp.com/api/guilds/887360470955208745/widget.png?style=banner2)
-</center>
+[![Discord Banner](https://discordapp.com/api/guilds/887360470955208745/widget.png?style=banner2)](https://discord.gg/TtzqyfPCvE)
 
 # DLC Manager Smart Contract
 
