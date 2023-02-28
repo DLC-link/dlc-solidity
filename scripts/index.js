@@ -21,7 +21,6 @@ async function main() {
         .description(
             'deploy all contracts and set up roles to network set in .env'
         )
-        // .option('-n --network <network>', 'Network to deploy to')
         .action(deployAll);
 
     program
@@ -55,7 +54,7 @@ async function main() {
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
-    // even if you call minty from elsewhere
+    // even if you call dlc-link-eth from elsewhere
     const rootDir = path.join(__dirname, '..');
     process.chdir(rootDir);
 

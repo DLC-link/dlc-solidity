@@ -1,3 +1,9 @@
+<center>
+Join our Discord server for news and support!
+
+![Discord Banner 2](https://discordapp.com/api/guilds/887360470955208745/widget.png?style=banner2)
+</center>
+
 # DLC Manager Smart Contract
 
 This smart contract is the interface for creating and closing DLCs via the DLC.Link infrastructure. For cases where the DLC requires market prices of assets (e.g. BTC price) this contract is responsible for fetching that (via Chainlink) as part of it's closing criteria.

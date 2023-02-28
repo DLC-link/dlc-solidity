@@ -5,7 +5,6 @@ require('@openzeppelin/hardhat-upgrades');
 require('@nomicfoundation/hardhat-chai-matchers');
 require('@nomiclabs/hardhat-solhint');
 require('@nomiclabs/hardhat-etherscan');
-// require('hardhat-change-network');
 
 require('dotenv').config();
 

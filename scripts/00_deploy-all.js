@@ -6,8 +6,6 @@ module.exports = async function deployAll(options) {
     const hardhat = require('hardhat');
     await hardhat.run('compile');
 
-    // if (process.env.HARDHAT_NETWORK !== options.network) hardhat.changeNetwork(options.network);
-
     const accounts = await hardhat.ethers.getSigners();
     const deployer = accounts[0];
     const protocol = accounts[1];
@@ -16,7 +14,7 @@ module.exports = async function deployAll(options) {
     console.log(`Deploying all to ${network}...`);
     const observerAddress = process.env.OBSERVER_ADDRESS;
 
-    if (!CLpricefeed || !observerAddress) throw 'Missing env vars';
+    if (!CLpricefeed) throw 'Missing env vars';
 
     if (network === 'localhost') {
         console.log(
@@ -43,10 +41,15 @@ module.exports = async function deployAll(options) {
     );
     saveDeploymentInfo(deploymentInfo(hardhat, dlcManager, 'DlcManager'));
 
-    // Setting Observer as DLC_ADMIN_ROLE
-    await dlcManager
-        .connect(deployer)
-        .grantRole(web3.utils.soliditySha3('DLC_ADMIN_ROLE'), observerAddress);
+    if (observerAddress) {
+        // Setting Observer as DLC_ADMIN_ROLE
+        await dlcManager
+            .connect(deployer)
+            .grantRole(
+                web3.utils.soliditySha3('DLC_ADMIN_ROLE'),
+                observerAddress
+            );
+    }
 
     // BTCNFT deployment
     console.log(
@@ -60,13 +63,15 @@ module.exports = async function deployAll(options) {
     );
     saveDeploymentInfo(deploymentInfo(hardhat, btcNft, 'BtcNft'));
 
-    // Setting MINTER_ROLE and PAUSER_ROLE for Observer
-    await btcNft
-        .connect(deployer)
-        .grantRole(web3.utils.soliditySha3('MINTER_ROLE'), observerAddress);
-    await btcNft
-        .connect(deployer)
-        .grantRole(web3.utils.soliditySha3('PAUSER_ROLE'), observerAddress);
+    if (observerAddress) {
+        // Setting MINTER_ROLE and PAUSER_ROLE for Observer
+        await btcNft
+            .connect(deployer)
+            .grantRole(web3.utils.soliditySha3('MINTER_ROLE'), observerAddress);
+        await btcNft
+            .connect(deployer)
+            .grantRole(web3.utils.soliditySha3('PAUSER_ROLE'), observerAddress);
+    }
 
     // DlcBroker deployment
     console.log(`deploying contract DlcBroker to network "${network}"...`);
