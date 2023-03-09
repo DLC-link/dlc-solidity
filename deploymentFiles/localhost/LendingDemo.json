@@ -2,7 +2,7 @@
   "network": "localhost",
   "contract": {
     "name": "LendingDemo",
-    "address": "0x59F2f1fCfE2474fD5F0b9BA1E73ca90b143Eb8d0",
+    "address": "0x8464135c8F25Da09e49BC8782676a84730C318bC",
     "signerAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "abi": [
       "constructor(address _dlcManagerAddress, address _usdcAddress)",
