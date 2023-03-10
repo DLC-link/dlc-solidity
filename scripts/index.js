@@ -9,6 +9,7 @@ const addRoleToManager = require('./02_add-role-to-manager');
 const addRoleToBtcNft = require('./03_add-role-to-btcnft');
 const lendingSetupLoan = require('./04_lending-setup-loan');
 const lendingCloseLoan = require('./05_lending-close-loan');
+const nftSetupVault = require('./06_nft-setup-vault');
 
 async function main() {
     const program = new Command();
@@ -68,6 +69,13 @@ async function main() {
         .description('close a loan')
         .argument('<loanID>', 'loan ID')
         .action(lendingCloseLoan);
+
+    program
+        .command('setup-vault')
+        .description('setup a vault in the DLCBroker contract')
+        .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
+        .argument('[emergencyRefundTime]', 'emergency refund time', 5)
+        .action(nftSetupVault);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
