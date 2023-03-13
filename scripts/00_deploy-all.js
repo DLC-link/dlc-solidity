@@ -1,6 +1,10 @@
 require('dotenv').config();
 const web3 = require('web3');
 const pricefeeds = require('./helpers/chainlink-pricefeed-addresses');
+const {
+    saveDeploymentInfo,
+    deploymentInfo,
+} = require('./helpers/deployment-handlers');
 
 module.exports = async function deployAll(options) {
     const hardhat = require('hardhat');
