@@ -77,12 +77,23 @@ module.exports = async function deployAll(options) {
             .grantRole(web3.utils.soliditySha3('PAUSER_ROLE'), observerAddress);
     }
 
+    // DLCBTC deployment
+    console.log(`deploying contract DLCBTC to network "${network}"...`);
+    const DLCBTC = await hardhat.ethers.getContractFactory('DLCBTC');
+    const dlcBtc = await DLCBTC.deploy();
+    await dlcBtc.deployed();
+    console.log(
+        `deployed contract dlcBtc to ${dlcBtc.address} (network: ${network})`
+    );
+    saveDeploymentInfo(deploymentInfo(hardhat, dlcBtc, 'dlcBtc'));
+
     // DlcBroker deployment
     console.log(`deploying contract DlcBroker to network "${network}"...`);
     const DlcBroker = await hardhat.ethers.getContractFactory('DlcBroker');
     const dlcBroker = await DlcBroker.deploy(
         dlcManager.address,
-        btcNft.address
+        btcNft.address,
+        dlcBtc.address
     );
     await dlcBroker.deployed();
     console.log(

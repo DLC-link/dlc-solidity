@@ -4,20 +4,30 @@ const { BigNumber } = require('ethers');
 
 const mockDlcUUID =
     '0x126d6d95b8b724bbe0b2b91baa3b836eb8b601272ab945c23b68db3b1cfdcdc3';
-const ReadyStatus = 2;
-const ClosedStatus = 5;
+let Status = {
+    None: 0,
+    NotReady: 1,
+    Ready: 2,
+    Funded: 3,
+    NftIssued: 4,
+    PreRepaid: 5,
+    Repaid: 6,
+    PreLiquidated: 7,
+    Liquidated: 8,
+};
 
 describe('BrokerContract', () => {
     let mockV3Aggregator;
     let mockDlcManager;
     let brokerContract;
+    let dlcBtc;
     let emergencyRefundTime;
     let deployer, broker, user;
     let btcCollateral;
 
     beforeEach(async () => {
         emergencyRefundTime = 1988622969;
-        btcCollateral = 1000;
+        btcCollateral = 1000; //sats
 
         // Setup accounts
         accounts = await ethers.getSigners();
@@ -25,6 +35,7 @@ describe('BrokerContract', () => {
         broker = accounts[1];
         user = accounts[2];
         someRandomAccount = accounts[3];
+        liquidator = accounts[4];
 
         const MockV3Aggregator = await ethers.getContractFactory(
             'MockV3Aggregator'
@@ -33,7 +44,8 @@ describe('BrokerContract', () => {
         await mockV3Aggregator.deployTransaction.wait();
 
         const MockDLCManager = await ethers.getContractFactory(
-            'MockDLCManager'
+            'MockDLCManager',
+            deployer
         );
         mockDlcManager = await MockDLCManager.deploy(
             deployer.address,
@@ -45,13 +57,18 @@ describe('BrokerContract', () => {
         mockBtcNftContract = await MockBtcNft.deploy();
         await mockBtcNftContract.deployed();
 
+        const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
+        dlcBtc = await DLCBTC.deploy();
+        await dlcBtc.deployed();
+
         const BrokerContract = await ethers.getContractFactory(
             'DlcBroker',
             broker
         );
         brokerContract = await BrokerContract.deploy(
             mockDlcManager.address,
-            mockBtcNftContract.address
+            mockBtcNftContract.address,
+            dlcBtc.address
         );
         await brokerContract.deployTransaction.wait();
     });
@@ -130,48 +147,11 @@ describe('BrokerContract', () => {
                 expect(vault).to.eql([
                     BigNumber.from(0),
                     mockDlcUUID,
-                    ReadyStatus,
+                    Status.Ready,
                     BigNumber.from(btcCollateral),
                     BigNumber.from(1),
                     user.address,
                 ]);
-            });
-        });
-        xdescribe('after the postCloseDLC callback returns from the DLCManager', async () => {
-            let postCloseEvent;
-            const newMintItem = {
-                id: 0,
-                uri: 'Qme3QxqsJih5psasse4d2FFLFLwaKx7wHXW3Topk3Q8b10/nft',
-            };
-            beforeEach(async () => {
-                const tx = await brokerContract.setStatusFunded(mockDlcUUID);
-                console.log('tx', (await tx.wait()).events);
-                await mockBtcNftContract.safeMint(
-                    user.address,
-                    newMintItem.uri,
-                    brokerContract.address
-                );
-                await brokerContract.postMintBtcNft(mockDlcUUID, 0);
-                const vault = await brokerContract.getVaultByUUID(mockDlcUUID);
-
-                const closeTx = await brokerContract.closeVault(vault.id);
-                await closeTx.wait();
-
-                const postCloseTx = await brokerContract.postCloseDLCHandler(
-                    mockDlcUUID
-                );
-                const txReceipt = await postCloseTx.wait();
-
-                postCloseEvent = txReceipt.events.find(
-                    (ev) => ev.event == 'BurnBtcNft'
-                );
-            });
-            it('emits the burnDlcNft event from the broker contract', async () => {
-                expect(postCloseEvent.args).to.eql([
-                    mockDlcUUID,
-                    BigNumber.from(0),
-                ]);
-                expect(postCloseEvent.address).to.equal(brokerContract.address);
             });
         });
     });
@@ -197,9 +177,9 @@ describe('BrokerContract', () => {
             const vault = await brokerContract.getVaultByUUID(mockDlcUUID);
             await expect(
                 brokerContract.closeVault(vault.id)
-            ).to.be.revertedWith('Unathorized');
+            ).to.be.revertedWith('Unauthorized');
         });
-        it('sets the status to closed', async () => {
+        it('sets the status to prerepaid if caller is original owner', async () => {
             const vault = await brokerContract.getVaultByUUID(mockDlcUUID);
             const closeTx = await brokerContract
                 .connect(user)
@@ -211,7 +191,7 @@ describe('BrokerContract', () => {
             expect(updatedVault).to.eql([
                 vault.id,
                 mockDlcUUID,
-                ClosedStatus,
+                Status.PreRepaid,
                 BigNumber.from(btcCollateral),
                 BigNumber.from(0),
                 user.address,
@@ -229,8 +209,155 @@ describe('BrokerContract', () => {
             expect(event.args).to.eql([
                 BigNumber.from(vault.id),
                 mockDlcUUID,
-                ClosedStatus,
+                Status.PreRepaid,
             ]);
+        });
+        it('sets the outcome to 0', async () => {
+            const vault = await brokerContract.getVaultByUUID(mockDlcUUID);
+            let dlc = await mockDlcManager.getDLC(mockDlcUUID);
+            expect(dlc.outcome).to.equal(0);
+            const closeTx = await brokerContract
+                .connect(user)
+                .closeVault(vault.id);
+            await closeTx.wait();
+            dlc = await mockDlcManager.getDLC(mockDlcUUID);
+            expect(dlc.outcome).to.equal(0);
+        });
+
+        describe('after NFT transfer', async () => {
+            let vault;
+            beforeEach(async () => {
+                vault = await brokerContract.getVaultByUUID(mockDlcUUID);
+                await mockBtcNftContract
+                    .connect(user)
+                    ['safeTransferFrom(address,address,uint256)'](
+                        user.address,
+                        liquidator.address,
+                        vault.nftId
+                    );
+            });
+            it('sets the status to preLiquidated if caller is not the original owner', async () => {
+                const closeTx = await brokerContract
+                    .connect(liquidator)
+                    .closeVault(vault.id);
+                await closeTx.wait();
+                const updatedVault = await brokerContract.getVaultByUUID(
+                    mockDlcUUID
+                );
+                expect(updatedVault).to.eql([
+                    vault.id,
+                    mockDlcUUID,
+                    Status.PreLiquidated,
+                    BigNumber.from(btcCollateral),
+                    BigNumber.from(0),
+                    liquidator.address,
+                ]);
+            });
+            it('emits a StatusUpdate event', async () => {
+                const vault = await brokerContract.getVaultByUUID(mockDlcUUID);
+                const closeTx = await brokerContract
+                    .connect(liquidator)
+                    .closeVault(vault.id);
+                const txReceipt = await closeTx.wait();
+                const event = txReceipt.events.find(
+                    (ev) => ev.event == 'StatusUpdate'
+                );
+                expect(event.args).to.eql([
+                    BigNumber.from(vault.id),
+                    mockDlcUUID,
+                    Status.PreLiquidated,
+                ]);
+            });
+            it('sets the outcome to 100', async () => {
+                let dlc = await mockDlcManager.getDLC(mockDlcUUID);
+                expect(dlc.outcome).to.equal(0);
+                const closeTx = await brokerContract
+                    .connect(liquidator)
+                    .closeVault(vault.id);
+                await closeTx.wait();
+                dlc = await mockDlcManager.getDLC(mockDlcUUID);
+                expect(dlc.outcome).to.equal(100);
+            });
+        });
+    });
+    describe('postCloseDLCHandler', async () => {
+        let vault;
+        beforeEach(async () => {
+            const newMintItem = {
+                id: 0,
+                uri: 'Qme3QxqsJih5psasse4d2FFLFLwaKx7wHXW3Topk3Q8b10/nft',
+            };
+            await brokerContract
+                .connect(user)
+                .setupVault(btcCollateral, emergencyRefundTime);
+            await brokerContract.setStatusFunded(mockDlcUUID);
+            await mockBtcNftContract.safeMint(
+                user.address,
+                newMintItem.uri,
+                brokerContract.address
+            );
+            await brokerContract.postMintBtcNft(mockDlcUUID, 0);
+            vault = await brokerContract.getVaultByUUID(mockDlcUUID);
+        });
+        it('reverts if the vault is not in the preRepaid or preLiquidated state', async () => {
+            await expect(
+                brokerContract
+                    .connect(deployer)
+                    .postCloseDLCHandler(mockDlcUUID)
+            ).to.be.revertedWith('Invalid Vault Status');
+        });
+        it('sets the status to Repaid if it was preRepaid', async () => {
+            const closeTx = await brokerContract
+                .connect(user)
+                .closeVault(vault.id);
+            await closeTx.wait();
+            const postCloseTx = await brokerContract
+                .connect(deployer)
+                .postCloseDLCHandler(mockDlcUUID);
+            await postCloseTx.wait();
+            const updatedVault = await brokerContract.getVaultByUUID(
+                mockDlcUUID
+            );
+            expect(updatedVault.status).to.equal(Status.Repaid);
+        });
+        it('sets the status to Liquidated if it was PreLiquidated', async () => {
+            await mockBtcNftContract
+                .connect(user)
+                ['safeTransferFrom(address,address,uint256)'](
+                    user.address,
+                    liquidator.address,
+                    vault.nftId
+                );
+            const closeTx = await brokerContract
+                .connect(liquidator)
+                .closeVault(vault.id);
+            await closeTx.wait();
+            const postCloseTx = await brokerContract
+                .connect(deployer)
+                .postCloseDLCHandler(mockDlcUUID);
+            await postCloseTx.wait();
+            const updatedVault = await brokerContract.getVault(vault.id);
+            expect(updatedVault.status).to.equal(Status.Liquidated);
+        });
+        it('transfers the collateral to the liquidator', async () => {
+            await mockBtcNftContract
+                .connect(user)
+                ['safeTransferFrom(address,address,uint256)'](
+                    user.address,
+                    liquidator.address,
+                    vault.nftId
+                );
+            const closeTx = await brokerContract
+                .connect(liquidator)
+                .closeVault(vault.id);
+            await closeTx.wait();
+            const postCloseTx = await brokerContract
+                .connect(deployer)
+                .postCloseDLCHandler(mockDlcUUID);
+            await postCloseTx.wait();
+            expect(await dlcBtc.balanceOf(liquidator.address)).to.equal(
+                btcCollateral
+            );
         });
     });
 });
