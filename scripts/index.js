@@ -10,6 +10,7 @@ const addRoleToBtcNft = require('./03_add-role-to-btcnft');
 const lendingSetupLoan = require('./04_lending-setup-loan');
 const lendingCloseLoan = require('./05_lending-close-loan');
 const nftSetupVault = require('./06_nft-setup-vault');
+const deploySpecific = require('./07_deploy-specific');
 
 async function main() {
     const program = new Command();
@@ -25,6 +26,15 @@ async function main() {
             'deploy all contracts and set up roles to network set in .env'
         )
         .action(deployAll);
+
+    program
+        .command('deploy-specific')
+        .description('deploy specific contracts')
+        .argument(
+            '<contractName>',
+            'the name of the contract to deploy (DLCManager, BTCNFT, etc.)'
+        )
+        .action(deploySpecific);
 
     program
         .command('mint-stablecoin')

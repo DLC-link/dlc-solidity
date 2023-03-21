@@ -101,6 +101,7 @@ module.exports = async function deployAll(options) {
     );
     saveDeploymentInfo(deploymentInfo(hardhat, dlcBroker, 'DlcBroker'));
 
+    /////////////// Lending Demo ///////////////
     // USDC contract deployment
     console.log(
         `deploying contract for token USDStableCoinForDLCs (USDC) to network "${network}"...`
