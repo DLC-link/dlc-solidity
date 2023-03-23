@@ -3,16 +3,16 @@
 // This is sample contract for an NFT which represents locked Bitcoin
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts/security/Pausable.sol';
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol';
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol';
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
 
-import "@openzeppelin/contracts/utils/Counters.sol";
+import '@openzeppelin/contracts/utils/Counters.sol';
 
 /// @custom:security-contact jesse@dlc.link
 contract BtcNft is
@@ -26,11 +26,12 @@ contract BtcNft is
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
 
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256('PAUSER_ROLE');
+    bytes32 public constant MINTER_ROLE = keccak256('MINTER_ROLE');
 
     mapping(uint256 => address) private _originalDepositors;
     mapping(uint256 => address) private _brokers;
+    mapping(uint256 => bytes32) private _dlcUUIDs; // Add new mapping for dlcUUID
 
     event NFTMinted(uint256 indexed _id);
 
@@ -39,16 +40,17 @@ contract BtcNft is
         string uri;
         address originalDepositor;
         address broker;
+        bytes32 dlcUUID;
     }
 
-    constructor() ERC721("BtcNft", "DLC") {
+    constructor() ERC721('BtcNft', 'DLC') {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
     }
 
     function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://";
+        return 'ipfs://';
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {
@@ -63,7 +65,8 @@ contract BtcNft is
     function safeMint(
         address to,
         string memory uri,
-        address broker
+        address broker,
+        bytes32 dlcUUID
     ) public onlyRole(MINTER_ROLE) {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
@@ -71,6 +74,7 @@ contract BtcNft is
         _setTokenURI(tokenId, uri);
         _setOriginalDepositor(tokenId, to);
         _setBroker(tokenId, broker);
+        _setDlcUUID(tokenId, dlcUUID);
         emit NFTMinted(tokenId);
     }
 
@@ -108,7 +112,7 @@ contract BtcNft is
     ) internal virtual {
         require(
             _exists(tokenId),
-            "ERC721URIStorage: URI set of nonexistent token"
+            'ERC721URIStorage: URI set of nonexistent token'
         );
         _originalDepositors[tokenId] = _originalDepositor;
     }
@@ -123,9 +127,24 @@ contract BtcNft is
     function _setBroker(uint256 tokenId, address _broker) internal virtual {
         require(
             _exists(tokenId),
-            "ERC721URIStorage: URI set of nonexistent token"
+            'ERC721URIStorage: URI set of nonexistent token'
         );
         _brokers[tokenId] = _broker;
+    }
+
+    /**
+     * @dev Sets `_dlcUUID` as the dlcUUID of `tokenId`.
+     *
+     * Requirements:
+     *
+     * - `tokenId` must exist.
+     */
+    function _setDlcUUID(uint256 tokenId, bytes32 _dlcUUID) internal virtual {
+        require(
+            _exists(tokenId),
+            'ERC721URIStorage: URI set of nonexistent token'
+        );
+        _dlcUUIDs[tokenId] = _dlcUUID;
     }
 
     function supportsInterface(
@@ -150,7 +169,8 @@ contract BtcNft is
                 id: id,
                 uri: tokenURI(id),
                 originalDepositor: _originalDepositors[id],
-                broker: _brokers[id]
+                broker: _brokers[id],
+                dlcUUID: _dlcUUIDs[id]
             });
             dlcNftsByOwner[i] = x;
         }
