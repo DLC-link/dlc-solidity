@@ -8,6 +8,8 @@ require('@nomiclabs/hardhat-etherscan');
 
 require('dotenv').config();
 
+const url = `https://${process.env.HARDHAT_NETWORK}.infura.io/v3/${process.env.INFURA_PROJECT_ID}`;
+
 module.exports = {
     defaultNetwork: 'hardhat',
     solidity: '0.8.17',
@@ -19,11 +21,11 @@ module.exports = {
             gasPrice: 0x01,
         },
         sepolia: {
-            url: process.env['NODE_URL'],
+            url: `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
             accounts: [process.env['KEY']],
         },
         goerli: {
-            url: process.env['NODE_URL'],
+            url: `https://goerli.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
             accounts: [process.env['KEY']],
         },
     },

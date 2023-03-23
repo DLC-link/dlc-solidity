@@ -11,6 +11,8 @@ const lendingSetupLoan = require('./04_lending-setup-loan');
 const lendingCloseLoan = require('./05_lending-close-loan');
 const nftSetupVault = require('./06_nft-setup-vault');
 const deploySpecific = require('./07_deploy-specific');
+const sendEth = require('./08_send-eth');
+const sendNFT = require('./09_send-nft');
 
 async function main() {
     const program = new Command();
@@ -86,6 +88,21 @@ async function main() {
         .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
         .argument('[emergencyRefundTime]', 'emergency refund time', 5)
         .action(nftSetupVault);
+
+    program
+        .command('send-eth')
+        .description('send ETH to an address')
+        .argument('<addressTo>', 'address to send ETH to')
+        .argument('[amount]', 'amount to send in ETH', 0.1)
+        .action(sendEth);
+
+    program
+        .command('send-nft')
+        .description('send NFT to an address')
+        .argument('<privateKey>', 'privateKey of address to send NFT from')
+        .argument('<addressTo>', 'address to send NFT to')
+        .argument('<id>', 'NFT ID')
+        .action(sendNFT);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
