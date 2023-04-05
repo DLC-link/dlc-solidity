@@ -2,7 +2,7 @@
   "network": "localhost",
   "contract": {
     "name": "BtcNft",
-    "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    "address": "0xf5059a5D33d5853360D16C683c16e67980206f36",
     "signerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "abi": [
       "constructor()",
