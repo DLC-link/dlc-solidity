@@ -151,6 +151,7 @@ describe('BrokerContract', () => {
                     BigNumber.from(btcCollateral),
                     BigNumber.from(1),
                     user.address,
+                    user.address,
                 ]);
             });
         });
@@ -194,6 +195,7 @@ describe('BrokerContract', () => {
                 Status.PreRepaid,
                 BigNumber.from(btcCollateral),
                 BigNumber.from(0),
+                user.address,
                 user.address,
             ]);
         });
@@ -251,6 +253,7 @@ describe('BrokerContract', () => {
                     BigNumber.from(btcCollateral),
                     BigNumber.from(0),
                     liquidator.address,
+                    user.address,
                 ]);
             });
             it('emits a StatusUpdate event', async () => {
@@ -277,6 +280,27 @@ describe('BrokerContract', () => {
                 await closeTx.wait();
                 dlc = await mockDlcManager.getDLC(mockDlcUUID);
                 expect(dlc.outcome).to.equal(100);
+            });
+            it('updates the vaultsPerAddress mapping', async () => {
+                let originalOwnerVaultsNumber =
+                    await brokerContract.vaultsPerAddress(user.address);
+                let liquidatorVaultsNumber =
+                    await brokerContract.vaultsPerAddress(liquidator.address);
+                expect(originalOwnerVaultsNumber).to.eql(BigNumber.from(1));
+                expect(liquidatorVaultsNumber).to.eql(BigNumber.from(0));
+
+                const closeTx = await brokerContract
+                    .connect(liquidator)
+                    .closeVault(vault.id);
+                await closeTx.wait();
+
+                originalOwnerVaultsNumber =
+                    await brokerContract.vaultsPerAddress(user.address);
+                liquidatorVaultsNumber = await brokerContract.vaultsPerAddress(
+                    liquidator.address
+                );
+                expect(originalOwnerVaultsNumber).to.eql(BigNumber.from(0));
+                expect(liquidatorVaultsNumber).to.eql(BigNumber.from(1));
             });
         });
     });
