@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "./BtcNft.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "../../DLCManager.sol";
-import "../../DLCLinkCompatible.sol";
+import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
+import './BtcNft.sol';
+import '@openzeppelin/contracts/utils/math/SafeMath.sol';
+import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
+import '../../DLCManager.sol';
+import '../../DLCLinkCompatible.sol';
+import './DLCBTC.sol';
 
 enum Status {
     None,
@@ -26,25 +29,49 @@ struct Vault {
     uint256 vaultCollateral; // btc deposit in sats
     uint256 nftId;
     address owner; // the account owning this Vault
+    address originalCreator;
 }
 
-// TODO: setup access control, which will also change the tests
 uint256 constant ALL_FOR_DEPOSITOR = 0;
 uint256 constant ALL_FOR_BROKER = 100;
 
-contract DlcBroker is DLCLinkCompatible {
+contract DlcBroker is DLCLinkCompatible, AccessControl {
     using SafeMath for uint256;
+    using Address for address;
+
+    bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
     DLCManager private _dlcManager;
     BtcNft private _btcNft;
+    DLCBTC private _dlcBTC;
 
     uint256 public index = 0;
     mapping(uint256 => Vault) public vaults;
     mapping(bytes32 => uint256) public vaultIDsByUUID;
     mapping(address => uint256) public vaultsPerAddress;
 
-    constructor(address _dlcManagerAddress, address _dlcNftAddress) {
+    constructor(
+        address _dlcManagerAddress,
+        address _dlcNftAddress,
+        address _dlcBTCAddress
+    ) {
+        require(
+            _dlcManagerAddress != address(0) &&
+                _dlcNftAddress != address(0) &&
+                _dlcBTCAddress != address(0),
+            'DlcBroker: invalid addresses'
+        );
         _dlcManager = DLCManager(_dlcManagerAddress);
         _btcNft = BtcNft(_dlcNftAddress);
+        _dlcBTC = DLCBTC(_dlcBTCAddress);
+        _setupRole(ADMIN_ROLE, _msgSender());
+    }
+
+    modifier onlyAdmin() {
+        require(
+            hasRole(ADMIN_ROLE, _msgSender()),
+            'DlcBroker: must have admin role to perform this action'
+        );
+        _;
     }
 
     event SetupVault(
@@ -59,6 +86,8 @@ contract DlcBroker is DLCLinkCompatible {
         uint256 btcDeposit,
         uint256 emergencyRefundTime
     ) external returns (uint256) {
+        require(btcDeposit > 0, 'DlcBroker: btcDeposit must be greater than 0');
+
         // Calling the dlc-manager contract & getting a uuid
         bytes32 _uuid = _dlcManager.createDLC(emergencyRefundTime, index);
 
@@ -68,7 +97,8 @@ contract DlcBroker is DLCLinkCompatible {
             status: Status.NotReady,
             vaultCollateral: btcDeposit,
             nftId: 0,
-            owner: msg.sender
+            owner: msg.sender,
+            originalCreator: msg.sender
         });
 
         vaultIDsByUUID[_uuid] = index;
@@ -91,31 +121,30 @@ contract DlcBroker is DLCLinkCompatible {
 
     event StatusUpdate(uint256 vaultid, bytes32 dlcUUID, Status newStatus);
 
-    function _updateStatus(uint256 _vaultID, Status _status) internal {
+    function _updateStatus(uint256 _vaultID, Status _status) private {
         Vault storage _vault = vaults[_vaultID];
-        require(_vault.status != _status, "Status already set");
+        require(_vault.status != _status, 'Status already set');
         _vault.status = _status;
-        require(_vault.status == _status, "Failed to set status");
         emit StatusUpdate(_vaultID, _vault.dlcUUID, _status);
     }
 
     function postCreateDLCHandler(bytes32 _uuid) public {
         Vault memory _vault = vaults[vaultIDsByUUID[_uuid]];
-        require(_vault.dlcUUID != 0, "No such vault");
+        require(_vault.dlcUUID != 0, 'No such vault');
         _updateStatus(_vault.id, Status.Ready);
     }
 
     function setStatusFunded(bytes32 _uuid) public {
         Vault memory _vault = vaults[vaultIDsByUUID[_uuid]];
-        require(_vault.dlcUUID != 0, "No such vault");
+        require(_vault.dlcUUID != 0, 'No such vault');
         _updateStatus(_vault.id, Status.Funded);
         mintBtcNft(_uuid, _vault.vaultCollateral);
     }
 
     function mintBtcNft(bytes32 _uuid, uint256 _collateral) private {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
-        require(_vault.dlcUUID != 0, "No such vault");
-        require(_vault.status == Status.Funded, "Vault in wrong state");
+        require(_vault.dlcUUID != 0, 'No such vault');
+        require(_vault.status == Status.Funded, 'Vault in wrong state');
         _dlcManager.mintBtcNft(_uuid, _collateral);
     }
 
@@ -123,46 +152,57 @@ contract DlcBroker is DLCLinkCompatible {
 
     function postMintBtcNft(bytes32 _uuid, uint256 _nftId) external {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
-        require(_vault.dlcUUID != 0, "No such vault");
+        require(_vault.dlcUUID != 0, 'No such vault');
         _vault.nftId = _nftId;
         _updateStatus(_vault.id, Status.NftIssued);
         emit MintBtcNft(_uuid, _nftId);
     }
 
-    event BurnBtcNft(bytes32 dlcUUID, uint256 nftId);
-
     function closeVault(uint256 _vaultID) public {
         uint256 _payoutRatio;
         Vault storage _vault = vaults[_vaultID];
-        require(_vault.dlcUUID != 0, "No such vault");
-        require(_vault.status == Status.NftIssued, "Vault in wrong state");
+
+        address _NFTOwner = _btcNft.ownerOf(_vault.nftId);
+        require(_NFTOwner == msg.sender, 'Unauthorized');
+
+        require(_vault.dlcUUID != 0, 'No such vault');
+        require(_vault.status == Status.NftIssued, 'Vault in wrong state');
         if (_vault.owner == msg.sender) {
-            //closing a vault where I was the depositor
+            //closing a vault where original creator is redeeming
             _payoutRatio = ALL_FOR_DEPOSITOR;
+            _updateStatus(_vaultID, Status.PreRepaid);
         } else {
+            //closing a vault where non-creator redeems
             _payoutRatio = ALL_FOR_BROKER;
-            //closing a vault where I was not the depositor
+            // This is so that the redeemer can get the collateral in the callback
+            vaultsPerAddress[_vault.owner]--;
+            _vault.owner = msg.sender;
+            vaultsPerAddress[msg.sender]++;
+            _updateStatus(_vaultID, Status.PreLiquidated);
         }
-        _btcNft.burn(_vault.nftId);
-        _updateStatus(_vaultID, Status.PreRepaid);
-        emit BurnBtcNft(_vault.dlcUUID, _vault.nftId);
         _dlcManager.closeDLC(_vault.dlcUUID, _payoutRatio);
+        _btcNft.burn(_vault.nftId);
+        emit BurnBtcNft(_vault.dlcUUID, _vault.nftId);
     }
 
+    event BurnBtcNft(bytes32 dlcUUID, uint256 nftId);
+
+    // TODO: we should add accesscontrol for the dlcmanager
     function postCloseDLCHandler(bytes32 _uuid) external {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
-        require(vaults[vaultIDsByUUID[_uuid]].dlcUUID != 0, "No such vault");
+        require(vaults[vaultIDsByUUID[_uuid]].dlcUUID != 0, 'No such vault');
         require(
             _vault.status == Status.PreRepaid ||
                 _vault.status == Status.PreLiquidated,
-            "Invalid Vault Status"
+            'Invalid Vault Status'
         );
-        _updateStatus(
-            _vault.id,
-            _vault.status == Status.PreRepaid
-                ? Status.Repaid
-                : Status.Liquidated
-        );
+
+        if (_vault.status == Status.PreLiquidated) {
+            _updateStatus(_vault.id, Status.Liquidated);
+            _dlcBTC.mint(_vault.owner, _vault.vaultCollateral);
+        } else {
+            _updateStatus(_vault.id, Status.Repaid);
+        }
     }
 
     function getVault(uint256 _vaultID) public view returns (Vault memory) {

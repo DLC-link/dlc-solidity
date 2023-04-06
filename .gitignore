@@ -241,3 +241,5 @@ secrets.json
 contracts/artifacts/build-info
 cache
 artifacts
+coverage/
+coverage.json

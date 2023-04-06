@@ -2,8 +2,8 @@
   "network": "goerli",
   "contract": {
     "name": "BtcNft",
-    "address": "0x4873960a8B6d3F2EeaF9d16931d2eB5763Ada1f2",
-    "signerAddress": "0x7038f8a64cE8F879705A48e962B55d56aEcd60D8",
+    "address": "0x3E5d9532955d97423B7484FB46453495476D62B3",
+    "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
       "event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)",
@@ -22,7 +22,7 @@
       "function balanceOf(address owner) view returns (uint256)",
       "function burn(uint256 tokenId)",
       "function getApproved(uint256 tokenId) view returns (address)",
-      "function getDLCNFTsByOwner(address owner) view returns (tuple(uint256 id, string uri, address originalDepositor, address broker)[])",
+      "function getDLCNFTsByOwner(address owner) view returns (tuple(uint256 id, string uri, address originalDepositor, address broker, bytes32 dlcUUID)[])",
       "function getNextMintId() view returns (uint256)",
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
       "function grantRole(bytes32 role, address account)",
@@ -34,7 +34,7 @@
       "function paused() view returns (bool)",
       "function renounceRole(bytes32 role, address account)",
       "function revokeRole(bytes32 role, address account)",
-      "function safeMint(address to, string uri, address broker)",
+      "function safeMint(address to, string uri, address broker, bytes32 dlcUUID)",
       "function safeTransferFrom(address from, address to, uint256 tokenId)",
       "function safeTransferFrom(address from, address to, uint256 tokenId, bytes data)",
       "function setApprovalForAll(address operator, bool approved)",
