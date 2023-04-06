@@ -2,8 +2,8 @@
   "network": "sepolia",
   "contract": {
     "name": "BtcNft",
-    "address": "0xC210ffC0875f0Cb45DA14CF23DDeA2aB509Abc96",
-    "signerAddress": "0x34Cb869528568cb6cbaf42752767937bECBbcB58",
+    "address": "0xC262d254E76921A85dB0BDb1D0De64D796b373c3",
+    "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
       "event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)",
@@ -22,7 +22,7 @@
       "function balanceOf(address owner) view returns (uint256)",
       "function burn(uint256 tokenId)",
       "function getApproved(uint256 tokenId) view returns (address)",
-      "function getDLCNFTsByOwner(address owner) view returns (tuple(uint256 id, string uri, address originalDepositor, address broker)[])",
+      "function getDLCNFTsByOwner(address owner) view returns (tuple(uint256 id, string uri, address originalDepositor, address broker, bytes32 dlcUUID)[])",
       "function getNextMintId() view returns (uint256)",
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
       "function grantRole(bytes32 role, address account)",
@@ -34,7 +34,7 @@
       "function paused() view returns (bool)",
       "function renounceRole(bytes32 role, address account)",
       "function revokeRole(bytes32 role, address account)",
-      "function safeMint(address to, string uri, address broker)",
+      "function safeMint(address to, string uri, address broker, bytes32 dlcUUID)",
       "function safeTransferFrom(address from, address to, uint256 tokenId)",
       "function safeTransferFrom(address from, address to, uint256 tokenId, bytes data)",
       "function setApprovalForAll(address operator, bool approved)",
