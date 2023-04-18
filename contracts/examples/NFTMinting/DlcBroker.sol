@@ -85,11 +85,18 @@ contract DlcBroker is DLCLinkCompatible, AccessControl {
     function setupVault(
         uint256 btcDeposit,
         uint256 emergencyRefundTime
-    ) external returns (uint256) {
+    ) external payable returns (uint256) {
         require(btcDeposit > 0, 'DlcBroker: btcDeposit must be greater than 0');
 
+        uint256 _commission = _dlcManager.getCommission();
+
+        require(msg.value >= _commission, 'Insufficient commission payment');
+
         // Calling the dlc-manager contract & getting a uuid
-        bytes32 _uuid = _dlcManager.createDLC(emergencyRefundTime, index);
+        bytes32 _uuid = _dlcManager.createDLC{ value: _commission }(
+            emergencyRefundTime,
+            index
+        );
 
         vaults[index] = Vault({
             id: index,

@@ -12,6 +12,7 @@ contract DLCManager is AccessControl {
     bytes32[] public openUUIDs;
     uint256 private _localNonce = 0;
     address public btcPriceFeedAddress;
+    uint256 public commission = 0.5 ether; // TODO: add to constructor
 
     struct DLC {
         bytes32 uuid;
@@ -31,6 +32,35 @@ contract DLCManager is AccessControl {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         btcPriceFeedAddress = _btcPriceFeedAddress;
+    }
+
+    modifier onlyPayingUsers() {
+        require(msg.value >= commission, 'Insufficient commission payment');
+        _;
+        // Refund any excess Ether after the function has executed
+        uint256 refund = msg.value - commission;
+        if (refund > 0) {
+            (bool success, ) = msg.sender.call{ value: refund }('');
+            require(success, 'Refund failed');
+        }
+    }
+
+    function getCommission() public view returns (uint256) {
+        return commission;
+    }
+
+    function setCommission(
+        uint256 _commission
+    ) public onlyRole(DLC_ADMIN_ROLE) {
+        commission = _commission;
+    }
+
+    function withdrawCommission(
+        address payable _to
+    ) public onlyRole(DLC_ADMIN_ROLE) {
+        require(address(this).balance > 0, 'No funds to withdraw');
+        (bool success, ) = _to.call{ value: commission }('');
+        require(success, 'Withdrawal failed');
     }
 
     function _generateUUID(
@@ -60,7 +90,7 @@ contract DLCManager is AccessControl {
     function createDLC(
         uint256 _emergencyRefundTime,
         uint256 _nonce
-    ) public returns (bytes32) {
+    ) public payable onlyPayingUsers returns (bytes32) {
         // We cap ERT in about 3110 years just to be safe
         require(
             _emergencyRefundTime < 99999999999,
