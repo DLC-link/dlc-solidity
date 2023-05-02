@@ -157,6 +157,7 @@ contract DlcBroker is DLCLinkCompatible, AccessControl {
 
     event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit);
 
+    // TODO: can only be called once
     function postMintBtcNft(bytes32 _uuid, uint256 _nftId) external {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
         require(_vault.dlcUUID != 0, 'No such vault');
