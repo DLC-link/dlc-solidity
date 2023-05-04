@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "../../DLCManager.sol";
-import "../../DLCLinkCompatible.sol";
+import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/utils/math/SafeMath.sol';
+import '@openzeppelin/contracts/access/AccessControl.sol';
+import '../../DLCManager.sol';
+import '../../DLCLinkCompatible.sol';
 
 enum Status {
     None,
@@ -32,11 +33,13 @@ struct Loan {
 
 // TODO: setup access control, which will also change the tests
 
-contract LendingDemo is DLCLinkCompatible {
+contract LendingContract is DLCLinkCompatible, AccessControl {
     using SafeMath for uint256;
     DLCManager private _dlcManager;
     IERC20 private _usdc;
 
+    bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
+    bytes32 public constant DLC_MANAGER_ROLE = keccak256('DLC_MANAGER_ROLE');
     uint256 public index = 0;
     mapping(uint256 => Loan) public loans;
     mapping(bytes32 => uint256) public loanIDsByUUID;
@@ -45,6 +48,24 @@ contract LendingDemo is DLCLinkCompatible {
     constructor(address _dlcManagerAddress, address _usdcAddress) {
         _dlcManager = DLCManager(_dlcManagerAddress);
         _usdc = IERC20(_usdcAddress);
+        _setupRole(ADMIN_ROLE, _msgSender());
+        _setupRole(DLC_MANAGER_ROLE, _dlcManagerAddress);
+    }
+
+    modifier onlyAdmin() {
+        require(
+            hasRole(ADMIN_ROLE, _msgSender()),
+            'LendingContract: must have admin role to perform this action'
+        );
+        _;
+    }
+
+    modifier onlyDLCManager() {
+        require(
+            hasRole(DLC_MANAGER_ROLE, _msgSender()),
+            'LendingContract: must have dlc-manager role to perform this action'
+        );
+        _;
     }
 
     event SetupLoan(
@@ -102,26 +123,26 @@ contract LendingDemo is DLCLinkCompatible {
 
     function _updateStatus(uint256 _loanID, Status _status) internal {
         Loan storage _loan = loans[_loanID];
-        require(_loan.status != _status, "Status already set");
+        require(_loan.status != _status, 'Status already set');
         _loan.status = _status;
-        require(_loan.status == _status, "Failed to set status");
+        require(_loan.status == _status, 'Failed to set status');
         emit StatusUpdate(_loanID, _loan.dlcUUID, _status);
     }
 
-    function postCreateDLCHandler(bytes32 _uuid) public {
-        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, "No such loan");
+    function postCreateDLCHandler(bytes32 _uuid) public onlyDLCManager {
+        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, 'No such loan');
         _updateStatus(loanIDsByUUID[_uuid], Status.Ready);
     }
 
-    function setStatusFunded(bytes32 _uuid) public {
-        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, "No such loan");
+    function setStatusFunded(bytes32 _uuid) public onlyDLCManager {
+        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, 'No such loan');
         _updateStatus(loanIDsByUUID[_uuid], Status.Funded);
     }
 
     function borrow(uint256 _loanID, uint256 _amount) public {
         Loan storage _loan = loans[_loanID];
-        require(_loan.owner == msg.sender, "Unathorized");
-        require(_loan.status == Status.Funded, "Loan not funded");
+        require(_loan.owner == msg.sender, 'Unathorized');
+        require(_loan.status == Status.Funded, 'Loan not funded');
         // TODO:
         //  - user shouldnt be able to overborrow (based on collateral value)
         // require(_loan.vaultLoan ... )
@@ -131,28 +152,28 @@ contract LendingDemo is DLCLinkCompatible {
 
     function repay(uint256 _loanID, uint256 _amount) public {
         Loan storage _loan = loans[_loanID];
-        require(_loan.owner == msg.sender, "Unathorized");
-        require(_loan.vaultLoan >= _amount, "Amount too large");
+        require(_loan.owner == msg.sender, 'Unathorized');
+        require(_loan.vaultLoan >= _amount, 'Amount too large');
         _usdc.transferFrom(_loan.owner, address(this), _amount);
         _loan.vaultLoan = _loan.vaultLoan.sub(_amount);
     }
 
     function closeLoan(uint256 _loanID) public {
         Loan storage _loan = loans[_loanID];
-        require(_loan.owner == msg.sender, "Unathorized");
-        require(_loan.vaultLoan == 0, "Loan not repaid");
+        require(_loan.owner == msg.sender, 'Unathorized');
+        require(_loan.vaultLoan == 0, 'Loan not repaid');
         _updateStatus(_loanID, Status.PreRepaid);
         _dlcManager.closeDLC(_loan.dlcUUID, 0);
     }
 
-    function postCloseDLCHandler(bytes32 _uuid) external {
+    function postCloseDLCHandler(bytes32 _uuid) external onlyDLCManager {
         // Access control? dlc-manager?
         Loan storage _loan = loans[loanIDsByUUID[_uuid]];
-        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, "No such loan");
+        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, 'No such loan');
         require(
             _loan.status == Status.PreRepaid ||
                 _loan.status == Status.PreLiquidated,
-            "Invalid Loan Status"
+            'Invalid Loan Status'
         );
         _updateStatus(
             _loan.id,
@@ -170,10 +191,10 @@ contract LendingDemo is DLCLinkCompatible {
         bytes32 _uuid,
         int256 _price,
         uint256 _timestamp
-    ) external {
+    ) external onlyDLCManager {
         require(
             checkLiquidation(loanIDsByUUID[_uuid], _price),
-            "Does Not Need Liquidation"
+            'Does Not Need Liquidation'
         );
         uint16 payoutRatio = calculatePayoutRatio(loanIDsByUUID[_uuid], _price);
         _liquidateLoan(loanIDsByUUID[_uuid], payoutRatio);
@@ -188,9 +209,6 @@ contract LendingDemo is DLCLinkCompatible {
         uint256 _loanID,
         int256 _price
     ) public view returns (bool) {
-        // TODO:
-        // _getCollateralValue(_loanID, _price) .....
-
         // if liquidationRatio is 14000 (140.00%)
         // and collateralvalue is 2968680000000
         // and price is 2283600000000
@@ -214,10 +232,44 @@ contract LendingDemo is DLCLinkCompatible {
         int256 _price
     ) public view returns (uint16) {
         // Should return a number between 0-100.00
-        // TODO:
+        Loan memory _loan = loans[_loanID];
+        uint256 _collateralValue = getCollateralValue(_loanID, _price); // 8 decimals
+        uint256 _sellToLiquidatorsRatio = SafeMath.div(
+            SafeMath.div(_loan.vaultLoan, 10 ** 8),
+            _collateralValue
+        );
+        uint256 _payoutRatioPrecise = _sellToLiquidatorsRatio +
+            SafeMath.mul(_sellToLiquidatorsRatio, _loan.liquidationFee);
 
         return 0;
     }
+
+    // ;; @desc Returns the result±ing payout-ratio at the given btc-price (shifted by 10**8).
+    // ;; This value is sent to the Oracle system for signing a point on the linear payout curve.
+    // ;; using uints, this means return values between 0-10000 (0.00-100.00)
+    // ;; 0.00 means the borrower gets back its deposit, 100.00 means the entire collateral gets taken by the protocol.
+    // (define-read-only (get-payout-ratio (loan-id uint) (btc-price uint))
+    // (let (
+    //     (loan (unwrap! (get-loan loan-id) err-unknown-loan-contract))
+    //     (collateral-value (get-collateral-value (get vault-collateral loan) btc-price))
+    //     ;; the ratio the protocol has to sell to liquidators:
+    //     (sell-to-liquidators-ratio (/ (shift-value (get vault-loan loan) ten-to-power-12) collateral-value))
+    //     ;; the additional liquidation-fee percentage is calculated into the result. Since it is shifted by 10000, we divide:
+    //     (payout-ratio-precise (+ sell-to-liquidators-ratio (* (/ sell-to-liquidators-ratio u10000) (get liquidation-fee loan))))
+    //     ;; The final payout-ratio is a truncated version:
+    //     (payout-ratio (unshift-value payout-ratio-precise ten-to-power-12))
+    //     )
+    //     ;; We cap result to be between the desired bounds
+    //     (begin
+    //     (if (unwrap! (check-liquidation loan-id btc-price) err-cant-unwrap)
+    //         (if (>= payout-ratio (shift-value u1 ten-to-power-4))
+    //             (ok (shift-value u1 ten-to-power-4))
+    //             (ok payout-ratio))
+    //         (ok u0)
+    //     )
+    //     )
+    // )
+    // )
 
     function getCollateralValue(
         uint256 _loanID,

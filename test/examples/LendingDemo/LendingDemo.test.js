@@ -1,200 +1,259 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
-describe('LendingDemo', () => {
-  let mockV3Aggregator;
-  let dlcManager;
-  let usdc;
-  let lendingDemo;
-  let emergencyRefundTime;
-  let deployer, protocol, user;
+async function setupFundedLoan(dlcManager, lendingContract, deployer, user) {
+    const tx = await lendingContract
+        .connect(user)
+        .setupLoan(100000000, 0, 0, 0);
+    const txF = await tx.wait();
+    const tx2 = await dlcManager
+        .connect(deployer)
+        .postCreateDLC(
+            txF.events[1].args.dlcUUID,
+            0,
+            0,
+            lendingContract.address,
+            user.address
+        );
+    const txF2 = await tx2.wait();
+    const tx3 = await dlcManager
+        .connect(deployer)
+        .setStatusFunded(txF.events[1].args.dlcUUID);
+    const txF3 = await tx3.wait();
+}
 
-  beforeEach(async () => {
-    emergencyRefundTime = 1988622969;
-
-    // Setup accounts
-    accounts = await ethers.getSigners();
-    deployer = accounts[0];
-    protocol = accounts[1];
-    user = accounts[2];
-    someRandomAccount = accounts[3];
-
-    const MockV3Aggregator = await ethers.getContractFactory('MockV3Aggregator');
-    mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
-    await mockV3Aggregator.deployTransaction.wait();
-
-    const DLCManager = await ethers.getContractFactory('DLCManager');
-    dlcManager = await DLCManager.deploy(deployer.address, mockV3Aggregator.address);
-    await dlcManager.deployTransaction.wait();
-
-    const USDC = await ethers.getContractFactory('USDStableCoinForDLCs');
-    usdc = await USDC.deploy();
-    await usdc.deployed();
-
-    const LendingDemo = await ethers.getContractFactory('LendingDemo', protocol);
-    lendingDemo = await LendingDemo.deploy(dlcManager.address, usdc.address);
-    await lendingDemo.deployTransaction.wait();
-
-    await usdc.mint(lendingDemo.address, ethers.utils.parseUnits("10000", "ether"));
-  })
-
-  it('is deployed for the tests', async () => {
-    expect(await lendingDemo.deployTransaction).to.exist;
-  })
-
-  describe('setupLoan', () => {
-    xit('emits an event with loan data', () => { });
-    xit('emits a StatusUpdate event', () => { });
-    xit('sets up a new loan object with the correct status', () => { });
-  });
-
-  describe('borrow', () => {
-    it('reverts if not called by the owner of the loan', async () => {
-      await expect(lendingDemo.borrow(123, 10)).to.be.revertedWith(
-        "Unathorized"
-      );
-    })
-
-    it('reverts if loan is not funded', async () => {
-      const tx = await lendingDemo.connect(user).setupLoan(0, 0, 0, 0);
-      const txF = await tx.wait();
-      await expect(lendingDemo.connect(user).borrow(0, 10)).to.be.revertedWith(
-        "Loan not funded"
-      );
-    })
-
-    xit('reverts if user is undercollaterized', async () => {
-
-    })
-
-    it('transfers the amount to the user', async () => {
-      const tx = await lendingDemo.connect(user).setupLoan(100000000, 0, 0, 0);
-      const txF = await tx.wait();
-      const tx2 = await lendingDemo.connect(protocol).setStatusFunded(txF.events[1].args.dlcUUID);
-      const txF2 = await tx2.wait();
-
-      const amount = 100;
-      const amountBig = ethers.utils.parseUnits(amount.toString(), "ether")
-      const amountBigNeg = ethers.utils.parseUnits((0 - amount).toString(), "ether")
-
-      await expect(lendingDemo.connect(user).borrow(0, amountBig)).to.changeTokenBalances(
-        usdc,
-        [lendingDemo, user],
-        [amountBigNeg, amountBig]
-      );
-    })
-
-    xit('reduces the vaultLoan amount', async () => {
-
-    })
-  })
-
-  describe('repay', async () => {
-    const amount = 100;
-    const amountBig = ethers.utils.parseUnits(amount.toString(), "ether")
+describe('LendingContract', () => {
+    let mockV3Aggregator;
+    let dlcManager;
+    let usdc;
+    let lendingContract;
+    let emergencyRefundTime;
+    let deployer, protocol, user;
 
     beforeEach(async () => {
-      const tx = await lendingDemo.connect(user).setupLoan(100000000, 0, amountBig, 0);
-      const txF = await tx.wait();
-      const tx2 = await lendingDemo.connect(protocol).setStatusFunded(txF.events[1].args.dlcUUID);
-      const txF2 = await tx2.wait();
+        emergencyRefundTime = 1988622969;
 
-      await lendingDemo.connect(user).borrow(0, amountBig);
-    })
+        // Setup accounts
+        accounts = await ethers.getSigners();
+        deployer = accounts[0];
+        protocol = accounts[1];
+        user = accounts[2];
+        someRandomAccount = accounts[3];
 
-    it('reverts if not called by the owner of the loan', async () => {
-      await expect(lendingDemo.repay(0, amountBig)).to.be.revertedWith(
-        "Unathorized"
-      );
-    })
+        const MockV3Aggregator = await ethers.getContractFactory(
+            'MockV3Aggregator'
+        );
+        mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
+        await mockV3Aggregator.deployTransaction.wait();
 
-    it('reverts if _amount is larger than vaultLoan', async () => {
-      await expect(lendingDemo.connect(user).repay(0, amountBig + amountBig)).to.be.revertedWith(
-        "Amount too large"
-      );
-    })
+        const DLCManager = await ethers.getContractFactory('DLCManager');
+        dlcManager = await DLCManager.deploy(
+            deployer.address,
+            mockV3Aggregator.address
+        );
+        await dlcManager.deployTransaction.wait();
 
-    it('reverts if owner has not set allowance', async () => {
-      await expect(lendingDemo.connect(user).repay(0, amountBig)).to.be.revertedWith('ERC20: insufficient allowance');
-    })
+        const USDC = await ethers.getContractFactory('USDStableCoinForDLCs');
+        usdc = await USDC.deploy();
+        await usdc.deployed();
 
-    it('reverts if owner has insufficent balance', async () => {
-      await usdc.connect(user).approve(lendingDemo.address, amountBig);
+        const LendingContract = await ethers.getContractFactory(
+            'LendingContract',
+            protocol
+        );
+        lendingContract = await LendingContract.deploy(
+            dlcManager.address,
+            usdc.address
+        );
+        await lendingContract.deployTransaction.wait();
 
-      // Simulate that `user` spends the tokens elsewhere:
-      await usdc.connect(user).transfer(someRandomAccount.address, amountBig.sub(amountBig.div(2)));
+        await usdc.mint(
+            lendingContract.address,
+            ethers.utils.parseUnits('10000', 'ether')
+        );
+    });
 
-      await expect(lendingDemo.connect(user).repay(0, amountBig)).to.be.revertedWith('ERC20: transfer amount exceeds balance');
-    })
+    it('is deployed for the tests', async () => {
+        expect(await lendingContract.deployTransaction).to.exist;
+    });
 
-    it('transfers usdc tokens to contract', async () => {
-      await usdc.mint(user.address, amountBig);
-      await usdc.connect(user).approve(lendingDemo.address, amountBig);
+    describe('setupLoan', () => {
+        xit('emits an event with loan data', () => {});
+        xit('emits a StatusUpdate event', () => {});
+        xit('sets up a new loan object with the correct status', () => {});
+    });
 
-      const amountBigNeg = ethers.utils.parseUnits((0 - amount).toString(), "ether")
+    describe('borrow', () => {
+        it('reverts if not called by the owner of the loan', async () => {
+            await expect(lendingContract.borrow(123, 10)).to.be.revertedWith(
+                'Unathorized'
+            );
+        });
 
-      await expect(lendingDemo.connect(user).repay(0, amountBig)).to.changeTokenBalances(
-        usdc,
-        [lendingDemo, user],
-        [amountBig, amountBigNeg]
-      );
-    })
+        it('reverts if loan is not funded', async () => {
+            const tx = await lendingContract
+                .connect(user)
+                .setupLoan(0, 0, 0, 0);
+            const txF = await tx.wait();
+            await expect(
+                lendingContract.connect(user).borrow(0, 10)
+            ).to.be.revertedWith('Loan not funded');
+        });
 
-    xit('reverts if user is undercollaterized', async () => {
+        xit('reverts if user is undercollaterized', async () => {});
 
-    })
+        it('transfers the amount to the user', async () => {
+            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
 
-    it('transfers the amount to the user', async () => {
-      const tx = await lendingDemo.connect(user).setupLoan(100000000, 0, 0, 0);
-      const txF = await tx.wait();
-      const tx2 = await lendingDemo.connect(protocol).setStatusFunded(txF.events[1].args.dlcUUID);
-      const txF2 = await tx2.wait();
+            const amount = 100;
+            const amountBig = ethers.utils.parseUnits(
+                amount.toString(),
+                'ether'
+            );
+            const amountBigNeg = ethers.utils.parseUnits(
+                (0 - amount).toString(),
+                'ether'
+            );
 
-      const amount = 100;
-      const amountBig = ethers.utils.parseUnits(amount.toString(), "ether")
-      const amountBigNeg = ethers.utils.parseUnits((0 - amount).toString(), "ether")
+            await expect(
+                lendingContract.connect(user).borrow(0, amountBig)
+            ).to.changeTokenBalances(
+                usdc,
+                [lendingContract, user],
+                [amountBigNeg, amountBig]
+            );
+        });
 
-      await expect(lendingDemo.connect(user).borrow(0, amountBig)).to.changeTokenBalances(
-        usdc,
-        [lendingDemo, user],
-        [amountBigNeg, amountBig]
-      );
-    })
+        it('increases the vaultLoan amount', async () => {
+            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
 
-    xit('reduces the vaultLoan amount', async () => {
+            const amount = 100;
+            const amountBig = ethers.utils.parseUnits(
+                amount.toString(),
+                'ether'
+            );
 
-    })
-  })
+            let loan = await lendingContract.getLoan(0);
+            expect(loan.vaultLoan).to.equal(0);
 
-  describe('getCollateralValue', () => {
+            await lendingContract.connect(user).borrow(0, amountBig);
 
-    let amount = 130000000; // 1.3 BTC
-    let price = 2283600000000;
+            loan = await lendingContract.getLoan(0);
+            expect(loan.vaultLoan).to.equal(amountBig);
+        });
+    });
 
-    beforeEach(async () => {
-      const tx = await lendingDemo.connect(user).setupLoan(amount, 0, 0, 0);
-      const txF = await tx.wait();
-    })
+    describe('repay', async () => {
+        const amount = 100;
+        const amountBig = ethers.utils.parseUnits(amount.toString(), 'ether');
 
-    it('returns a value with correct format', async () => {
-      const tx = await lendingDemo.getCollateralValue(0, price);
-      const value = tx.toNumber();
-      expect(value).to.equal(amount * price / 10 ** 8);
-    })
+        beforeEach(async () => {
+            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
 
-  })
+            await lendingContract.connect(user).borrow(0, amountBig);
+        });
 
-  describe('checkLiquidation', () => {
+        xit('reverts if not called by the owner of the loan', async () => {
+            await expect(
+                lendingContract.repay(0, amountBig)
+            ).to.be.revertedWith('Unathorized');
+        });
 
-    let collateralAmount = 100000000; // 1 BTC
-    let price = 2283600000000;
-    let borrowedAmount = 2000;
+        it('reverts if _amount is larger than vaultLoan', async () => {
+            await expect(
+                lendingContract.connect(user).repay(0, amountBig + amountBig)
+            ).to.be.revertedWith('Amount too large');
+        });
 
-    beforeEach(async () => {
-      const tx = await lendingDemo.connect(user).setupLoan(collateralAmount, 0, 0, 0);
-      const txF = await tx.wait();
-    })
+        it('reverts if owner has not set allowance', async () => {
+            await expect(
+                lendingContract.connect(user).repay(0, amountBig)
+            ).to.be.revertedWith('ERC20: insufficient allowance');
+        });
 
-  })
+        it('reverts if owner has insufficent balance', async () => {
+            await usdc
+                .connect(user)
+                .approve(lendingContract.address, amountBig);
 
-})
+            // Simulate that `user` spends the tokens elsewhere:
+            await usdc
+                .connect(user)
+                .transfer(
+                    someRandomAccount.address,
+                    amountBig.sub(amountBig.div(2))
+                );
+
+            await expect(
+                lendingContract.connect(user).repay(0, amountBig)
+            ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+        });
+
+        it('transfers usdc tokens to contract', async () => {
+            await usdc.mint(user.address, amountBig);
+            await usdc
+                .connect(user)
+                .approve(lendingContract.address, amountBig);
+
+            const amountBigNeg = ethers.utils.parseUnits(
+                (0 - amount).toString(),
+                'ether'
+            );
+
+            await expect(
+                lendingContract.connect(user).repay(0, amountBig)
+            ).to.changeTokenBalances(
+                usdc,
+                [lendingContract, user],
+                [amountBig, amountBigNeg]
+            );
+        });
+
+        xit('reverts if user is undercollaterized', async () => {});
+
+        it('reduces the vaultLoan amount', async () => {
+            let loan = await lendingContract.getLoan(0);
+            expect(loan.vaultLoan).to.equal(amountBig);
+
+            await usdc
+                .connect(user)
+                .approve(lendingContract.address, amountBig);
+
+            await lendingContract.connect(user).repay(0, amountBig);
+
+            loan = await lendingContract.getLoan(0);
+            expect(loan.vaultLoan).to.equal(0);
+        });
+    });
+
+    describe('getCollateralValue', () => {
+        let amount = 130000000; // 1.3 BTC
+        let price = 2283600000000;
+
+        beforeEach(async () => {
+            const tx = await lendingContract
+                .connect(user)
+                .setupLoan(amount, 0, 0, 0);
+            const txF = await tx.wait();
+        });
+
+        it('returns a value with correct format', async () => {
+            const tx = await lendingContract.getCollateralValue(0, price);
+            const value = tx.toNumber();
+            expect(value).to.equal((amount * price) / 10 ** 8);
+        });
+    });
+
+    describe('checkLiquidation', () => {
+        let collateralAmount = 100000000; // 1 BTC
+        let price = 2283600000000;
+        let borrowedAmount = 2000;
+
+        beforeEach(async () => {
+            const tx = await lendingContract
+                .connect(user)
+                .setupLoan(collateralAmount, 0, 0, 0);
+            const txF = await tx.wait();
+        });
+    });
+});
