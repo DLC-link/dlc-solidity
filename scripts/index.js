@@ -43,6 +43,7 @@ async function main() {
         .description('mint USDLC')
         .argument('<addressTo>', 'address to mint to')
         .argument('[amount]', 'amount to mint (no extra decimals needed)', 1000)
+        .argument('[privateKey]', 'private key of the address to mint from')
         .action(mintStablecoin);
 
     program

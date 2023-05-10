@@ -129,29 +129,31 @@ module.exports = async function deploySpecific(contractName, options) {
             `deployed contract for token USDStableCoinForDLCs (USDC) to ${usdc.address} (network: ${network})`
         );
         saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'USDC'));
-    } else if (contractName === 'LendingDemo') {
+    } else if (contractName === 'LendingContract') {
         const dlcManager = await loadDeploymentInfo(network, 'DlcManager');
         const usdc = await loadDeploymentInfo(network, 'USDC');
 
         // Sample Protocol Contract deployment
         console.log(
-            `deploying contract LendingDemo to network "${network}"...`
+            `deploying contract LendingContract to network "${network}"...`
         );
-        const LendingDemo = await hardhat.ethers.getContractFactory(
-            'LendingDemo'
+        const LendingContract = await hardhat.ethers.getContractFactory(
+            'LendingContract'
         );
-        const lendingDemo = await LendingDemo.deploy(
+        const lendingContract = await LendingContract.deploy(
             dlcManager.contract.address,
             usdc.contract.address
         );
-        await lendingDemo.deployed();
+        await lendingContract.deployed();
         console.log(
-            `deployed contract LendingDemo to ${lendingDemo.address} (network: ${network})`
+            `deployed contract LendingContract to ${lendingContract.address} (network: ${network})`
         );
-        saveDeploymentInfo(deploymentInfo(hardhat, lendingDemo, 'LendingDemo'));
+        saveDeploymentInfo(
+            deploymentInfo(hardhat, lendingContract, 'LendingContract')
+        );
 
         await usdc.mint(
-            lendingDemo.contract.address,
+            lendingContract.address,
             hardhat.ethers.utils.parseUnits('10000000', 'ether')
         );
     } else {

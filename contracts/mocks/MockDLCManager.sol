@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../DLCLinkCompatible.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '../DLCLinkCompatible.sol';
+import '@openzeppelin/contracts/access/AccessControl.sol';
 
 contract MockDLCManager is AccessControl {
-    bytes32 public constant DLC_ADMIN_ROLE = keccak256("DLC_ADMIN_ROLE");
+    bytes32 public constant DLC_ADMIN_ROLE = keccak256('DLC_ADMIN_ROLE');
     bytes32[] public openUUIDs;
     uint256 private _localNonce = 0;
     address public btcPriceFeedAddress;
@@ -59,7 +59,7 @@ contract MockDLCManager is AccessControl {
         // We cap ERT in about 3110 years just to be safe
         require(
             _emergencyRefundTime < 99999999999,
-            "Emergency Refund Time is too high"
+            'Emergency Refund Time is too high'
         );
 
         bytes32 _uuid = _generateUUID(tx.origin, ++_localNonce);
@@ -68,7 +68,7 @@ contract MockDLCManager is AccessControl {
             msg.sender,
             _emergencyRefundTime,
             _nonce,
-            "dlclink:create-dlc:v0"
+            'dlclink:create-dlc:v0'
         );
         return _uuid;
     }
@@ -101,7 +101,7 @@ contract MockDLCManager is AccessControl {
             _creator,
             _emergencyRefundTime,
             _nonce,
-            "dlclink:post-create-dlc:v0"
+            'dlclink:post-create-dlc:v0'
         );
     }
 
@@ -109,7 +109,7 @@ contract MockDLCManager is AccessControl {
 
     function setStatusFunded(bytes32 _uuid) external onlyRole(DLC_ADMIN_ROLE) {
         DLCLinkCompatible(dlcs[_uuid].creator).setStatusFunded(_uuid);
-        emit SetStatusFunded(_uuid, "dlclink:set-status-funded:v0");
+        emit SetStatusFunded(_uuid, 'dlclink:set-status-funded:v0');
     }
 
     event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit);
@@ -135,7 +135,7 @@ contract MockDLCManager is AccessControl {
             _uuid,
             _outcome,
             dlcs[_uuid].creator,
-            "dlclink:close-dlc:v0"
+            'dlclink:close-dlc:v0'
         );
     }
 
@@ -151,8 +151,8 @@ contract MockDLCManager is AccessControl {
         uint256 _oracleOutcome
     ) external onlyRole(DLC_ADMIN_ROLE) {
         DLC storage _dlc = dlcs[_uuid];
-        require(_dlc.uuid != 0, "Unknown DLC");
-        require(_dlc.outcome == _oracleOutcome, "Different Outcomes");
+        require(_dlc.uuid != 0, 'Unknown DLC');
+        require(_dlc.outcome == _oracleOutcome, 'Different Outcomes');
 
         _removeClosedDLC(_findIndex(_uuid));
         DLCLinkCompatible(_dlc.creator).postCloseDLCHandler(_uuid);
@@ -160,7 +160,7 @@ contract MockDLCManager is AccessControl {
             _uuid,
             _oracleOutcome,
             block.timestamp,
-            "dlclink:post-close-dlc:v0"
+            'dlclink:post-close-dlc:v0'
         );
     }
 
@@ -184,7 +184,7 @@ contract MockDLCManager is AccessControl {
             _uuid,
             msg.sender,
             price,
-            "dlc-link:get-btc-price-with-callback:v0"
+            'dlc-link:get-btc-price-with-callback:v0'
         );
         return price;
     }
@@ -220,7 +220,7 @@ contract MockDLCManager is AccessControl {
                 return i;
             }
         }
-        revert("DLC Not Found");
+        revert('DLC Not Found');
     }
 
     function getAllUUIDs() public view returns (bytes32[] memory) {

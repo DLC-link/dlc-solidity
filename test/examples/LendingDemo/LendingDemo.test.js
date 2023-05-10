@@ -1,10 +1,26 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
-async function setupFundedLoan(dlcManager, lendingContract, deployer, user) {
+async function setupFundedLoan(
+    dlcManager,
+    lendingContract,
+    deployer,
+    user,
+    loanParams = {
+        btcDeposit: 100000000,
+        liquidationRatio: 14000,
+        liquidationFee: 1000,
+        emergencyRefundTime: 5,
+    }
+) {
     const tx = await lendingContract
         .connect(user)
-        .setupLoan(100000000, 0, 0, 0);
+        .setupLoan(
+            loanParams.btcDeposit,
+            loanParams.liquidationRatio,
+            loanParams.liquidationFee,
+            loanParams.emergencyRefundTime
+        );
     const txF = await tx.wait();
     const tx2 = await dlcManager
         .connect(deployer)
@@ -247,13 +263,61 @@ describe('LendingContract', () => {
     describe('checkLiquidation', () => {
         let collateralAmount = 100000000; // 1 BTC
         let price = 2283600000000;
-        let borrowedAmount = 2000;
+        let borrowedAmount = 10000;
+        let borrowedBig = ethers.utils.parseUnits(
+            borrowedAmount.toString(),
+            'ether'
+        );
 
         beforeEach(async () => {
-            const tx = await lendingContract
-                .connect(user)
-                .setupLoan(collateralAmount, 0, 0, 0);
-            const txF = await tx.wait();
+            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
+            await lendingContract.connect(user).borrow(0, borrowedBig);
+        });
+
+        it('returns false if collateral value is above liquidation threshold', async () => {
+            const tx = await lendingContract.checkLiquidation(0, price);
+            expect(tx).to.equal(false);
+        });
+
+        it('returns true if collateral value is below liquidation threshold', async () => {
+            let lowPrice = 1390000000000;
+            const tx = await lendingContract.checkLiquidation(0, lowPrice);
+            expect(tx).to.equal(true);
+        });
+    });
+
+    describe('calculatePayoutRatio', () => {
+        let collateralAmount = 100000000; // 1 BTC
+        let price = 2283600000000;
+        let borrowedAmount = 10000; // 10000 USDC
+        let borrowedBig = ethers.utils.parseUnits(
+            borrowedAmount.toString(),
+            'ether'
+        );
+
+        beforeEach(async () => {
+            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
+            await lendingContract.connect(user).borrow(0, borrowedBig);
+        });
+
+        it('returns the correct value', async () => {
+            const tx = await lendingContract.calculatePayoutRatio(0, price);
+            const value = tx.toNumber();
+            expect(value).to.equal(4383);
+
+            const tx2 = await lendingContract.calculatePayoutRatio(
+                0,
+                1283600000000
+            );
+            const value2 = tx2.toNumber();
+            expect(value2).to.equal(7798);
+
+            const tx3 = await lendingContract.calculatePayoutRatio(
+                0,
+                983600000000
+            );
+            const value3 = tx3.toNumber();
+            expect(value3).to.equal(10000); // 100% payout ratio, capped at 10000
         });
     });
 });

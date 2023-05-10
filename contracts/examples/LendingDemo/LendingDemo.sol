@@ -7,6 +7,7 @@ import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '../../DLCManager.sol';
 import '../../DLCLinkCompatible.sol';
+import 'hardhat/console.sol';
 
 enum Status {
     None,
@@ -30,8 +31,6 @@ struct Loan {
     uint256 closingPrice; // In case of liquidation, the closing BTC price will be stored here
     address owner; // the account owning this loan
 }
-
-// TODO: setup access control, which will also change the tests
 
 contract LendingContract is DLCLinkCompatible, AccessControl {
     using SafeMath for uint256;
@@ -167,7 +166,6 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
     }
 
     function postCloseDLCHandler(bytes32 _uuid) external onlyDLCManager {
-        // Access control? dlc-manager?
         Loan storage _loan = loans[loanIDsByUUID[_uuid]];
         require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, 'No such loan');
         require(
@@ -182,7 +180,6 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
     }
 
     function attemptLiquidate(uint256 _loanID) public {
-        // Access control?
         _updateStatus(_loanID, Status.PreLiquidated);
         _dlcManager.getBTCPriceWithCallback(loans[_loanID].dlcUUID);
     }
@@ -196,11 +193,14 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
             checkLiquidation(loanIDsByUUID[_uuid], _price),
             'Does Not Need Liquidation'
         );
-        uint16 payoutRatio = calculatePayoutRatio(loanIDsByUUID[_uuid], _price);
+        uint256 payoutRatio = calculatePayoutRatio(
+            loanIDsByUUID[_uuid],
+            _price
+        );
         _liquidateLoan(loanIDsByUUID[_uuid], payoutRatio);
     }
 
-    function _liquidateLoan(uint256 _loanID, uint16 _payoutRatio) internal {
+    function _liquidateLoan(uint256 _loanID, uint256 _payoutRatio) internal {
         _updateStatus(_loanID, Status.Liquidated);
         _dlcManager.closeDLC(loans[_loanID].dlcUUID, _payoutRatio);
     }
@@ -221,8 +221,8 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
                 loans[_loanID].vaultLoan,
                 loans[_loanID].liquidationRatio
             ),
-            10 ** 10
-        ); // 16 + 2 - 10 = 8 decimals
+            10 ** 14
+        );
 
         return _collateralValue <= _strikePrice;
     }
@@ -230,46 +230,20 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
     function calculatePayoutRatio(
         uint256 _loanID,
         int256 _price
-    ) public view returns (uint16) {
-        // Should return a number between 0-100.00
+    ) public view returns (uint256) {
+        // Should return a number between 0-100.00 (0-10000)
         Loan memory _loan = loans[_loanID];
         uint256 _collateralValue = getCollateralValue(_loanID, _price); // 8 decimals
         uint256 _sellToLiquidatorsRatio = SafeMath.div(
-            SafeMath.div(_loan.vaultLoan, 10 ** 8),
+            _loan.vaultLoan,
             _collateralValue
         );
         uint256 _payoutRatioPrecise = _sellToLiquidatorsRatio +
             SafeMath.mul(_sellToLiquidatorsRatio, _loan.liquidationFee);
+        uint256 _payoutRatio = SafeMath.div(_payoutRatioPrecise, 10 ** 9);
 
-        return 0;
+        return _payoutRatio >= 10000 ? 10000 : _payoutRatio;
     }
-
-    // ;; @desc Returns the result±ing payout-ratio at the given btc-price (shifted by 10**8).
-    // ;; This value is sent to the Oracle system for signing a point on the linear payout curve.
-    // ;; using uints, this means return values between 0-10000 (0.00-100.00)
-    // ;; 0.00 means the borrower gets back its deposit, 100.00 means the entire collateral gets taken by the protocol.
-    // (define-read-only (get-payout-ratio (loan-id uint) (btc-price uint))
-    // (let (
-    //     (loan (unwrap! (get-loan loan-id) err-unknown-loan-contract))
-    //     (collateral-value (get-collateral-value (get vault-collateral loan) btc-price))
-    //     ;; the ratio the protocol has to sell to liquidators:
-    //     (sell-to-liquidators-ratio (/ (shift-value (get vault-loan loan) ten-to-power-12) collateral-value))
-    //     ;; the additional liquidation-fee percentage is calculated into the result. Since it is shifted by 10000, we divide:
-    //     (payout-ratio-precise (+ sell-to-liquidators-ratio (* (/ sell-to-liquidators-ratio u10000) (get liquidation-fee loan))))
-    //     ;; The final payout-ratio is a truncated version:
-    //     (payout-ratio (unshift-value payout-ratio-precise ten-to-power-12))
-    //     )
-    //     ;; We cap result to be between the desired bounds
-    //     (begin
-    //     (if (unwrap! (check-liquidation loan-id btc-price) err-cant-unwrap)
-    //         (if (>= payout-ratio (shift-value u1 ten-to-power-4))
-    //             (ok (shift-value u1 ten-to-power-4))
-    //             (ok payout-ratio))
-    //         (ok u0)
-    //     )
-    //     )
-    // )
-    // )
 
     function getCollateralValue(
         uint256 _loanID,
@@ -308,17 +282,4 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
     }
 
     function postMintBtcNft(bytes32 _uuid, uint256 _nftId) external {}
-
-    // function _findLoanIndex(string memory _uuid) private view returns (uint256) {
-    //     // find the recently closed uuid index
-    //     for (uint256 i = 0; i < numLoans; i++) {
-    //         if (
-    //             keccak256(abi.encodePacked(loans[i].dlcUUID)) ==
-    //             keccak256(abi.encodePacked(_uuid))
-    //         ) {
-    //             return i;
-    //         }
-    //     }
-    //     revert("Not Found"); // should not happen just in case
-    // }
 }
