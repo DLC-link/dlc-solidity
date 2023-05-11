@@ -152,10 +152,22 @@ module.exports = async function deploySpecific(contractName, options) {
             deploymentInfo(hardhat, lendingContract, 'LendingContract')
         );
 
-        await usdc.mint(
-            lendingContract.address,
-            hardhat.ethers.utils.parseUnits('10000000', 'ether')
+        // NOTE: only for goerli currently
+        const usdc_wallet = new hardhat.ethers.Wallet(
+            process.env.USDC_KEY
+        ).connect(hardhat.ethers.provider);
+
+        const stablecoinContract = new hardhat.ethers.Contract(
+            usdc.contract.address,
+            usdc.contract.abi
         );
+
+        await stablecoinContract
+            .connect(usdc_wallet)
+            .mint(
+                lendingContract.address,
+                hardhat.ethers.utils.parseUnits('10000000', 'ether')
+            );
     } else {
         throw 'Unknown contract name';
     }

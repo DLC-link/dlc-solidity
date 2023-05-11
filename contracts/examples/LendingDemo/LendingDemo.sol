@@ -138,6 +138,14 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
         _updateStatus(loanIDsByUUID[_uuid], Status.Funded);
     }
 
+    event BorrowEvent(
+        uint256 loanid,
+        bytes32 dlcUUID,
+        uint256 amount,
+        uint256 vaultLoan,
+        Status status
+    );
+
     function borrow(uint256 _loanID, uint256 _amount) public {
         Loan storage _loan = loans[_loanID];
         require(_loan.owner == msg.sender, 'Unathorized');
@@ -147,7 +155,22 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
         // require(_loan.vaultLoan ... )
         _usdc.transfer(_loan.owner, _amount);
         _loan.vaultLoan = _loan.vaultLoan.add(_amount);
+        emit BorrowEvent(
+            _loanID,
+            _loan.dlcUUID,
+            _amount,
+            _loan.vaultLoan,
+            _loan.status
+        );
     }
+
+    event RepayEvent(
+        uint256 loanid,
+        bytes32 dlcUUID,
+        uint256 amount,
+        uint256 vaultLoan,
+        Status status
+    );
 
     function repay(uint256 _loanID, uint256 _amount) public {
         Loan storage _loan = loans[_loanID];
@@ -155,10 +178,17 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
         require(_loan.vaultLoan >= _amount, 'Amount too large');
         _usdc.transferFrom(_loan.owner, address(this), _amount);
         _loan.vaultLoan = _loan.vaultLoan.sub(_amount);
+        emit RepayEvent(
+            _loanID,
+            _loan.dlcUUID,
+            _amount,
+            _loan.vaultLoan,
+            _loan.status
+        );
     }
 
     function closeLoan(uint256 _loanID) public {
-        Loan storage _loan = loans[_loanID];
+        Loan memory _loan = loans[_loanID];
         require(_loan.owner == msg.sender, 'Unathorized');
         require(_loan.vaultLoan == 0, 'Loan not repaid');
         _updateStatus(_loanID, Status.PreRepaid);
@@ -166,8 +196,8 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
     }
 
     function postCloseDLCHandler(bytes32 _uuid) external onlyDLCManager {
-        Loan storage _loan = loans[loanIDsByUUID[_uuid]];
-        require(loans[loanIDsByUUID[_uuid]].dlcUUID != 0, 'No such loan');
+        Loan memory _loan = loans[loanIDsByUUID[_uuid]];
+        require(_loan.dlcUUID != 0, 'No such loan');
         require(
             _loan.status == Status.PreRepaid ||
                 _loan.status == Status.PreLiquidated,
@@ -180,28 +210,33 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
     }
 
     function attemptLiquidate(uint256 _loanID) public {
-        _updateStatus(_loanID, Status.PreLiquidated);
         _dlcManager.getBTCPriceWithCallback(loans[_loanID].dlcUUID);
     }
+
+    event DoesNotNeedLiquidation(
+        uint256 loanid,
+        bytes32 dlcUUID,
+        Status status
+    );
 
     function getBtcPriceCallback(
         bytes32 _uuid,
         int256 _price,
         uint256 _timestamp
     ) external onlyDLCManager {
-        require(
-            checkLiquidation(loanIDsByUUID[_uuid], _price),
-            'Does Not Need Liquidation'
-        );
-        uint256 payoutRatio = calculatePayoutRatio(
-            loanIDsByUUID[_uuid],
-            _price
-        );
-        _liquidateLoan(loanIDsByUUID[_uuid], payoutRatio);
+        Loan memory _loan = loans[loanIDsByUUID[_uuid]];
+
+        bool _needsLiquidation = checkLiquidation(_loan.id, _price);
+        if (!_needsLiquidation) {
+            emit DoesNotNeedLiquidation(_loan.id, _loan.dlcUUID, _loan.status);
+            return;
+        }
+        uint256 _payoutRatio = calculatePayoutRatio(_loan.id, _price);
+        _liquidateLoan(_loan.id, _payoutRatio);
     }
 
     function _liquidateLoan(uint256 _loanID, uint256 _payoutRatio) internal {
-        _updateStatus(_loanID, Status.Liquidated);
+        _updateStatus(_loanID, Status.PreLiquidated);
         _dlcManager.closeDLC(loans[_loanID].dlcUUID, _payoutRatio);
     }
 

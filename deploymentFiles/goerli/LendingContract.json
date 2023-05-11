@@ -2,10 +2,13 @@
     "network": "goerli",
     "contract": {
         "name": "LendingContract",
-        "address": "0x1d640233fC66eeB4503b748106A142314F9d5856",
+        "address": "0x7553865B24d1Ee92a465b8F95F78c328F44d578E",
         "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
         "abi": [
             "constructor(address _dlcManagerAddress, address _usdcAddress)",
+            "event BorrowEvent(uint256 loanid, bytes32 dlcUUID, uint256 amount, uint256 vaultLoan, uint8 status)",
+            "event DoesNotNeedLiquidation(uint256 loanid, bytes32 dlcUUID, uint8 status)",
+            "event RepayEvent(uint256 loanid, bytes32 dlcUUID, uint256 amount, uint256 vaultLoan, uint8 status)",
             "event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)",
             "event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)",
             "event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)",
