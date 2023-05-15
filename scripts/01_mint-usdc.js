@@ -2,19 +2,29 @@ require('dotenv').config();
 const hardhat = require('hardhat');
 const { loadDeploymentInfo } = require('./helpers/deployment-handlers');
 
-module.exports = async function mintStablecoin(addressTo, amount) {
+module.exports = async function mintStablecoin(addressTo, amount, privateKey) {
     const deployInfo = await loadDeploymentInfo(hardhat.network.name, 'USDC');
-    const accounts = await hardhat.ethers.getSigners();
+    let wallet;
+
+    if (privateKey) {
+        wallet = new hardhat.ethers.Wallet(privateKey).connect(
+            hardhat.ethers.provider
+        );
+    } else {
+        wallet = await hardhat.ethers.getSigners()[0];
+    }
+
     const stablecoinContract = new hardhat.ethers.Contract(
         deployInfo.contract.address,
-        deployInfo.contract.abi,
-        accounts[0]
+        deployInfo.contract.abi
     );
 
-    const tx = await stablecoinContract.mint(
-        addressTo,
-        hardhat.ethers.utils.parseUnits(amount.toString(), 'ether')
-    );
+    const tx = await stablecoinContract
+        .connect(wallet)
+        .mint(
+            addressTo,
+            hardhat.ethers.utils.parseUnits(amount.toString(), 'ether')
+        );
     await tx.wait();
     console.log(tx);
 };

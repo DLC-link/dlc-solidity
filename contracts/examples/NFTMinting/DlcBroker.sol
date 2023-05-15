@@ -134,6 +134,7 @@ contract DlcBroker is DLCLinkCompatible, AccessControl {
         _updateStatus(_vault.id, Status.Ready);
     }
 
+    // TODO: add accesscontrol
     function setStatusFunded(bytes32 _uuid) public {
         Vault memory _vault = vaults[vaultIDsByUUID[_uuid]];
         require(_vault.dlcUUID != 0, 'No such vault');
