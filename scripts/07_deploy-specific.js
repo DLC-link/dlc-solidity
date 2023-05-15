@@ -152,7 +152,7 @@ module.exports = async function deploySpecific(contractName, options) {
             deploymentInfo(hardhat, lendingContract, 'LendingContract')
         );
 
-        // NOTE: only for goerli currently
+        // NOTE: only for goerli & sepolia
         const usdc_wallet = new hardhat.ethers.Wallet(
             process.env.USDC_KEY
         ).connect(hardhat.ethers.provider);
