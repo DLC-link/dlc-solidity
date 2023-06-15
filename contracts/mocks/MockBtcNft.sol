@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity >=0.8.17;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts/security/Pausable.sol';
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol';
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol';
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
 
-import "@openzeppelin/contracts/utils/Counters.sol";
+import '@openzeppelin/contracts/utils/Counters.sol';
 
 /// @custom:security-contact jesse@dlc.link
 contract MockBtcNft is
@@ -23,8 +23,8 @@ contract MockBtcNft is
 {
     using Counters for Counters.Counter;
 
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256('PAUSER_ROLE');
+    bytes32 public constant MINTER_ROLE = keccak256('MINTER_ROLE');
     Counters.Counter private _tokenIdCounter;
     mapping(uint256 => address) private _originalDepositors;
     mapping(uint256 => address) private _brokers;
@@ -38,14 +38,14 @@ contract MockBtcNft is
         address broker;
     }
 
-    constructor() ERC721("BtcNft", "DLC") {
+    constructor() ERC721('BtcNft', 'DLC') {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
     }
 
     function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://";
+        return 'ipfs://';
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {
@@ -103,7 +103,7 @@ contract MockBtcNft is
     ) internal virtual {
         require(
             _exists(tokenId),
-            "ERC721URIStorage: URI set of nonexistent token"
+            'ERC721URIStorage: URI set of nonexistent token'
         );
         _originalDepositors[tokenId] = _originalDepositor;
     }
@@ -118,7 +118,7 @@ contract MockBtcNft is
     function _setBroker(uint256 tokenId, address _broker) internal virtual {
         require(
             _exists(tokenId),
-            "ERC721URIStorage: URI set of nonexistent token"
+            'ERC721URIStorage: URI set of nonexistent token'
         );
         _brokers[tokenId] = _broker;
     }
