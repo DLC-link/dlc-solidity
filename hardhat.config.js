@@ -5,6 +5,7 @@ require('@openzeppelin/hardhat-upgrades');
 require('@nomicfoundation/hardhat-chai-matchers');
 require('@nomiclabs/hardhat-solhint');
 require('@nomiclabs/hardhat-etherscan');
+require('solidity-coverage');
 
 require('dotenv').config();
 
