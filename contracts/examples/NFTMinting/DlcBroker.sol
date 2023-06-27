@@ -6,8 +6,8 @@ import './BtcNft.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
-import '../../DLCManager.sol';
-import '../../DLCLinkCompatible.sol';
+import '../../DLCManagerV0.sol';
+import '../../DLCLinkCompatibleV0.sol';
 import './DLCBTC.sol';
 
 enum Status {
@@ -40,7 +40,7 @@ contract DlcBroker is DLCLinkCompatible, AccessControl {
     using Address for address;
 
     bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
-    DLCManager private _dlcManager;
+    DLCManagerV0 private _dlcManager;
     BtcNft private _btcNft;
     DLCBTC private _dlcBTC;
 
@@ -60,7 +60,7 @@ contract DlcBroker is DLCLinkCompatible, AccessControl {
                 _dlcBTCAddress != address(0),
             'DlcBroker: invalid addresses'
         );
-        _dlcManager = DLCManager(_dlcManagerAddress);
+        _dlcManager = DLCManagerV0(_dlcManagerAddress);
         _btcNft = BtcNft(_dlcNftAddress);
         _dlcBTC = DLCBTC(_dlcBTCAddress);
         _setupRole(ADMIN_ROLE, _msgSender());

@@ -1,0 +1,17 @@
+{
+  "network": "localhost",
+  "contract": {
+    "name": "MockProtocol",
+    "address": "0x8464135c8F25Da09e49BC8782676a84730C318bC",
+    "signerAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "abi": [
+      "constructor(address _dlcManagerAddress, address protocolWallet)",
+      "function getBtcPriceCallback(bytes32 uuid, int256 price, uint256 timestamp)",
+      "function postCloseDLCHandler(bytes32 uuid)",
+      "function postCreateDLCHandler(bytes32 uuid)",
+      "function postMintBtcNft(bytes32 uuid, uint256 nftId)",
+      "function requestCreateDLC(uint8 attestorCount) returns (bytes32, string[])",
+      "function setStatusFunded(bytes32 uuid)"
+    ]
+  }
+}

@@ -13,6 +13,8 @@ const nftSetupVault = require('./06_nft-setup-vault');
 const deploySpecific = require('./07_deploy-specific');
 const sendEth = require('./08_send-eth');
 const sendNFT = require('./09_send-nft');
+const deployV1 = require('./10_deploy-V1');
+const v1Flow = require('./11_V1-flow');
 
 async function main() {
     const program = new Command();
@@ -104,6 +106,17 @@ async function main() {
         .argument('<addressTo>', 'address to send NFT to')
         .argument('<id>', 'NFT ID')
         .action(sendNFT);
+
+    program
+        .command('deploy-all-v1')
+        .description('deploy V1 contracts')
+        .action(deployV1);
+
+    program
+        .command('v1-flow')
+        .description('run through the V1 flow')
+        .argument('[attestorCount]', 'number of attestors', 1)
+        .action(v1Flow);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work

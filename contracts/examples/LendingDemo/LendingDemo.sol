@@ -5,8 +5,8 @@ import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
-import '../../DLCManager.sol';
-import '../../DLCLinkCompatible.sol';
+import '../../DLCManagerV0.sol';
+import '../../DLCLinkCompatibleV0.sol';
 import 'hardhat/console.sol';
 
 enum Status {
@@ -34,7 +34,7 @@ struct Loan {
 
 contract LendingContract is DLCLinkCompatible, AccessControl {
     using SafeMath for uint256;
-    DLCManager private _dlcManager;
+    DLCManagerV0 private _dlcManager;
     IERC20 private _usdc;
 
     bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
@@ -45,7 +45,7 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
     mapping(address => uint256) public loansPerAddress;
 
     constructor(address _dlcManagerAddress, address _usdcAddress) {
-        _dlcManager = DLCManager(_dlcManagerAddress);
+        _dlcManager = DLCManagerV0(_dlcManagerAddress);
         _usdc = IERC20(_usdcAddress);
         _setupRole(ADMIN_ROLE, _msgSender());
         _setupRole(DLC_MANAGER_ROLE, _dlcManagerAddress);

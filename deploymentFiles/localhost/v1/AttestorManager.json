@@ -1,0 +1,26 @@
+{
+  "network": "localhost",
+  "contract": {
+    "name": "AttestorManager",
+    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "signerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "abi": [
+      "constructor()",
+      "event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)",
+      "event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)",
+      "event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)",
+      "function ADMIN_ROLE() view returns (bytes32)",
+      "function DEFAULT_ADMIN_ROLE() view returns (bytes32)",
+      "function addAttestor(string attestor)",
+      "function getRandomAttestors(uint256 number) view returns (string[])",
+      "function getRoleAdmin(bytes32 role) view returns (bytes32)",
+      "function grantRole(bytes32 role, address account)",
+      "function hasRole(bytes32 role, address account) view returns (bool)",
+      "function isAttestor(string attestor) view returns (bool)",
+      "function removeAttestor(string attestor)",
+      "function renounceRole(bytes32 role, address account)",
+      "function revokeRole(bytes32 role, address account)",
+      "function supportsInterface(bytes4 interfaceId) view returns (bool)"
+    ]
+  }
+}

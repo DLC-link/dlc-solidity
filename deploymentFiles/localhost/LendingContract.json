@@ -6,6 +6,9 @@
     "signerAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "abi": [
       "constructor(address _dlcManagerAddress, address _usdcAddress)",
+      "event BorrowEvent(uint256 loanid, bytes32 dlcUUID, uint256 amount, uint256 vaultLoan, uint8 status)",
+      "event DoesNotNeedLiquidation(uint256 loanid, bytes32 dlcUUID, uint8 status)",
+      "event RepayEvent(uint256 loanid, bytes32 dlcUUID, uint256 amount, uint256 vaultLoan, uint8 status)",
       "event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)",
       "event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)",
       "event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)",

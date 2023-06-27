@@ -23,8 +23,10 @@ describe('AttestorManager', function () {
     });
 
     it('Should allow admin to add attestor', async () => {
+        expect(await attestorManager.isAttestor(TEST_ATTESTOR_1)).to.equal(
+            false
+        );
         await attestorManager.connect(admin).addAttestor(TEST_ATTESTOR_1);
-        // The attestor is not a role, so we can't use hasRole here.
         expect(await attestorManager.isAttestor(TEST_ATTESTOR_1)).to.equal(
             true
         );
@@ -53,10 +55,14 @@ describe('AttestorManager', function () {
         );
     });
 
+    // It's hard to test randomness, so we just check the length of the returned array.
     it('Should retrieve correct number of random attestors', async () => {
         await attestorManager.connect(admin).addAttestor(TEST_ATTESTOR_1);
         await attestorManager.connect(admin).addAttestor(TEST_ATTESTOR_2);
         const randomAttestors = await attestorManager.getRandomAttestors(1);
         expect(randomAttestors.length).to.equal(1);
+        await expect(attestorManager.getRandomAttestors(4)).to.be.revertedWith(
+            'Not enough Attestors'
+        );
     });
 });

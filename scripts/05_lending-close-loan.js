@@ -5,7 +5,7 @@ const { loadDeploymentInfo } = require('./helpers/deployment-handlers');
 module.exports = async function lendingCloseLoan(loanID) {
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'LendingDemo'
+        'LendingContract'
     );
     const accounts = await hardhat.ethers.getSigners();
 

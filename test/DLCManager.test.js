@@ -34,7 +34,7 @@ describe('DLCManager', () => {
         mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); //NOTE:
         await mockV3Aggregator.deployTransaction.wait();
 
-        const DLCManager = await ethers.getContractFactory('DLCManager');
+        const DLCManager = await ethers.getContractFactory('DLCManagerV0');
         dlcManager = await DLCManager.deploy(
             deployer.address,
             mockV3Aggregator.address

@@ -4,10 +4,10 @@ pragma solidity >=0.8.17;
 // import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
 import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import './DLCLinkCompatible.sol';
+import './DLCLinkCompatibleV0.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 
-contract DLCManager is AccessControl {
+contract DLCManagerV0 is AccessControl {
     bytes32 public constant DLC_ADMIN_ROLE = keccak256('DLC_ADMIN_ROLE');
     bytes32[] public openUUIDs;
     uint256 private _localNonce = 0;

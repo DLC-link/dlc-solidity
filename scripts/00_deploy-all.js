@@ -43,7 +43,7 @@ module.exports = async function deployAll(options) {
     console.log(
         `deployed contract DLCManager to ${dlcManager.address} (network: ${network})`
     );
-    saveDeploymentInfo(deploymentInfo(hardhat, dlcManager, 'DlcManager'));
+    await saveDeploymentInfo(deploymentInfo(hardhat, dlcManager, 'DlcManager'));
 
     if (observerAddress) {
         // Setting Observer as DLC_ADMIN_ROLE
@@ -65,7 +65,7 @@ module.exports = async function deployAll(options) {
     console.log(
         `deployed contract for nft BtcNft (DLC) to ${btcNft.address} (network: ${network})`
     );
-    saveDeploymentInfo(deploymentInfo(hardhat, btcNft, 'BtcNft'));
+    await saveDeploymentInfo(deploymentInfo(hardhat, btcNft, 'BtcNft'));
 
     if (observerAddress) {
         // Setting MINTER_ROLE and PAUSER_ROLE for Observer
@@ -85,7 +85,7 @@ module.exports = async function deployAll(options) {
     console.log(
         `deployed contract dlcBtc to ${dlcBtc.address} (network: ${network})`
     );
-    saveDeploymentInfo(deploymentInfo(hardhat, dlcBtc, 'dlcBtc'));
+    await saveDeploymentInfo(deploymentInfo(hardhat, dlcBtc, 'dlcBtc'));
 
     // DlcBroker deployment
     console.log(`deploying contract DlcBroker to network "${network}"...`);
@@ -99,7 +99,7 @@ module.exports = async function deployAll(options) {
     console.log(
         `deployed contract DlcBroker to ${dlcBroker.address} (network: ${network})`
     );
-    saveDeploymentInfo(deploymentInfo(hardhat, dlcBroker, 'DlcBroker'));
+    await saveDeploymentInfo(deploymentInfo(hardhat, dlcBroker, 'DlcBroker'));
 
     /////////////// Lending Demo ///////////////
     // USDC contract deployment
@@ -114,7 +114,7 @@ module.exports = async function deployAll(options) {
     console.log(
         `deployed contract for token USDStableCoinForDLCs (USDC) to ${usdc.address} (network: ${network})`
     );
-    saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'USDC'));
+    await saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'USDC'));
 
     // Sample Protocol Contract deployment
     console.log(
@@ -132,7 +132,7 @@ module.exports = async function deployAll(options) {
     console.log(
         `deployed contract LendingContract to ${lendingContract.address} (network: ${network})`
     );
-    saveDeploymentInfo(
+    await saveDeploymentInfo(
         deploymentInfo(hardhat, lendingContract, 'LendingContract')
     );
 
