@@ -6,12 +6,11 @@
     "signerAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
     "abi": [
       "constructor(address _dlcManagerAddress, address protocolWallet)",
-      "function getBtcPriceCallback(bytes32 uuid, int256 price, uint256 timestamp)",
-      "function postCloseDLCHandler(bytes32 uuid)",
-      "function postCreateDLCHandler(bytes32 uuid)",
-      "function postMintBtcNft(bytes32 uuid, uint256 nftId)",
+      "function postCloseDLCHandler(bytes32 uuid) view",
+      "function postCreateDLCHandler(bytes32 uuid) view",
+      "function requestCloseDLC(bytes32 _uuid, uint256 _outcome)",
       "function requestCreateDLC(uint8 attestorCount) returns (bytes32, string[])",
-      "function setStatusFunded(bytes32 uuid)"
+      "function setStatusFunded(bytes32 uuid) view"
     ]
   }
 }

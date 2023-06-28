@@ -60,9 +60,9 @@ module.exports = async function V1flow(attestorCount) {
     await attestorManager.connect(admin).addAttestor('localhost');
     await attestorManager.connect(admin).addAttestor('dlc.link/attestor');
     await attestorManager.connect(admin).addAttestor('someAttestorDomain.com');
-    console.log(await attestorManager.isAttestor('localhost'));
-    console.log(await attestorManager.isAttestor('dlc.link/attestor'));
-    console.log(await attestorManager.isAttestor('someAttestorDomain.com'));
+    // console.log(await attestorManager.isAttestor('localhost'));
+    // console.log(await attestorManager.isAttestor('dlc.link/attestor'));
+    // console.log(await attestorManager.isAttestor('someAttestorDomain.com'));
 
     await dlcManager.grantRole(
         web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
@@ -78,5 +78,36 @@ module.exports = async function V1flow(attestorCount) {
     const receipt = await requestTx.wait();
     const event = receipt.events[0];
     const decodedEvent = dlcManager.interface.parseLog(event);
+    const uuid = decodedEvent.args.uuid;
+    console.log('CreateDLCRequested:');
     console.log(decodedEvent.args);
+
+    console.log('Waiting for attestors to announce...');
+    await new Promise((r) => setTimeout(r, 2000));
+
+    console.log('Simulating postCreate...');
+    const postCreateTx = await dlcManager
+        .connect(protocolWallet)
+        .postCreateDLC(uuid);
+    await postCreateTx.wait();
+
+    console.log('Simulating setStatusFunded...');
+    const setStatusFundedTx = await dlcManager
+        .connect(protocolWallet)
+        .setStatusFunded(uuid);
+    await setStatusFundedTx.wait();
+
+    console.log('Calling closeDLC...');
+    const outcome = 7689;
+    const closeDLCtx = await mockProtocol.requestCloseDLC(uuid, outcome);
+    await closeDLCtx.wait();
+
+    console.log('Waiting for attestors to attest...');
+    await new Promise((r) => setTimeout(r, 2000));
+
+    console.log('Simulating postClose...');
+    const postCloseTx = await dlcManager
+        .connect(protocolWallet)
+        .postCloseDLC(uuid, outcome);
+    await postCloseTx.wait();
 };

@@ -62,11 +62,20 @@ contract AttestorManager is AccessControl {
     ) public view returns (string[] memory) {
         require(number <= _attestorKeys.length, 'Not enough Attestors');
 
+        string[] memory tempKeys = new string[](_attestorKeys.length);
+        for (uint256 i = 0; i < _attestorKeys.length; i++) {
+            tempKeys[i] = _attestorKeys[i];
+        }
+
         string[] memory selectedAttestors = new string[](number);
         for (uint256 i = 0; i < number; i++) {
-            selectedAttestors[i] = _attestorKeys[
-                randomNumber(i, _attestorKeys.length)
-            ];
+            uint256 randomIndex = randomNumber(i, tempKeys.length - i);
+
+            // Move the selected key to the selected attestors array
+            selectedAttestors[i] = tempKeys[randomIndex];
+
+            // Move the last key in tempKeys to the selected index
+            tempKeys[randomIndex] = tempKeys[tempKeys.length - i - 1];
         }
 
         return selectedAttestors;

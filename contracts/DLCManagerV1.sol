@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
-// import "@chainlink/contracts/src/v0.8/KeeperCompatible.sol";
-import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import './DLCLinkCompatibleV1.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
+import './DLCLinkCompatibleV1.sol';
 import './AttestorManager.sol';
 
 enum Status {
@@ -234,7 +231,7 @@ contract DLCManagerV1 is AccessControl {
         );
     }
 
-    // note: this remove not preserving the order
+    // note: this remove is not preserving the order
     // function _removeClosedDLC(
     //     uint256 index
     // ) private returns (bytes32[] memory) {
