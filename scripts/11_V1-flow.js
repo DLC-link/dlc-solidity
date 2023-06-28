@@ -85,12 +85,6 @@ module.exports = async function V1flow(attestorCount) {
     console.log('Waiting for attestors to announce...');
     await new Promise((r) => setTimeout(r, 2000));
 
-    console.log('Simulating postCreate...');
-    const postCreateTx = await dlcManager
-        .connect(protocolWallet)
-        .postCreateDLC(uuid);
-    await postCreateTx.wait();
-
     console.log('Simulating setStatusFunded...');
     const setStatusFundedTx = await dlcManager
         .connect(protocolWallet)

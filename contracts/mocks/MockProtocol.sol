@@ -35,15 +35,10 @@ contract MockProtocol is DLCLinkCompatibleV1 {
         return (uuid, attestorList);
     }
 
-    function requestCloseDLC(bytes32 _uuid, uint256 _outcome) external {
+    function requestCloseDLC(bytes32 _uuid, uint16 _outcome) external {
         // console.log('[MockProtocol] requestCloseDLC called');
         // console.logBytes32(uuid);
         _dlcManager.closeDLC(_uuid, _outcome);
-    }
-
-    function postCreateDLCHandler(bytes32 uuid) external view override {
-        // console.log('[MockProtocol] postCreateDLCHandler called');
-        // console.logBytes32(uuid);
     }
 
     function setStatusFunded(bytes32 uuid) external view override {

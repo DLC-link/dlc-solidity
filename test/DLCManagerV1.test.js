@@ -148,7 +148,7 @@ describe('DLCManagerV1', () => {
         });
     });
 
-    describe('postCreateDLC', async () => {
+    xdescribe('postCreateDLC', async () => {
         let uuid;
         beforeEach(async () => {
             await whitelistProtocolContractAndAddress(
@@ -223,11 +223,6 @@ describe('DLCManagerV1', () => {
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
-
-            const tx2 = await dlcManager
-                .connect(protocolWallet)
-                .postCreateDLC(uuid);
-            const receipt2 = await tx2.wait();
         });
 
         it('reverts if called from a non-whitelisted wallet', async () => {
@@ -249,7 +244,7 @@ describe('DLCManagerV1', () => {
             ).to.be.revertedWith('Unathorized');
         });
 
-        it('reverts if DLC is not in the right state', async () => {
+        xit('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
                 .connect(user)
                 .requestCreateDLC(attestorCount);
@@ -301,11 +296,6 @@ describe('DLCManagerV1', () => {
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
-
-            const tx2 = await dlcManager
-                .connect(protocolWallet)
-                .postCreateDLC(uuid);
-            await tx2.wait();
 
             await dlcManager.connect(protocolWallet).setStatusFunded(uuid);
         });
@@ -373,11 +363,6 @@ describe('DLCManagerV1', () => {
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
-
-            const tx2 = await dlcManager
-                .connect(protocolWallet)
-                .postCreateDLC(uuid);
-            await tx2.wait();
 
             const tx3 = await dlcManager
                 .connect(protocolWallet)

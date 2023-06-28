@@ -6,7 +6,6 @@ import './DLCLinkCompatibleV1.sol';
 import './AttestorManager.sol';
 
 enum Status {
-    REQUESTED,
     CREATED,
     FUNDED,
     CLOSING,
@@ -18,7 +17,7 @@ struct DLC {
     string[] attestorList;
     address protocolWallet;
     address creator;
-    uint256 outcome;
+    uint16 outcome;
     Status status;
 }
 
@@ -32,7 +31,6 @@ contract DLCManagerV1 is AccessControl {
         keccak256('WHITELISTED_CONTRACT');
     bytes32 public constant WHITELISTED_WALLET =
         keccak256('WHITELISTED_WALLET');
-    // bytes32[] public openUUIDs;
 
     modifier onlyAdmin() {
         require(hasRole(DLC_ADMIN_ROLE, msg.sender), 'Unathorized');
@@ -112,7 +110,7 @@ contract DLCManagerV1 is AccessControl {
             protocolWallet: _protocolWallet,
             creator: msg.sender,
             outcome: 0,
-            status: Status.REQUESTED
+            status: Status.CREATED
         });
         emit CreateDLC(
             _uuid,
@@ -135,28 +133,6 @@ contract DLCManagerV1 is AccessControl {
         );
         dlcs[_uuid].status = _status;
         return true;
-    }
-
-    event PostCreateDLC(
-        bytes32 uuid,
-        address creator,
-        address protocolWallet,
-        address sender,
-        string eventSource
-    );
-
-    function postCreateDLC(
-        bytes32 _uuid
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) {
-        _updateStatus(_uuid, Status.REQUESTED, Status.CREATED);
-        DLCLinkCompatibleV1(dlcs[_uuid].creator).postCreateDLCHandler(_uuid);
-        emit PostCreateDLC(
-            _uuid,
-            dlcs[_uuid].creator,
-            dlcs[_uuid].protocolWallet,
-            msg.sender,
-            'dlclink:post-create-dlc:v1'
-        );
     }
 
     event SetStatusFunded(
@@ -183,7 +159,7 @@ contract DLCManagerV1 is AccessControl {
 
     event CloseDLC(
         bytes32 uuid,
-        uint256 outcome,
+        uint16 outcome,
         address creator,
         address protocolWallet,
         address sender,
@@ -192,9 +168,10 @@ contract DLCManagerV1 is AccessControl {
 
     function closeDLC(
         bytes32 _uuid,
-        uint256 _outcome
+        uint16 _outcome
     ) external onlyWhiteListedContracts {
         _updateStatus(_uuid, Status.FUNDED, Status.CLOSING);
+        dlcs[_uuid].outcome = _outcome;
         emit CloseDLC(
             _uuid,
             _outcome,
@@ -207,56 +184,28 @@ contract DLCManagerV1 is AccessControl {
 
     event PostCloseDLC(
         bytes32 uuid,
-        uint256 outcome,
+        uint16 outcome,
         address creator,
         address protocolWallet,
         address sender,
+        string btcTxId,
         string eventSource
     );
 
     function postCloseDLC(
         bytes32 _uuid,
-        uint256 _outcome
+        string calldata btcTxId
     ) external onlyWhitelistedAndConnectedWallet(_uuid) {
         _updateStatus(_uuid, Status.CLOSING, Status.CLOSED);
-        dlcs[_uuid].outcome = _outcome;
         DLCLinkCompatibleV1(dlcs[_uuid].creator).postCloseDLCHandler(_uuid);
         emit PostCloseDLC(
             _uuid,
-            _outcome,
+            dlcs[_uuid].outcome,
             dlcs[_uuid].creator,
             dlcs[_uuid].protocolWallet,
             msg.sender,
+            btcTxId,
             'dlclink:post-close-dlc:v1'
         );
     }
-
-    // note: this remove is not preserving the order
-    // function _removeClosedDLC(
-    //     uint256 index
-    // ) private returns (bytes32[] memory) {
-    //     require(index < openUUIDs.length);
-    //     // Move the last element to the deleted spot
-    //     openUUIDs[index] = openUUIDs[openUUIDs.length - 1];
-    //     // Remove the last element
-    //     openUUIDs.pop();
-    //     return openUUIDs;
-    // }
-
-    // function _findIndex(bytes32 _uuid) private view returns (uint256) {
-    //     // find the recently closed uuid index
-    //     for (uint256 i = 0; i < openUUIDs.length; i++) {
-    //         if (
-    //             keccak256(abi.encodePacked(openUUIDs[i])) ==
-    //             keccak256(abi.encodePacked(_uuid))
-    //         ) {
-    //             return i;
-    //         }
-    //     }
-    //     revert('DLC Not Found');
-    // }
-
-    // function getAllUUIDs() public view returns (bytes32[] memory) {
-    //     return openUUIDs;
-    // }
 }
