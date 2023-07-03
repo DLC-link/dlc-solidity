@@ -2,6 +2,7 @@
 pragma solidity >=0.8.17;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts/security/Pausable.sol';
 import './DLCLinkCompatibleV1.sol';
 import './AttestorManager.sol';
 
@@ -21,7 +22,7 @@ struct DLC {
     Status status;
 }
 
-contract DLCManagerV1 is AccessControl {
+contract DLCManagerV1 is AccessControl, Pausable {
     AttestorManager private _attestorManager;
     uint256 private _localNonce = 0;
     mapping(bytes32 => DLC) public dlcs;
@@ -63,6 +64,14 @@ contract DLCManagerV1 is AccessControl {
         _attestorManager = AttestorManager(_attestorManagerAddress);
     }
 
+    function pauseContract() external onlyAdmin {
+        _pause();
+    }
+
+    function unpauseContract() external onlyAdmin {
+        _unpause();
+    }
+
     function _generateUUID(
         address sender,
         uint256 nonce
@@ -88,14 +97,24 @@ contract DLCManagerV1 is AccessControl {
     // Default value for _attestorCount is 3
     function createDLC(
         address _protocolWallet
-    ) external onlyWhiteListedContracts returns (bytes32, string[] memory) {
+    )
+        external
+        onlyWhiteListedContracts
+        whenNotPaused
+        returns (bytes32, string[] memory)
+    {
         return this.createDLC(_protocolWallet, 3);
     }
 
     function createDLC(
         address _protocolWallet,
         uint8 _attestorCount
-    ) external onlyWhiteListedContracts returns (bytes32, string[] memory) {
+    )
+        external
+        onlyWhiteListedContracts
+        whenNotPaused
+        returns (bytes32, string[] memory)
+    {
         require(
             hasRole(WHITELISTED_WALLET, _protocolWallet),
             'Unathorized Wallet Address'
@@ -145,7 +164,7 @@ contract DLCManagerV1 is AccessControl {
 
     function setStatusFunded(
         bytes32 _uuid
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) {
+    ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
         _updateStatus(_uuid, Status.CREATED, Status.FUNDED);
         DLCLinkCompatibleV1(dlcs[_uuid].creator).setStatusFunded(_uuid);
         emit SetStatusFunded(
@@ -169,7 +188,7 @@ contract DLCManagerV1 is AccessControl {
     function closeDLC(
         bytes32 _uuid,
         uint16 _outcome
-    ) external onlyWhiteListedContracts {
+    ) external onlyWhiteListedContracts whenNotPaused {
         _updateStatus(_uuid, Status.FUNDED, Status.CLOSING);
         dlcs[_uuid].outcome = _outcome;
         emit CloseDLC(
@@ -195,7 +214,7 @@ contract DLCManagerV1 is AccessControl {
     function postCloseDLC(
         bytes32 _uuid,
         string calldata btcTxId
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) {
+    ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
         _updateStatus(_uuid, Status.CLOSING, Status.CLOSED);
         DLCLinkCompatibleV1(dlcs[_uuid].creator).postCloseDLCHandler(_uuid);
         emit PostCloseDLC(

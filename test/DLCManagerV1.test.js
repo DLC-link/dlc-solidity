@@ -73,6 +73,29 @@ describe('DLCManagerV1', () => {
         });
     });
 
+    describe('contract is pausable', async () => {
+        beforeEach(async () => {
+            await whitelistProtocolContractAndAddress(
+                dlcManager,
+                mockProtocol,
+                protocolWallet
+            );
+
+            await dlcManager.pauseContract();
+        });
+        it('reverts correctly when paused', async () => {
+            await expect(
+                mockProtocol.connect(user).requestCreateDLC(attestorCount)
+            ).to.be.revertedWith('Pausable: paused');
+        });
+        it('allows functions when unpaused', async () => {
+            await dlcManager.unpauseContract();
+            await expect(
+                mockProtocol.connect(user).requestCreateDLC(attestorCount)
+            ).to.not.be.revertedWith('Pausable: paused');
+        });
+    });
+
     describe('createDLC', async () => {
         it('reverts if called from a non-whitelisted contract', async () => {
             await expect(
