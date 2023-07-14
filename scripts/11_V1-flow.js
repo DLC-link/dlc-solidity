@@ -4,6 +4,8 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
+const attestorList = ['localhost:8801', 'localhost:8802', 'localhost:8803'];
+
 module.exports = async function V1flow(attestorCount) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
@@ -46,23 +48,15 @@ module.exports = async function V1flow(attestorCount) {
         protocol
     );
 
-    if (await attestorManager.isAttestor('localhost'))
-        await attestorManager.connect(admin).removeAttestor('localhost');
-    if (await attestorManager.isAttestor('dlc.link/attestor'))
-        await attestorManager
-            .connect(admin)
-            .removeAttestor('dlc.link/attestor');
-    if (await attestorManager.isAttestor('someAttestorDomain.com'))
-        await attestorManager
-            .connect(admin)
-            .removeAttestor('someAttestorDomain.com');
-
-    await attestorManager.connect(admin).addAttestor('localhost');
-    await attestorManager.connect(admin).addAttestor('dlc.link/attestor');
-    await attestorManager.connect(admin).addAttestor('someAttestorDomain.com');
-    // console.log(await attestorManager.isAttestor('localhost'));
-    // console.log(await attestorManager.isAttestor('dlc.link/attestor'));
-    // console.log(await attestorManager.isAttestor('someAttestorDomain.com'));
+    // console.log(
+    //     await dlcManager.getDLC(
+    //         '0x65dd78511d73729110612d109528a216a72ab64b76094a32168470eb1645585a'
+    //     )
+    // );
+    for (const attestor of attestorList) {
+        if (!(await attestorManager.isAttestor(attestor)))
+            await attestorManager.connect(admin).addAttestor(attestor);
+    }
 
     await dlcManager.grantRole(
         web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
@@ -83,25 +77,25 @@ module.exports = async function V1flow(attestorCount) {
     console.log(decodedEvent.args);
 
     console.log('Waiting for attestors to announce...');
-    await new Promise((r) => setTimeout(r, 2000));
+    // await new Promise((r) => setTimeout(r, 2000));
 
-    console.log('Simulating setStatusFunded...');
-    const setStatusFundedTx = await dlcManager
-        .connect(protocolWallet)
-        .setStatusFunded(uuid);
-    await setStatusFundedTx.wait();
+    // console.log('Simulating setStatusFunded...');
+    // const setStatusFundedTx = await dlcManager
+    //     .connect(protocolWallet)
+    //     .setStatusFunded(uuid);
+    // await setStatusFundedTx.wait();
 
-    console.log('Calling closeDLC...');
-    const outcome = 7689;
-    const closeDLCtx = await mockProtocol.requestCloseDLC(uuid, outcome);
-    await closeDLCtx.wait();
+    // console.log('Calling closeDLC...');
+    // const outcome = 7689;
+    // const closeDLCtx = await mockProtocol.requestCloseDLC(uuid, outcome);
+    // await closeDLCtx.wait();
 
-    console.log('Waiting for attestors to attest...');
-    await new Promise((r) => setTimeout(r, 2000));
+    // console.log('Waiting for attestors to attest...');
+    // await new Promise((r) => setTimeout(r, 2000));
 
-    console.log('Simulating postClose...');
-    const postCloseTx = await dlcManager
-        .connect(protocolWallet)
-        .postCloseDLC(uuid, outcome);
-    await postCloseTx.wait();
+    // console.log('Simulating postClose...');
+    // const postCloseTx = await dlcManager
+    //     .connect(protocolWallet)
+    //     .postCloseDLC(uuid, outcome);
+    // await postCloseTx.wait();
 };
