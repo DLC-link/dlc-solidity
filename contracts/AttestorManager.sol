@@ -56,6 +56,10 @@ contract AttestorManager is AccessControl {
         return _attestors[attestor];
     }
 
+    function getAllAttestors() public view returns (string[] memory) {
+        return _attestorKeys;
+    }
+
     // Function to get a specific number of random Attestors.
     function getRandomAttestors(
         uint256 number

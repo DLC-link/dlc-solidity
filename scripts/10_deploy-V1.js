@@ -49,7 +49,7 @@ module.exports = async function deployV1(attestorCount) {
     const MockProtocol = await hardhat.ethers.getContractFactory(
         'MockProtocol'
     );
-    // Wallet is Account #8
+
     const mockProtocol = await MockProtocol.connect(protocol).deploy(
         dlcManager.address,
         protocolWallet.address

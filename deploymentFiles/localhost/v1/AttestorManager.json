@@ -12,6 +12,7 @@
       "function ADMIN_ROLE() view returns (bytes32)",
       "function DEFAULT_ADMIN_ROLE() view returns (bytes32)",
       "function addAttestor(string attestor)",
+      "function getAllAttestors() view returns (string[])",
       "function getRandomAttestors(uint256 number) view returns (string[])",
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
       "function grantRole(bytes32 role, address account)",

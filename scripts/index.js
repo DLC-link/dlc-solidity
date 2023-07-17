@@ -14,7 +14,13 @@ const deploySpecific = require('./07_deploy-specific');
 const sendEth = require('./08_send-eth');
 const sendNFT = require('./09_send-nft');
 const deployV1 = require('./10_deploy-V1');
-const v1Flow = require('./11_V1-flow');
+const v1Flow = require('./11_V1-full-flow');
+const setupV1 = require('./12_V1-setup');
+const createV1 = require('./13_V1-create-dlc');
+const closeV1 = require('./14_V1-close-dlc');
+
+const addAttestor = require('./12_a_V1-add-attestor');
+const registerProtocol = require('./12_b_V1-register-protocol');
 
 async function main() {
     const program = new Command();
@@ -117,6 +123,37 @@ async function main() {
         .description('run through the V1 flow')
         .argument('[attestorCount]', 'number of attestors', 1)
         .action(v1Flow);
+
+    program
+        .command('add-attestor')
+        .description('add attestor')
+        .argument('<address>', 'address of attestor')
+        .action(addAttestor);
+
+    program
+        .command('register-protocol')
+        .description('register protocol contract')
+        .argument('<contractAddress>', 'address of protocol contract')
+        .argument('<walletAddress>', 'address of protocol wallet')
+        .action(registerProtocol);
+
+    program
+        .command('setup-v1')
+        .description('add attestors and register protocolContract')
+        .action(setupV1);
+
+    program
+        .command('create-dlc-v1')
+        .description('create a DLC')
+        .argument('[attestorCount]', 'number of attestors', 1)
+        .action(createV1);
+
+    program
+        .command('close-dlc-v1')
+        .description('close a DLC')
+        .argument('<uuid>', 'uuid of DLC to close')
+        .argument('[outcome]', 'outcome of DLC', 7890)
+        .action(closeV1);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
