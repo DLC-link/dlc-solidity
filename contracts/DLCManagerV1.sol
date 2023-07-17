@@ -86,6 +86,10 @@ contract DLCManagerV1 is AccessControl, Pausable {
         return dlcs[_uuid];
     }
 
+    function getAllAttestors() public view returns (string[] memory) {
+        return _attestorManager.getAllAttestors();
+    }
+
     event CreateDLC(
         bytes32 uuid,
         string[] attestorList,

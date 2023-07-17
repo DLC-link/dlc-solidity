@@ -23,6 +23,7 @@
       "function createDLC(address _protocolWallet, uint8 _attestorCount) returns (bytes32, string[])",
       "function createDLC(address _protocolWallet) returns (bytes32, string[])",
       "function dlcs(bytes32) view returns (bytes32 uuid, address protocolWallet, address creator, uint16 outcome, uint8 status)",
+      "function getAllAttestors() view returns (string[])",
       "function getDLC(bytes32 _uuid) view returns (tuple(bytes32 uuid, string[] attestorList, address protocolWallet, address creator, uint16 outcome, uint8 status))",
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
       "function grantRole(bytes32 role, address account)",
