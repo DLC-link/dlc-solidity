@@ -6,8 +6,8 @@ const {
 const addAttestor = require('./12_a_V1-add-attestor');
 const registerProtocol = require('./12_b_V1-register-protocol');
 
-// const attestorList = ['localhost:8801', 'localhost:8802', 'localhost:8803'];
-const attestorList = ['localhost:8801'];
+// const attestorList = ['http://localhost:8801', 'http://localhost:8802', 'http://localhost:8803'];
+const attestorList = ['http://localhost:8801'];
 
 module.exports = async function setupV1() {
     const accounts = await hardhat.ethers.getSigners();

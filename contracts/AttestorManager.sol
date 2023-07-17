@@ -24,7 +24,8 @@ contract AttestorManager is AccessControl {
         _;
     }
 
-    // Function to add an Attestor. Only admin can add an Attestor.
+    // Function to add a new Attestor.
+    // It must start with 'https://' or 'http://'.
     function addAttestor(string memory attestor) public onlyAdmin {
         require(!_attestors[attestor], 'Attestor already exists');
 

@@ -3,6 +3,7 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
+// attestor URL MUST start with http:// or https://
 module.exports = async function addAttestor(attestor) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
