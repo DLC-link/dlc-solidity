@@ -13,41 +13,45 @@ module.exports = async function V1flow(attestorCount) {
     const protocol = accounts[1];
     const protocolWallet = accounts[2];
 
-    const dlcManagerDeployInfo = await loadDeploymentInfo(
-        hardhat.network.name,
-        'DlcManager',
-        'v1'
-    );
+    for (let account of accounts) {
+        console.log(account.address);
+    }
 
-    const dlcManager = new hardhat.ethers.Contract(
-        dlcManagerDeployInfo.contract.address,
-        dlcManagerDeployInfo.contract.abi,
-        admin
-    );
+    // const dlcManagerDeployInfo = await loadDeploymentInfo(
+    //     hardhat.network.name,
+    //     'DlcManager',
+    //     'v1'
+    // );
 
-    const attestorManagerDeployInfo = await loadDeploymentInfo(
-        hardhat.network.name,
-        'AttestorManager',
-        'v1'
-    );
+    // const dlcManager = new hardhat.ethers.Contract(
+    //     dlcManagerDeployInfo.contract.address,
+    //     dlcManagerDeployInfo.contract.abi,
+    //     admin
+    // );
 
-    const attestorManager = new hardhat.ethers.Contract(
-        attestorManagerDeployInfo.contract.address,
-        attestorManagerDeployInfo.contract.abi,
-        admin
-    );
+    // const attestorManagerDeployInfo = await loadDeploymentInfo(
+    //     hardhat.network.name,
+    //     'AttestorManager',
+    //     'v1'
+    // );
 
-    const mockProtocolDeployInfo = await loadDeploymentInfo(
-        hardhat.network.name,
-        'MockProtocol',
-        'v1'
-    );
+    // const attestorManager = new hardhat.ethers.Contract(
+    //     attestorManagerDeployInfo.contract.address,
+    //     attestorManagerDeployInfo.contract.abi,
+    //     admin
+    // );
 
-    const mockProtocol = new hardhat.ethers.Contract(
-        mockProtocolDeployInfo.contract.address,
-        mockProtocolDeployInfo.contract.abi,
-        protocol
-    );
+    // const mockProtocolDeployInfo = await loadDeploymentInfo(
+    //     hardhat.network.name,
+    //     'MockProtocol',
+    //     'v1'
+    // );
+
+    // const mockProtocol = new hardhat.ethers.Contract(
+    //     mockProtocolDeployInfo.contract.address,
+    //     mockProtocolDeployInfo.contract.abi,
+    //     protocol
+    // );
 
     // console.log(
     //     await dlcManager.getDLC(
@@ -55,7 +59,7 @@ module.exports = async function V1flow(attestorCount) {
     //     )
     // );
 
-    console.log(await attestorManager.getAllAttestors());
+    // console.log(await attestorManager.getAllAttestors());
 
     // for (const attestor of attestorList) {
     //     if (!(await attestorManager.isAttestor(attestor)))

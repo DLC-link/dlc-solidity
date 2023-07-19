@@ -153,9 +153,9 @@ module.exports = async function deploySpecific(contractName, options) {
         );
 
         // NOTE: only for goerli & sepolia
-        const usdc_wallet = new hardhat.ethers.Wallet(
-            process.env.USDC_KEY
-        ).connect(hardhat.ethers.provider);
+        const usdc_wallet = new hardhat.ethers.Wallet(process.env.KEY2).connect(
+            hardhat.ethers.provider
+        );
 
         const stablecoinContract = new hardhat.ethers.Contract(
             usdc.contract.address,

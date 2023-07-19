@@ -23,11 +23,19 @@ module.exports = {
         },
         sepolia: {
             url: `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
-            accounts: [process.env['KEY']],
+            accounts: [
+                process.env['KEY'],
+                process.env['KEY2'],
+                process.env['KEY3'],
+            ],
         },
         goerli: {
             url: `https://goerli.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
-            accounts: [process.env['KEY']],
+            accounts: [
+                process.env['KEY'],
+                process.env['KEY2'],
+                process.env['KEY3'],
+            ],
         },
     },
     etherscan: {

@@ -14,8 +14,8 @@ module.exports = async function deployV1(attestorCount) {
     let CLpricefeed = chainlinkPricefeedAddresses[network];
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
-    const protocol = accounts[1];
-    const protocolWallet = accounts[2];
+    const usdcDeployer = accounts[1];
+    const protocol = accounts[2];
 
     console.log(`Deploying AttestorManager to ${network}...`);
     const AttestorManager = await hardhat.ethers.getContractFactory(
@@ -54,7 +54,7 @@ module.exports = async function deployV1(attestorCount) {
 
     const mockProtocol = await MockProtocol.connect(protocol).deploy(
         dlcManager.address,
-        protocolWallet.address
+        protocol.address
     );
     await mockProtocol.deployed();
     console.log(
@@ -88,7 +88,7 @@ module.exports = async function deployV1(attestorCount) {
     const USDC = await hardhat.ethers.getContractFactory(
         'USDStableCoinForDLCs'
     );
-    const usdc = await USDC.deploy();
+    const usdc = await USDC.connect(usdcDeployer).deploy();
     await usdc.deployed();
     console.log(
         `deployed contract for token USDStableCoinForDLCs (USDC) to ${usdc.address} (network: ${network})`
@@ -101,10 +101,10 @@ module.exports = async function deployV1(attestorCount) {
     const LendingDemo = await hardhat.ethers.getContractFactory(
         'LendingContractV1'
     );
-    const lendingDemo = await LendingDemo.deploy(
+    const lendingDemo = await LendingDemo.connect(protocol).deploy(
         dlcManager.address,
         usdc.address,
-        protocolWallet.address,
+        protocol.address,
         CLpricefeed
     );
 
@@ -117,8 +117,10 @@ module.exports = async function deployV1(attestorCount) {
         'v1'
     );
 
-    await usdc.mint(
-        lendingDemo.address,
-        hardhat.ethers.utils.parseUnits('10000000', 'ether')
-    );
+    await usdc
+        .connect(usdcDeployer)
+        .mint(
+            lendingDemo.address,
+            hardhat.ethers.utils.parseUnits('10000000', 'ether')
+        );
 };
