@@ -116,6 +116,7 @@ async function main() {
     program
         .command('deploy-all-v1')
         .description('deploy V1 contracts')
+        .argument('[version]', 'version to deploy', 'v1')
         .action(deployV1);
 
     program

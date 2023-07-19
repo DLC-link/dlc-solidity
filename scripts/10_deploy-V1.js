@@ -9,12 +9,12 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const chainlinkPricefeedAddresses = require('./helpers/chainlink-pricefeed-addresses');
 
-module.exports = async function deployV1(attestorCount) {
+module.exports = async function deployV1(version) {
     const network = hardhat.network.name;
     const response = await prompts({
         type: 'confirm',
         name: 'continue',
-        message: `This will deploy ALL contracts to ${network}. Continue?`,
+        message: `You are about to deploy ${version} contracts to ${network}. Continue?`,
         initial: false,
     });
     if (!response.continue) {
@@ -74,13 +74,13 @@ module.exports = async function deployV1(attestorCount) {
         );
         await saveDeploymentInfo(
             deploymentInfo(hardhat, attestorManager, 'AttestorManager'),
-            'v1'
+            version
         );
     }
 
     if (contractSelectPrompt.contracts.includes('DLCManager')) {
         const attestorManagerAddress = (
-            await loadDeploymentInfo(network, 'AttestorManager', 'v1')
+            await loadDeploymentInfo(network, 'AttestorManager', version)
         ).contract.address;
 
         console.log(`deploying contract DLCManager to network "${network}"...`);
@@ -97,13 +97,13 @@ module.exports = async function deployV1(attestorCount) {
         );
         await saveDeploymentInfo(
             deploymentInfo(hardhat, dlcManager, 'DlcManager'),
-            'v1'
+            version
         );
     }
 
     if (contractSelectPrompt.contracts.includes('MockProtocol')) {
         const dlcManagerAddress = (
-            await loadDeploymentInfo(network, 'DlcManager', 'v1')
+            await loadDeploymentInfo(network, 'DlcManager', version)
         ).contract.address;
         console.log(
             `deploying contract MockProcotol to network "${network}"...`
@@ -122,7 +122,7 @@ module.exports = async function deployV1(attestorCount) {
         );
         await saveDeploymentInfo(
             deploymentInfo(hardhat, mockProtocol, 'MockProtocol'),
-            'v1'
+            version
         );
     }
 
@@ -141,14 +141,17 @@ module.exports = async function deployV1(attestorCount) {
         console.log(
             `deployed contract for token USDStableCoinForDLCs (USDC) to ${usdc.address} (network: ${network})`
         );
-        await saveDeploymentInfo(deploymentInfo(hardhat, usdc, 'USDC'), 'v1');
+        await saveDeploymentInfo(
+            deploymentInfo(hardhat, usdc, 'USDC'),
+            version
+        );
     }
 
     if (contractSelectPrompt.contracts.includes('LendingContract')) {
         const dlcManagerAddress = (
-            await loadDeploymentInfo(network, 'DlcManager', 'v1')
+            await loadDeploymentInfo(network, 'DlcManager', version)
         ).contract.address;
-        const usdcAddress = (await loadDeploymentInfo(network, 'USDC', 'v1'))
+        const usdcAddress = (await loadDeploymentInfo(network, 'USDC', version))
             .contract.address;
 
         const usdc = await hardhat.ethers.getContractAt(
@@ -190,7 +193,7 @@ module.exports = async function deployV1(attestorCount) {
         );
         await saveDeploymentInfo(
             deploymentInfo(hardhat, lendingDemo, 'LendingContract'),
-            'v1'
+            version
         );
 
         console.log('Minting 10M USDC to LendingContract...');
