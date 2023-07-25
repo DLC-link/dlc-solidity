@@ -13,9 +13,9 @@ module.exports = async function V1flow(attestorCount) {
     const protocol = accounts[1];
     const protocolWallet = accounts[2];
 
-    for (let account of accounts) {
-        console.log(account.address);
-    }
+    // for (let account of accounts) {
+    //     console.log(account.address);
+    // }
 
     // const dlcManagerDeployInfo = await loadDeploymentInfo(
     //     hardhat.network.name,
@@ -108,4 +108,37 @@ module.exports = async function V1flow(attestorCount) {
     //     .connect(protocolWallet)
     //     .postCloseDLC(uuid, outcome);
     // await postCloseTx.wait();
+
+    const dlcRouterDeployInfo = await loadDeploymentInfo(
+        hardhat.network.name,
+        'DlcRouter',
+        'v1'
+    );
+
+    const dlcRouter = new hardhat.ethers.Contract(
+        dlcRouterDeployInfo.contract.address,
+        dlcRouterDeployInfo.contract.abi,
+        protocol
+    );
+
+    const vault = await dlcRouter.getVaultByUUID(
+        '0x62a101db5562cd9db2e4a6576b332c2f6eccbeec2bc99996b2890e0e8c5f9b24'
+    );
+    console.log(vault);
+
+    const btcNftdeploy = await loadDeploymentInfo(
+        hardhat.network.name,
+        'BtcNft',
+        'v1'
+    );
+    const btcNft = new hardhat.ethers.Contract(
+        btcNftdeploy.contract.address,
+        btcNftdeploy.contract.abi,
+        admin
+    );
+
+    const nft = await btcNft.getDLCNFTsByOwner(
+        '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
+    );
+    console.log(nft);
 };
