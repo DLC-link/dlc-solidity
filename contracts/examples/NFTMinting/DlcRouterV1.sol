@@ -164,8 +164,8 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         string memory uri = string.concat(
             _ipfsStorageURL,
             '/',
-            Strings.toString(_vault.nftId),
-            '.jpg'
+            Strings.toString((_vault.nftId).mod(9)),
+            '.png'
         );
         address broker = address(this);
         bytes32 dlcUUID = _uuid;
