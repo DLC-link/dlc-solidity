@@ -75,6 +75,10 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
         _;
     }
 
+    function setProtocolWallet(address _protocolWallet) external onlyAdmin {
+        _protocolWalletAddress = _protocolWallet;
+    }
+
     event SetupLoan(
         bytes32 dlcUUID,
         uint256 btcDeposit,

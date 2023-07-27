@@ -53,9 +53,21 @@ module.exports = async function deployV1(version) {
                 title: `LendingContract | deployer: ${protocol.address}`,
                 value: 'LendingContract',
             },
+            {
+                title: `BtcNft | deployer: ${admin.address}`,
+                value: 'BtcNft',
+            },
+            {
+                title: `DLCBTC | deployer: ${admin.address}`,
+                value: 'DLCBTC',
+            },
+            {
+                title: `DlcRouter | deployer: ${protocol.address}`,
+                value: 'DlcRouter',
+            },
         ],
         min: 0,
-        max: 5,
+        max: 8,
     });
 
     console.log('Deploying contracts...', ...contractSelectPrompt.contracts);
@@ -79,6 +91,9 @@ module.exports = async function deployV1(version) {
     }
 
     if (contractSelectPrompt.contracts.includes('DLCManager')) {
+        if (!contractSelectPrompt.contracts.includes('AttestorManager'))
+            console.warn('Using earlier AttestorManager deployment...');
+
         const attestorManagerAddress = (
             await loadDeploymentInfo(network, 'AttestorManager', version)
         ).contract.address;
@@ -202,6 +217,79 @@ module.exports = async function deployV1(version) {
             .mint(
                 lendingDemo.address,
                 hardhat.ethers.utils.parseUnits('10000000', 'ether')
+            );
+    }
+
+    /////////////// BTC NFT Demo ///////////////
+
+    if (contractSelectPrompt.contracts.includes('BtcNft')) {
+        console.log(`deploying contract BtcNft to network "${network}"...`);
+        const BtcNft = await hardhat.ethers.getContractFactory('BtcNft');
+        const btcNft = await BtcNft.deploy();
+        await btcNft.deployed();
+        console.log(
+            `deployed contract BtcNft to ${btcNft.address} (network: ${network})`
+        );
+        await saveDeploymentInfo(
+            deploymentInfo(hardhat, btcNft, 'BtcNft'),
+            version
+        );
+    }
+
+    if (contractSelectPrompt.contracts.includes('DLCBTC')) {
+        console.log(`deploying contract DLCBTC to network "${network}"...`);
+        const DLCBTC = await hardhat.ethers.getContractFactory('DLCBTC');
+        const dlcBtc = await DLCBTC.deploy();
+        await dlcBtc.deployed();
+        console.log(
+            `deployed contract dlcBtc to ${dlcBtc.address} (network: ${network})`
+        );
+        await saveDeploymentInfo(
+            deploymentInfo(hardhat, dlcBtc, 'DLCBTC'),
+            version
+        );
+    }
+
+    if (contractSelectPrompt.contracts.includes('DlcRouter')) {
+        const dlcManagerAddress = (
+            await loadDeploymentInfo(network, 'DlcManager', version)
+        ).contract.address;
+        const btcNftAddress = (
+            await loadDeploymentInfo(network, 'BtcNft', version)
+        ).contract.address;
+        const dlcBtcAddress = (
+            await loadDeploymentInfo(network, 'DLCBTC', version)
+        ).contract.address;
+        const protocolAddress = protocol.address;
+
+        const btcnft = await hardhat.ethers.getContractAt(
+            'BtcNft',
+            btcNftAddress
+        );
+
+        console.log(`deploying contract DlcRouter to network "${network}"...`);
+        const DlcRouter = await hardhat.ethers.getContractFactory('DlcRouter');
+        const dlcRouter = await DlcRouter.connect(protocol).deploy(
+            dlcManagerAddress,
+            btcNftAddress,
+            dlcBtcAddress,
+            protocolAddress
+        );
+        await dlcRouter.deployed();
+        console.log(
+            `deployed contract DlcRouter to ${dlcRouter.address} (network: ${network})`
+        );
+        await saveDeploymentInfo(
+            deploymentInfo(hardhat, dlcRouter, 'DlcRouter'),
+            version
+        );
+
+        console.log('Adding MINTER_ROLE to DlcRouter on BtcNft...');
+        await btcnft
+            .connect(admin)
+            .grantRole(
+                hardhat.ethers.utils.id('MINTER_ROLE'),
+                dlcRouter.address
             );
     }
 };

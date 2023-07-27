@@ -11,7 +11,7 @@ const attestorList = ['http://localhost:8801'];
 
 module.exports = async function setupV1() {
     const accounts = await hardhat.ethers.getSigners();
-    const protocol = accounts[1];
+    const protocol = accounts[2];
     const protocolWallet = accounts[2];
 
     const mockProtocolDeployInfo = await loadDeploymentInfo(

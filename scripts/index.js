@@ -18,6 +18,7 @@ const v1Flow = require('./11_V1-full-flow');
 const setupV1 = require('./12_V1-setup');
 const createV1 = require('./13_V1-create-dlc');
 const closeV1 = require('./14_V1-close-dlc');
+const setupVault = require('./15_V1-setup-vault');
 
 const addAttestor = require('./12_a_V1-add-attestor');
 const registerProtocol = require('./12_b_V1-register-protocol');
@@ -155,6 +156,14 @@ async function main() {
         .argument('<uuid>', 'uuid of DLC to close')
         .argument('[outcome]', 'outcome of DLC', 7890)
         .action(closeV1);
+
+    program
+        .command('setup-vault-v1')
+        .description('setup a vault on the DLCBroker contract')
+        .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
+        .argument('[attestorCount]', 'number of attestors', 1)
+        .argument('[setFunded]', 'simulate funding', false)
+        .action(setupVault);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
