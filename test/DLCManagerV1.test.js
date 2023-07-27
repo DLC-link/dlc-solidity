@@ -323,11 +323,11 @@ describe('DLCManagerV1', () => {
             await dlcManager.connect(protocolWallet).setStatusFunded(uuid);
         });
 
-        it('reverts if called from a non-whitelisted contract', async () => {
+        it('reverts if called from a contract that isnt he owner/creator', async () => {
             await expect(
                 dlcManager.connect(randomAccount).closeDLC(uuid, outcome)
             ).to.be.revertedWith(
-                'Only whitelisted contracts can call this function'
+                'Only the DLC owner can call this function'
             );
         });
 

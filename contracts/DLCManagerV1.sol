@@ -192,7 +192,7 @@ contract DLCManagerV1 is AccessControl, Pausable {
     function closeDLC(
         bytes32 _uuid,
         uint16 _outcome
-    ) external onlyWhiteListedContracts whenNotPaused {
+    ) external txSenderIsUUIDCreator whenNotPaused {
         _updateStatus(_uuid, Status.FUNDED, Status.CLOSING);
         dlcs[_uuid].outcome = _outcome;
         emit CloseDLC(
