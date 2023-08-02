@@ -21,6 +21,7 @@ const closeV1 = require('./14_V1-close-dlc');
 const setupVault = require('./15_V1-setup-vault');
 
 const addAttestor = require('./12_a_V1-add-attestor');
+const removeAttestor = require('./12_ab_V1-remove-attestor');
 const registerProtocol = require('./12_b_V1-register-protocol');
 
 async function main() {
@@ -131,6 +132,12 @@ async function main() {
         .description('add attestor')
         .argument('<address>', 'address of attestor')
         .action(addAttestor);
+
+    program
+        .command('remove-attestor')
+        .description('remove attestor')
+        .argument('<address>', 'address of attestor')
+        .action(removeAttestor);
 
     program
         .command('register-protocol')

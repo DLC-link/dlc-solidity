@@ -109,36 +109,49 @@ module.exports = async function V1flow(attestorCount) {
     //     .postCloseDLC(uuid, outcome);
     // await postCloseTx.wait();
 
-    const dlcRouterDeployInfo = await loadDeploymentInfo(
+    // const dlcRouterDeployInfo = await loadDeploymentInfo(
+    //     hardhat.network.name,
+    //     'DlcRouter',
+    //     'v1'
+    // );
+
+    // const dlcRouter = new hardhat.ethers.Contract(
+    //     dlcRouterDeployInfo.contract.address,
+    //     dlcRouterDeployInfo.contract.abi,
+    //     protocol
+    // );
+
+    // const vault = await dlcRouter.getVaultByUUID(
+    //     '0x62a101db5562cd9db2e4a6576b332c2f6eccbeec2bc99996b2890e0e8c5f9b24'
+    // );
+    // console.log(vault);
+
+    // const btcNftdeploy = await loadDeploymentInfo(
+    //     hardhat.network.name,
+    //     'BtcNft',
+    //     'v1'
+    // );
+    // const btcNft = new hardhat.ethers.Contract(
+    //     btcNftdeploy.contract.address,
+    //     btcNftdeploy.contract.abi,
+    //     admin
+    // );
+
+    // const nft = await btcNft.getDLCNFTsByOwner(
+    //     '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
+    // );
+    // console.log(nft);
+    const attestorManagerDeployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'DlcRouter',
+        'AttestorManager',
         'v1'
     );
 
-    const dlcRouter = new hardhat.ethers.Contract(
-        dlcRouterDeployInfo.contract.address,
-        dlcRouterDeployInfo.contract.abi,
-        protocol
-    );
-
-    const vault = await dlcRouter.getVaultByUUID(
-        '0x62a101db5562cd9db2e4a6576b332c2f6eccbeec2bc99996b2890e0e8c5f9b24'
-    );
-    console.log(vault);
-
-    const btcNftdeploy = await loadDeploymentInfo(
-        hardhat.network.name,
-        'BtcNft',
-        'v1'
-    );
-    const btcNft = new hardhat.ethers.Contract(
-        btcNftdeploy.contract.address,
-        btcNftdeploy.contract.abi,
+    const attestorManager = new hardhat.ethers.Contract(
+        attestorManagerDeployInfo.contract.address,
+        attestorManagerDeployInfo.contract.abi,
         admin
     );
 
-    const nft = await btcNft.getDLCNFTsByOwner(
-        '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
-    );
-    console.log(nft);
+    console.log(await attestorManager.getAllAttestors());
 };

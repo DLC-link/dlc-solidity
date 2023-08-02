@@ -55,6 +55,14 @@ contract DLCManagerV1 is AccessControl, Pausable {
         _;
     }
 
+    modifier txSenderIsUUIDCreator(bytes32 _uuid) {
+        require(
+            dlcs[_uuid].creator == msg.sender,
+            'Only the DLC owner can call this function'
+        );
+        _;
+    }
+
     constructor(address _adminAddress, address _attestorManagerAddress) {
         // Grant the contract deployer the default admin role
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -192,7 +200,7 @@ contract DLCManagerV1 is AccessControl, Pausable {
     function closeDLC(
         bytes32 _uuid,
         uint16 _outcome
-    ) external txSenderIsUUIDCreator whenNotPaused {
+    ) external txSenderIsUUIDCreator(_uuid) whenNotPaused {
         _updateStatus(_uuid, Status.FUNDED, Status.CLOSING);
         dlcs[_uuid].outcome = _outcome;
         emit CloseDLC(
