@@ -152,7 +152,7 @@ contract BtcNft is
     )
         public
         view
-        override(ERC721, ERC721Enumerable, AccessControl)
+        override(AccessControl, ERC721, ERC721Enumerable, ERC721URIStorage)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

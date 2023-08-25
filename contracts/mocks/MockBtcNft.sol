@@ -14,7 +14,6 @@ import '@openzeppelin/contracts/utils/Counters.sol';
 
 /// @custom:security-contact jesse@dlc.link
 contract MockBtcNft is
-    ERC721,
     ERC721URIStorage,
     ERC721Enumerable,
     Pausable,
@@ -128,7 +127,7 @@ contract MockBtcNft is
     )
         public
         view
-        override(ERC721, ERC721Enumerable, AccessControl)
+        override(AccessControl, ERC721, ERC721Enumerable, ERC721URIStorage)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

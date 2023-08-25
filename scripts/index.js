@@ -116,7 +116,7 @@ async function main() {
         .action(sendNFT);
 
     program
-        .command('deploy-all-v1')
+        .command('deploy-v1')
         .description('deploy V1 contracts')
         .argument('[version]', 'version to deploy', 'v1')
         .action(deployV1);
