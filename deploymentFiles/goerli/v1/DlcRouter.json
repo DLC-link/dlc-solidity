@@ -2,12 +2,12 @@
   "network": "goerli",
   "contract": {
     "name": "DlcRouter",
-    "address": "0xe7E5C94E8f329f2aAaa2939251e7274d7493F4Da",
+    "address": "0x500C68E385eC8B058E6964Cf8fadA6aA57f7c5e5",
     "signerAddress": "0x681D575F7A4142Df4764Cc193c8461cdff9Cf99A",
     "abi": [
       "constructor(address _dlcManagerAddress, address _dlcNftAddress, address _dlcBTCAddress, address _protocolWallet)",
       "event BurnBtcNft(bytes32 dlcUUID, uint256 nftId)",
-      "event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit, uint256 nftId)",
+      "event MintBtcNft(bytes32 dlcUUID, uint256 nftId)",
       "event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)",
       "event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)",
       "event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)",
@@ -24,6 +24,7 @@
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",
       "function index() view returns (uint256)",
+      "function mintBtcNft(bytes32 _uuid, uint256 _nftID, string _uri)",
       "function postCloseDLCHandler(bytes32 _uuid)",
       "function renounceRole(bytes32 role, address account)",
       "function revokeRole(bytes32 role, address account)",

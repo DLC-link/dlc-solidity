@@ -150,29 +150,23 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         Vault memory _vault = vaults[vaultIDsByUUID[_uuid]];
         require(_vault.dlcUUID != 0, 'No such vault');
         _updateStatus(_vault.id, VaultStatus.Funded);
-        _mintBtcNft(_uuid, _vault.vaultCollateral);
     }
 
-    event MintBtcNft(bytes32 dlcUUID, uint256 btcDeposit, uint256 nftId);
+    event MintBtcNft(bytes32 dlcUUID, uint256 nftId);
 
-    function _mintBtcNft(bytes32 _uuid, uint256 _collateral) private {
+    function mintBtcNft(
+        bytes32 _uuid,
+        uint256 _nftID,
+        string memory _uri
+    ) public onlyAdmin {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
         require(_vault.dlcUUID != 0, 'No such vault');
         require(_vault.status == VaultStatus.Funded, 'Vault in wrong state');
-        address to = _vault.owner;
-        _vault.nftId = _btcNft.getNextMintId();
-        string memory uri = string.concat(
-            _ipfsStorageURL,
-            '/',
-            Strings.toString((_vault.nftId).mod(9)),
-            '.png'
-        );
-        address broker = address(this);
-        bytes32 dlcUUID = _uuid;
+        _vault.nftId = _nftID;
         // NOTE: DlcBroker contract must have MINTER_ROLE on btcNft
-        _btcNft.safeMint(to, uri, broker, dlcUUID);
+        _btcNft.safeMint(_vault.owner, _uri, address(this), _uuid);
         _updateStatus(_vault.id, VaultStatus.NftIssued);
-        emit MintBtcNft(_uuid, _collateral, _vault.nftId);
+        emit MintBtcNft(_uuid, _vault.nftId);
     }
 
     event BurnBtcNft(bytes32 dlcUUID, uint256 nftId);
