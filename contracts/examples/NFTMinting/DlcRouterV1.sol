@@ -154,15 +154,11 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
 
     event MintBtcNft(bytes32 dlcUUID, uint256 nftId);
 
-    function mintBtcNft(
-        bytes32 _uuid,
-        uint256 _nftID,
-        string memory _uri
-    ) public onlyAdmin {
+    function mintBtcNft(bytes32 _uuid, string memory _uri) public onlyAdmin {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
         require(_vault.dlcUUID != 0, 'No such vault');
         require(_vault.status == VaultStatus.Funded, 'Vault in wrong state');
-        _vault.nftId = _nftID;
+        _vault.nftId = _btcNft.getNextMintId();
         // NOTE: DlcBroker contract must have MINTER_ROLE on btcNft
         _btcNft.safeMint(_vault.owner, _uri, address(this), _uuid);
         _updateStatus(_vault.id, VaultStatus.NftIssued);

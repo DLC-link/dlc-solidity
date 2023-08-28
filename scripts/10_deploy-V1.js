@@ -268,6 +268,11 @@ module.exports = async function deployV1(version) {
         );
 
         console.log(`deploying contract DlcRouter to network "${network}"...`);
+        console.log(`Constructor params:`);
+        console.log(`dlcManagerAddress: ${dlcManagerAddress}`);
+        console.log(`btcNftAddress: ${btcNftAddress}`);
+        console.log(`dlcBtcAddress: ${dlcBtcAddress}`);
+        console.log(`protocolAddress: ${protocolAddress}`);
         const DlcRouter = await hardhat.ethers.getContractFactory('DlcRouter');
         const dlcRouter = await DlcRouter.connect(protocol).deploy(
             dlcManagerAddress,
