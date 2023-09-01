@@ -251,9 +251,11 @@ module.exports = async function deployV1(version) {
     }
 
     if (contractSelectPrompt.contracts.includes('DlcRouter')) {
-        const dlcManagerAddress = (
-            await loadDeploymentInfo(network, 'DlcManager', version)
-        ).contract.address;
+        const dlcManagerDeployInfo = await loadDeploymentInfo(
+            network,
+            'DlcManager',
+            version
+        );
         const btcNftAddress = (
             await loadDeploymentInfo(network, 'BtcNft', version)
         ).contract.address;
@@ -262,15 +264,17 @@ module.exports = async function deployV1(version) {
         ).contract.address;
         const protocolAddress = protocol.address;
 
-        const btcnft = await hardhat.ethers.getContractAt(
-            'BtcNft',
-            btcNftAddress
-        );
-
         console.log(`deploying contract DlcRouter to network "${network}"...`);
+        console.log(`Constructor params:`);
+        console.log(
+            `dlcManagerAddress: ${dlcManagerDeployInfo.contract.address}`
+        );
+        console.log(`btcNftAddress: ${btcNftAddress}`);
+        console.log(`dlcBtcAddress: ${dlcBtcAddress}`);
+        console.log(`protocolAddress: ${protocolAddress}`);
         const DlcRouter = await hardhat.ethers.getContractFactory('DlcRouter');
         const dlcRouter = await DlcRouter.connect(protocol).deploy(
-            dlcManagerAddress,
+            dlcManagerDeployInfo.contract.address,
             btcNftAddress,
             dlcBtcAddress,
             protocolAddress
@@ -284,6 +288,11 @@ module.exports = async function deployV1(version) {
             version
         );
 
+        const btcnft = await hardhat.ethers.getContractAt(
+            'BtcNft',
+            btcNftAddress
+        );
+
         console.log('Adding MINTER_ROLE to DlcRouter on BtcNft...');
         await btcnft
             .connect(admin)
@@ -291,5 +300,23 @@ module.exports = async function deployV1(version) {
                 hardhat.ethers.utils.id('MINTER_ROLE'),
                 dlcRouter.address
             );
+
+        console.log(
+            'Adding WHITELISTED_CONTRACT and WHITELISTED_WALLET to DlcManager...'
+        );
+        const dlcManager = new hardhat.ethers.Contract(
+            dlcManagerDeployInfo.contract.address,
+            dlcManagerDeployInfo.contract.abi,
+            admin
+        );
+
+        await dlcManager.grantRole(
+            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+            dlcRouter.address
+        );
+        await dlcManager.grantRole(
+            web3.utils.soliditySha3('WHITELISTED_WALLET'),
+            protocolAddress
+        );
     }
 };
