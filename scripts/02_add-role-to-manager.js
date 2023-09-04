@@ -1,12 +1,15 @@
 require('dotenv').config();
 const web3 = require('web3');
 const hardhat = require('hardhat');
-const { loadDeploymentInfo } = require('./helpers/deployment-handlers');
+const {
+    loadDeploymentInfo,
+} = require('./helpers/deployment-handlers_versioned');
 
 module.exports = async function addRoleToManager(role, grantRoleToAddress) {
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'DlcManager'
+        'DlcManager',
+        'v1'
     );
     const accounts = await hardhat.ethers.getSigners();
 

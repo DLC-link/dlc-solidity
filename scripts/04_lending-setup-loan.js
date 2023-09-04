@@ -1,6 +1,8 @@
 require('dotenv').config();
 const hardhat = require('hardhat');
-const { loadDeploymentInfo } = require('./helpers/deployment-handlers');
+const {
+    loadDeploymentInfo,
+} = require('./helpers/deployment-handlers_versioned');
 
 module.exports = async function lendingSetupLoan(
     btcDeposit = 100000000,
@@ -10,7 +12,8 @@ module.exports = async function lendingSetupLoan(
 ) {
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'LendingDemo'
+        'LendingDemo',
+        'v1'
     );
     const accounts = await hardhat.ethers.getSigners();
 

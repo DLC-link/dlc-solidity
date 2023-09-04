@@ -3,16 +3,22 @@ require('dotenv').config();
 const path = require('path');
 const { Command } = require('commander');
 const version = require('../package.json').version;
-const deployAll = require('./00_deploy-all');
 const mintStablecoin = require('./01_mint-usdc');
 const addRoleToManager = require('./02_add-role-to-manager');
 const addRoleToBtcNft = require('./03_add-role-to-btcnft');
 const lendingSetupLoan = require('./04_lending-setup-loan');
 const lendingCloseLoan = require('./05_lending-close-loan');
-const nftSetupVault = require('./06_nft-setup-vault');
-const deploySpecific = require('./07_deploy-specific');
 const sendEth = require('./08_send-eth');
 const sendNFT = require('./09_send-nft');
+const deployV1 = require('./10_deploy-V1');
+const setupV1 = require('./12_V1-setup');
+const createV1 = require('./13_V1-create-dlc');
+const closeV1 = require('./14_V1-close-dlc');
+const setupVault = require('./15_V1-setup-vault');
+
+const addAttestor = require('./12_a_V1-add-attestor');
+const removeAttestor = require('./12_ab_V1-remove-attestor');
+const registerProtocol = require('./12_b_V1-register-protocol');
 
 async function main() {
     const program = new Command();
@@ -21,22 +27,6 @@ async function main() {
         .name('dlc-link-eth')
         .description('CLI scripts to help with DLC.Link utilities')
         .version(`${version}`);
-
-    program
-        .command('deploy-all')
-        .description(
-            'deploy all contracts and set up roles to network set in .env'
-        )
-        .action(deployAll);
-
-    program
-        .command('deploy-specific')
-        .description('deploy specific contracts')
-        .argument(
-            '<contractName>',
-            'the name of the contract to deploy (DLCManager, BTCNFT, etc.)'
-        )
-        .action(deploySpecific);
 
     program
         .command('mint-stablecoin')
@@ -53,7 +43,7 @@ async function main() {
         .argument(
             '[grantRoleToAddress]',
             'the recipient of the role',
-            process.env.OBSERVER_ADDRESS
+            process.env.ADMIN_ADDRESS
         )
         .action(addRoleToManager);
 
@@ -64,7 +54,7 @@ async function main() {
         .argument(
             '[grantRoleToAddress]',
             'the recipient of the role',
-            process.env.OBSERVER_ADDRESS
+            process.env.ADMIN_ADDRESS
         )
         .action(addRoleToBtcNft);
 
@@ -84,13 +74,6 @@ async function main() {
         .action(lendingCloseLoan);
 
     program
-        .command('setup-vault')
-        .description('setup a vault in the DLCBroker contract')
-        .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
-        .argument('[emergencyRefundTime]', 'emergency refund time', 5)
-        .action(nftSetupVault);
-
-    program
         .command('send-eth')
         .description('send ETH to an address')
         .argument('<addressTo>', 'address to send ETH to')
@@ -104,6 +87,57 @@ async function main() {
         .argument('<addressTo>', 'address to send NFT to')
         .argument('<id>', 'NFT ID')
         .action(sendNFT);
+
+    program
+        .command('deploy-v1')
+        .description('deploy V1 contracts')
+        .argument('[version]', 'version to deploy', 'v1')
+        .action(deployV1);
+
+    program
+        .command('add-attestor')
+        .description('add attestor')
+        .argument('<address>', 'address of attestor')
+        .action(addAttestor);
+
+    program
+        .command('remove-attestor')
+        .description('remove attestor')
+        .argument('<address>', 'address of attestor')
+        .action(removeAttestor);
+
+    program
+        .command('register-protocol')
+        .description('register protocol contract')
+        .argument('<contractAddress>', 'address of protocol contract')
+        .argument('<walletAddress>', 'address of protocol wallet')
+        .action(registerProtocol);
+
+    program
+        .command('setup-v1')
+        .description('add attestors and register protocolContract')
+        .action(setupV1);
+
+    program
+        .command('create-dlc-v1')
+        .description('create a DLC')
+        .argument('[attestorCount]', 'number of attestors', 1)
+        .action(createV1);
+
+    program
+        .command('close-dlc-v1')
+        .description('close a DLC')
+        .argument('<uuid>', 'uuid of DLC to close')
+        .argument('[outcome]', 'outcome of DLC', 7890)
+        .action(closeV1);
+
+    program
+        .command('setup-vault-v1')
+        .description('setup a vault on the DLCBroker contract')
+        .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
+        .argument('[attestorCount]', 'number of attestors', 1)
+        .argument('[setFunded]', 'simulate funding', false)
+        .action(setupVault);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
