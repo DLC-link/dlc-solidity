@@ -3,8 +3,8 @@ pragma solidity >=0.8.17;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
-import './DLCLinkCompatibleV1.sol';
-import './AttestorManager.sol';
+import '../DLCLinkCompatibleV1.sol';
+import '../AttestorManager.sol';
 
 enum Status {
     CREATED,
@@ -22,7 +22,7 @@ struct DLC {
     Status status;
 }
 
-contract DLCManagerV1 is AccessControl, Pausable {
+contract MockDLCManagerV1 is AccessControl, Pausable {
     AttestorManager private _attestorManager;
     uint256 private _localNonce = 0;
     mapping(bytes32 => DLC) public dlcs;
@@ -66,6 +66,7 @@ contract DLCManagerV1 is AccessControl, Pausable {
     constructor(address _adminAddress, address _attestorManagerAddress) {
         // Grant the contract deployer the default admin role
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        // set the admin of the contract
         _setupRole(DLC_ADMIN_ROLE, _adminAddress);
 
         _attestorManager = AttestorManager(_attestorManagerAddress);

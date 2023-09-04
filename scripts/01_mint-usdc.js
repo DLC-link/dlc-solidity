@@ -1,9 +1,15 @@
 require('dotenv').config();
 const hardhat = require('hardhat');
-const { loadDeploymentInfo } = require('./helpers/deployment-handlers');
+const {
+    loadDeploymentInfo,
+} = require('./helpers/deployment-handlers_versioned');
 
 module.exports = async function mintStablecoin(addressTo, amount, privateKey) {
-    const deployInfo = await loadDeploymentInfo(hardhat.network.name, 'USDC');
+    const deployInfo = await loadDeploymentInfo(
+        hardhat.network.name,
+        'USDC',
+        'v1'
+    );
     let wallet;
 
     if (privateKey) {

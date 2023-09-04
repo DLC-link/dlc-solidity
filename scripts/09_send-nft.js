@@ -4,7 +4,7 @@ const {
     saveDeploymentInfo,
     deploymentInfo,
     loadDeploymentInfo,
-} = require('./helpers/deployment-handlers');
+} = require('./helpers/deployment-handlers_versioned');
 
 module.exports = async function sendNFT(privateKey, addressTo, id) {
     if (!privateKey || !addressTo || !id) throw 'Missing params';
@@ -14,7 +14,7 @@ module.exports = async function sendNFT(privateKey, addressTo, id) {
     );
 
     const network = hardhat.network.name;
-    const btcNft = await loadDeploymentInfo(network, 'BtcNft');
+    const btcNft = await loadDeploymentInfo(network, 'BtcNft', 'v1');
     const btcNftContract = await hardhat.ethers.getContractAt(
         btcNft.contract.name,
         btcNft.contract.address

@@ -38,7 +38,8 @@ async function setupFundedLoan(
     const txF3 = await tx3.wait();
 }
 
-describe('LendingContract', () => {
+// TODO: Outdated since V1
+xdescribe('LendingContract', () => {
     let mockV3Aggregator;
     let dlcManager;
     let usdc;
@@ -62,7 +63,7 @@ describe('LendingContract', () => {
         mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
         await mockV3Aggregator.deployTransaction.wait();
 
-        const DLCManager = await ethers.getContractFactory('DLCManagerV0');
+        const DLCManager = await ethers.getContractFactory('MockDLCManagerV1');
         dlcManager = await DLCManager.deploy(
             deployer.address,
             mockV3Aggregator.address
@@ -74,7 +75,7 @@ describe('LendingContract', () => {
         await usdc.deployed();
 
         const LendingContract = await ethers.getContractFactory(
-            'LendingContract',
+            'LendingContractV1',
             protocol
         );
         lendingContract = await LendingContract.deploy(

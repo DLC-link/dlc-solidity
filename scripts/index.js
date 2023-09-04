@@ -3,18 +3,14 @@ require('dotenv').config();
 const path = require('path');
 const { Command } = require('commander');
 const version = require('../package.json').version;
-const deployAll = require('./00_deploy-all');
 const mintStablecoin = require('./01_mint-usdc');
 const addRoleToManager = require('./02_add-role-to-manager');
 const addRoleToBtcNft = require('./03_add-role-to-btcnft');
 const lendingSetupLoan = require('./04_lending-setup-loan');
 const lendingCloseLoan = require('./05_lending-close-loan');
-const nftSetupVault = require('./06_nft-setup-vault');
-const deploySpecific = require('./07_deploy-specific');
 const sendEth = require('./08_send-eth');
 const sendNFT = require('./09_send-nft');
 const deployV1 = require('./10_deploy-V1');
-const v1Flow = require('./11_V1-full-flow');
 const setupV1 = require('./12_V1-setup');
 const createV1 = require('./13_V1-create-dlc');
 const closeV1 = require('./14_V1-close-dlc');
@@ -33,22 +29,6 @@ async function main() {
         .version(`${version}`);
 
     program
-        .command('deploy-all')
-        .description(
-            'deploy all contracts and set up roles to network set in .env'
-        )
-        .action(deployAll);
-
-    program
-        .command('deploy-specific')
-        .description('deploy specific contracts')
-        .argument(
-            '<contractName>',
-            'the name of the contract to deploy (DLCManager, BTCNFT, etc.)'
-        )
-        .action(deploySpecific);
-
-    program
         .command('mint-stablecoin')
         .description('mint USDLC')
         .argument('<addressTo>', 'address to mint to')
@@ -63,7 +43,7 @@ async function main() {
         .argument(
             '[grantRoleToAddress]',
             'the recipient of the role',
-            process.env.OBSERVER_ADDRESS
+            process.env.ADMIN_ADDRESS
         )
         .action(addRoleToManager);
 
@@ -74,7 +54,7 @@ async function main() {
         .argument(
             '[grantRoleToAddress]',
             'the recipient of the role',
-            process.env.OBSERVER_ADDRESS
+            process.env.ADMIN_ADDRESS
         )
         .action(addRoleToBtcNft);
 
@@ -92,13 +72,6 @@ async function main() {
         .description('close a loan')
         .argument('<loanID>', 'loan ID')
         .action(lendingCloseLoan);
-
-    program
-        .command('setup-vault')
-        .description('setup a vault in the DLCBroker contract')
-        .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
-        .argument('[emergencyRefundTime]', 'emergency refund time', 5)
-        .action(nftSetupVault);
 
     program
         .command('send-eth')
@@ -120,12 +93,6 @@ async function main() {
         .description('deploy V1 contracts')
         .argument('[version]', 'version to deploy', 'v1')
         .action(deployV1);
-
-    program
-        .command('v1-flow')
-        .description('run through the V1 flow')
-        .argument('[attestorCount]', 'number of attestors', 1)
-        .action(v1Flow);
 
     program
         .command('add-attestor')
