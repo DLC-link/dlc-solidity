@@ -8,30 +8,24 @@ async function setupFundedLoan(
     user,
     loanParams = {
         btcDeposit: 100000000,
-        liquidationRatio: 14000,
-        liquidationFee: 1000,
-        emergencyRefundTime: 5,
+        attestorCount: 3,
+        // emergencyRefundTime: 5,
     }
 ) {
     const tx = await lendingContract
         .connect(user)
-        .setupLoan(
-            loanParams.btcDeposit,
-            loanParams.liquidationRatio,
-            loanParams.liquidationFee,
-            loanParams.emergencyRefundTime
-        );
+        .setupLoan(loanParams.btcDeposit, loanParams.attestorCount);
     const txF = await tx.wait();
-    const tx2 = await dlcManager
-        .connect(deployer)
-        .postCreateDLC(
-            txF.events[1].args.dlcUUID,
-            0,
-            0,
-            lendingContract.address,
-            user.address
-        );
-    const txF2 = await tx2.wait();
+    // const tx2 = await dlcManager
+    //     .connect(deployer)
+    //     .postCreateDLC(
+    //         txF.events[1].args.dlcUUID,
+    //         0,
+    //         0,
+    //         lendingContract.address,
+    //         user.address
+    //     );
+    // const txF2 = await tx2.wait();
     const tx3 = await dlcManager
         .connect(deployer)
         .setStatusFunded(txF.events[1].args.dlcUUID);
