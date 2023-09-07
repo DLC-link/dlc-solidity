@@ -2,7 +2,7 @@
   "network": "goerli",
   "contract": {
     "name": "LendingContract",
-    "address": "0x8c503fCe6B5EF00C25f21A8Cb352598CB25aF944",
+    "address": "0x672f20a34BaF98D38a84b4fb2F703c6378fE8178",
     "signerAddress": "0x681D575F7A4142Df4764Cc193c8461cdff9Cf99A",
     "abi": [
       "constructor(address _dlcManagerAddress, address _usdcAddress, address _protocolWallet, address _priceFeedAddress)",
@@ -30,6 +30,8 @@
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",
       "function index() view returns (uint256)",
+      "function liquidationFee() view returns (uint256)",
+      "function liquidationRatio() view returns (uint256)",
       "function loanIDsByUUID(bytes32) view returns (uint256)",
       "function loans(uint256) view returns (uint256 id, bytes32 dlcUUID, uint8 status, uint256 vaultLoan, uint256 vaultCollateral, uint256 liquidationRatio, uint256 liquidationFee, address owner)",
       "function loansPerAddress(address) view returns (uint256)",
@@ -37,9 +39,11 @@
       "function renounceRole(bytes32 role, address account)",
       "function repay(uint256 _loanID, uint256 _amount)",
       "function revokeRole(bytes32 role, address account)",
+      "function setLiquidationFee(uint256 _fee)",
+      "function setLiquidationRatio(uint256 _ratio)",
       "function setProtocolWallet(address _protocolWallet)",
       "function setStatusFunded(bytes32 _uuid)",
-      "function setupLoan(uint256 btcDeposit, uint256 liquidationRatio, uint256 liquidationFee, uint8 attestorCount) returns (uint256)",
+      "function setupLoan(uint256 btcDeposit, uint8 attestorCount) returns (uint256)",
       "function supportsInterface(bytes4 interfaceId) view returns (bool)"
     ]
   }

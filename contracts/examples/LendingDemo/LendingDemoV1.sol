@@ -45,6 +45,9 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
     mapping(bytes32 => uint256) public loanIDsByUUID;
     mapping(address => uint256) public loansPerAddress;
 
+    uint256 public liquidationRatio = 14000; // 140.00%
+    uint256 public liquidationFee = 1000; // 10.00%
+
     constructor(
         address _dlcManagerAddress,
         address _usdcAddress,
@@ -79,6 +82,14 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
         _protocolWalletAddress = _protocolWallet;
     }
 
+    function setLiquidationRatio(uint256 _ratio) external onlyAdmin {
+        liquidationRatio = _ratio;
+    }
+
+    function setLiquidationFee(uint256 _fee) external onlyAdmin {
+        liquidationFee = _fee;
+    }
+
     event SetupLoan(
         bytes32 dlcUUID,
         uint256 btcDeposit,
@@ -91,8 +102,6 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
 
     function setupLoan(
         uint256 btcDeposit,
-        uint256 liquidationRatio,
-        uint256 liquidationFee,
         uint8 attestorCount
     ) external returns (uint256) {
         (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
@@ -236,9 +245,7 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
     );
 
     function attemptLiquidate(uint256 _loanID) public {
-        (int256 _price, uint256 _timestamp) = _getLatestPrice(
-            _btcPriceFeedAddress
-        );
+        (int256 _price, ) = _getLatestPrice(_btcPriceFeedAddress);
         Loan memory _loan = loans[_loanID];
         bool _needsLiquidation = checkLiquidation(_loan.id, _price);
         if (!_needsLiquidation) {

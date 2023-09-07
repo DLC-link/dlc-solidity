@@ -1,46 +1,59 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const web3 = require('web3');
+
+async function whitelistProtocolContract(
+    lendingContract,
+    protocol,
+    dlcManager,
+    deployer
+) {
+    await dlcManager
+        .connect(deployer)
+        .grantRole(
+            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+            lendingContract.address
+        );
+    await dlcManager
+        .connect(deployer)
+        .grantRole(
+            web3.utils.soliditySha3('WHITELISTED_WALLET'),
+            protocol.address
+        );
+}
 
 async function setupFundedLoan(
     dlcManager,
     lendingContract,
     deployer,
+    protocol,
     user,
     loanParams = {
         btcDeposit: 100000000,
-        liquidationRatio: 14000,
-        liquidationFee: 1000,
-        emergencyRefundTime: 5,
+        attestorCount: 3,
+        // emergencyRefundTime: 5,
     }
 ) {
+    await whitelistProtocolContract(
+        lendingContract,
+        protocol,
+        dlcManager,
+        deployer
+    );
     const tx = await lendingContract
         .connect(user)
-        .setupLoan(
-            loanParams.btcDeposit,
-            loanParams.liquidationRatio,
-            loanParams.liquidationFee,
-            loanParams.emergencyRefundTime
-        );
+        .setupLoan(loanParams.btcDeposit, loanParams.attestorCount);
     const txF = await tx.wait();
-    const tx2 = await dlcManager
-        .connect(deployer)
-        .postCreateDLC(
-            txF.events[1].args.dlcUUID,
-            0,
-            0,
-            lendingContract.address,
-            user.address
-        );
-    const txF2 = await tx2.wait();
     const tx3 = await dlcManager
-        .connect(deployer)
+        .connect(protocol)
         .setStatusFunded(txF.events[1].args.dlcUUID);
     const txF3 = await tx3.wait();
 }
 
 // TODO: Outdated since V1
-xdescribe('LendingContract', () => {
+describe('LendingContract', () => {
     let mockV3Aggregator;
+    let mockAttestorManager;
     let dlcManager;
     let usdc;
     let lendingContract;
@@ -63,10 +76,16 @@ xdescribe('LendingContract', () => {
         mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
         await mockV3Aggregator.deployTransaction.wait();
 
+        const MockAttestorManager = await ethers.getContractFactory(
+            'MockAttestorManager'
+        );
+        mockAttestorManager = await MockAttestorManager.deploy();
+        await mockAttestorManager.deployTransaction.wait();
+
         const DLCManager = await ethers.getContractFactory('MockDLCManagerV1');
         dlcManager = await DLCManager.deploy(
             deployer.address,
-            mockV3Aggregator.address
+            mockAttestorManager.address
         );
         await dlcManager.deployTransaction.wait();
 
@@ -80,7 +99,9 @@ xdescribe('LendingContract', () => {
         );
         lendingContract = await LendingContract.deploy(
             dlcManager.address,
-            usdc.address
+            usdc.address,
+            protocol.address,
+            mockV3Aggregator.address
         );
         await lendingContract.deployTransaction.wait();
 
@@ -108,9 +129,13 @@ xdescribe('LendingContract', () => {
         });
 
         it('reverts if loan is not funded', async () => {
-            const tx = await lendingContract
-                .connect(user)
-                .setupLoan(0, 0, 0, 0);
+            await whitelistProtocolContract(
+                lendingContract,
+                protocol,
+                dlcManager,
+                deployer
+            );
+            const tx = await lendingContract.connect(user).setupLoan(0, 0);
             const txF = await tx.wait();
             await expect(
                 lendingContract.connect(user).borrow(0, 10)
@@ -120,7 +145,13 @@ xdescribe('LendingContract', () => {
         xit('reverts if user is undercollaterized', async () => {});
 
         it('transfers the amount to the user', async () => {
-            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
+            await setupFundedLoan(
+                dlcManager,
+                lendingContract,
+                deployer,
+                protocol,
+                user
+            );
 
             const amount = 100;
             const amountBig = ethers.utils.parseUnits(
@@ -142,7 +173,13 @@ xdescribe('LendingContract', () => {
         });
 
         it('increases the vaultLoan amount', async () => {
-            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
+            await setupFundedLoan(
+                dlcManager,
+                lendingContract,
+                deployer,
+                protocol,
+                user
+            );
 
             const amount = 100;
             const amountBig = ethers.utils.parseUnits(
@@ -165,7 +202,13 @@ xdescribe('LendingContract', () => {
         const amountBig = ethers.utils.parseUnits(amount.toString(), 'ether');
 
         beforeEach(async () => {
-            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
+            await setupFundedLoan(
+                dlcManager,
+                lendingContract,
+                deployer,
+                protocol,
+                user
+            );
 
             await lendingContract.connect(user).borrow(0, amountBig);
         });
@@ -248,10 +291,18 @@ xdescribe('LendingContract', () => {
         let price = 2283600000000;
 
         beforeEach(async () => {
-            const tx = await lendingContract
-                .connect(user)
-                .setupLoan(amount, 0, 0, 0);
-            const txF = await tx.wait();
+            await setupFundedLoan(
+                dlcManager,
+                lendingContract,
+                deployer,
+                protocol,
+                user,
+                {
+                    btcDeposit: amount,
+                    attestorCount: 3,
+                    // emergencyRefundTime: 5,
+                }
+            );
         });
 
         it('returns a value with correct format', async () => {
@@ -271,7 +322,18 @@ xdescribe('LendingContract', () => {
         );
 
         beforeEach(async () => {
-            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
+            await setupFundedLoan(
+                dlcManager,
+                lendingContract,
+                deployer,
+                protocol,
+                user,
+                {
+                    btcDeposit: collateralAmount,
+                    attestorCount: 3,
+                    // emergencyRefundTime: 5,
+                }
+            );
             await lendingContract.connect(user).borrow(0, borrowedBig);
         });
 
@@ -297,27 +359,36 @@ xdescribe('LendingContract', () => {
         );
 
         beforeEach(async () => {
-            await setupFundedLoan(dlcManager, lendingContract, deployer, user);
+            await setupFundedLoan(
+                dlcManager,
+                lendingContract,
+                deployer,
+                protocol,
+                user,
+                {
+                    btcDeposit: collateralAmount,
+                    attestorCount: 3,
+                    // emergencyRefundTime: 5,
+                }
+            );
             await lendingContract.connect(user).borrow(0, borrowedBig);
         });
 
         it('returns the correct value', async () => {
-            const tx = await lendingContract.calculatePayoutRatio(0, price);
-            const value = tx.toNumber();
+            const value = await lendingContract.calculatePayoutRatio(0, price);
+
             expect(value).to.equal(4383);
 
-            const tx2 = await lendingContract.calculatePayoutRatio(
+            const value2 = await lendingContract.calculatePayoutRatio(
                 0,
                 1283600000000
             );
-            const value2 = tx2.toNumber();
             expect(value2).to.equal(7798);
 
-            const tx3 = await lendingContract.calculatePayoutRatio(
+            const value3 = await lendingContract.calculatePayoutRatio(
                 0,
                 983600000000
             );
-            const value3 = tx3.toNumber();
             expect(value3).to.equal(10000); // 100% payout ratio, capped at 10000
         });
     });
