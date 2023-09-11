@@ -84,10 +84,7 @@ contract MockDLCManagerV1 is AccessControl, Pausable {
         address sender,
         uint256 nonce
     ) private view returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(sender, nonce, blockhash(block.number - 1))
-            );
+        return keccak256(abi.encodePacked('someUUID'));
     }
 
     function getDLC(bytes32 _uuid) public view returns (DLC memory) {

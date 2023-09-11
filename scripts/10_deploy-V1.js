@@ -163,9 +163,12 @@ module.exports = async function deployV1(version) {
     }
 
     if (contractSelectPrompt.contracts.includes('LendingContract')) {
-        const dlcManagerAddress = (
-            await loadDeploymentInfo(network, 'DlcManager', version)
-        ).contract.address;
+        const dlcManagerDeployInfo = await loadDeploymentInfo(
+            network,
+            'DlcManager',
+            version
+        );
+        const dlcManagerAddress = dlcManagerDeployInfo.contract.address;
         const usdcAddress = (await loadDeploymentInfo(network, 'USDC', version))
             .contract.address;
 
@@ -218,6 +221,28 @@ module.exports = async function deployV1(version) {
                 lendingDemo.address,
                 hardhat.ethers.utils.parseUnits('10000000', 'ether')
             );
+
+        console.log('Done');
+
+        console.log(
+            'Adding WHITELISTED_CONTRACT and WHITELISTED_WALLET to DlcManager...'
+        );
+        const dlcManager = new hardhat.ethers.Contract(
+            dlcManagerDeployInfo.contract.address,
+            dlcManagerDeployInfo.contract.abi,
+            admin
+        );
+
+        await dlcManager.grantRole(
+            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+            lendingDemo.address
+        );
+        await dlcManager.grantRole(
+            web3.utils.soliditySha3('WHITELISTED_WALLET'),
+            protocol.address
+        );
+
+        console.log('Done');
     }
 
     /////////////// BTC NFT Demo ///////////////
