@@ -46,7 +46,10 @@ contract MockProtocol is DLCLinkCompatibleV1 {
         // console.logBytes32(uuid);
     }
 
-    function postCloseDLCHandler(bytes32 uuid) external view override {
+    function postCloseDLCHandler(
+        bytes32 uuid,
+        string calldata btxTxId
+    ) external view override {
         // console.log('[MockProtocol] postCloseDLCHandler called');
         // console.logBytes32(uuid);
     }

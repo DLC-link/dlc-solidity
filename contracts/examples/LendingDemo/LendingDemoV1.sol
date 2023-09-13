@@ -29,6 +29,7 @@ struct Loan {
     uint256 liquidationRatio; // the collateral/loan ratio below which liquidation can happen, with two decimals precision (140% = u14000)
     uint256 liquidationFee; // additional fee taken during liquidation, two decimals precision (10% = u1000)
     address owner; // the account owning this loan
+    string btcTxId;
 }
 
 contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
@@ -118,7 +119,8 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
             vaultCollateral: btcDeposit,
             liquidationRatio: liquidationRatio,
             liquidationFee: liquidationFee,
-            owner: msg.sender
+            owner: msg.sender,
+            btcTxId: ''
         });
 
         loanIDsByUUID[_uuid] = index;
@@ -213,14 +215,18 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
         _dlcManager.closeDLC(_loan.dlcUUID, 0);
     }
 
-    function postCloseDLCHandler(bytes32 _uuid) external onlyDLCManager {
-        Loan memory _loan = loans[loanIDsByUUID[_uuid]];
+    function postCloseDLCHandler(
+        bytes32 _uuid,
+        string calldata _btxTxId
+    ) external onlyDLCManager {
+        Loan storage _loan = loans[loanIDsByUUID[_uuid]];
         require(_loan.dlcUUID != 0, 'No such loan');
         require(
             _loan.status == LoanStatus.PreRepaid ||
                 _loan.status == LoanStatus.PreLiquidated,
             'Invalid Loan Status'
         );
+        _loan.btcTxId = _btxTxId;
         _updateStatus(
             _loan.id,
             _loan.status == LoanStatus.PreRepaid
