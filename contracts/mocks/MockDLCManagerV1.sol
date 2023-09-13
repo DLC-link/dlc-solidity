@@ -225,7 +225,10 @@ contract MockDLCManagerV1 is AccessControl, Pausable {
         string calldata btcTxId
     ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
         _updateStatus(_uuid, Status.CLOSING, Status.CLOSED);
-        DLCLinkCompatibleV1(dlcs[_uuid].creator).postCloseDLCHandler(_uuid);
+        DLCLinkCompatibleV1(dlcs[_uuid].creator).postCloseDLCHandler(
+            _uuid,
+            btcTxId
+        );
         emit PostCloseDLC(
             _uuid,
             dlcs[_uuid].outcome,

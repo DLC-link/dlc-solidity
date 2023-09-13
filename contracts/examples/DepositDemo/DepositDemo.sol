@@ -25,6 +25,7 @@ struct Deposit {
     DepositStatus status;
     uint256 depositAmount; // btc deposit in sats
     address owner; // the account owning this loan
+    string btcTxId;
 }
 
 contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
@@ -97,7 +98,8 @@ contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
             attestorList: attestorList,
             status: DepositStatus.Ready,
             depositAmount: btcDeposit,
-            owner: msg.sender
+            owner: msg.sender,
+            btcTxId: ''
         });
 
         depositIDsByUUID[_uuid] = index;
@@ -142,10 +144,9 @@ contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
         return Math.mulDiv(_tokens, 10000, _depositAmount);
     }
 
-    // This could be extended for partial closings, with the burning of tokens.
+    // This could be extended for partial closings
     // function closeDeposit(uint256 _depositID, uint256 _tokens) public { ....
     // ...
-    // uint16(calculatePayout(_depositID, _tokens))
 
     // For now, we require the user returns all the tokens to close the deposit.
     function closeDeposit(uint256 _depositID) public {
@@ -160,16 +161,23 @@ contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
 
         _updateStatus(_depositID, DepositStatus.PreClosed);
 
-        _dlcManager.closeDLC(_deposit.dlcUUID, uint16(10000));
+        // uint16 outcome = uint16(calculatePayout(_depositID, _tokens))
+        uint16 outcome = 10000;
+
+        _dlcManager.closeDLC(_deposit.dlcUUID, outcome);
     }
 
-    function postCloseDLCHandler(bytes32 _uuid) external onlyDLCManager {
-        Deposit memory _deposit = deposits[depositIDsByUUID[_uuid]];
+    function postCloseDLCHandler(
+        bytes32 _uuid,
+        string calldata _btxTxId
+    ) external onlyDLCManager {
+        Deposit storage _deposit = deposits[depositIDsByUUID[_uuid]];
         require(_deposit.dlcUUID != 0, 'No deposit with that uuid');
         require(
             _deposit.status == DepositStatus.PreClosed,
             'Invalid Deposit Status'
         );
+        _deposit.btcTxId = _btxTxId;
         _updateStatus(_deposit.id, DepositStatus.Closed);
     }
 
