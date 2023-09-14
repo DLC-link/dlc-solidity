@@ -40,7 +40,10 @@ contract USDCBorrowVault is ERC4626 {
         shareHolder[msg.sender] += _assets;
 
         (int256 _price, ) = _getLatestPrice(_btcPriceFeedAddress);
-        uint256 _amount = SafeMath.div(_assets * uint256(_price), 1e8);
+        uint256 _amount = SafeMath.mul(
+            SafeMath.mul(_assets, uint256(_price)),
+            100
+        );
         _usdc.transfer(msg.sender, _amount);
         borrowedAmount[msg.sender] += _amount;
     }
@@ -66,7 +69,10 @@ contract USDCBorrowVault is ERC4626 {
         shareHolder[msg.sender] -= _shares;
 
         (int256 _price, ) = _getLatestPrice(_btcPriceFeedAddress);
-        uint256 _amount = SafeMath.div(assets * uint256(_price), 1e8);
+        uint256 _amount = SafeMath.mul(
+            SafeMath.mul(assets, uint256(_price)),
+            100
+        );
         _usdc.transferFrom(msg.sender, address(this), _amount);
         borrowedAmount[msg.sender] -= _amount;
     }

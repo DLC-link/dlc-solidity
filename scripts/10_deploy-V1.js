@@ -65,9 +65,17 @@ module.exports = async function deployV1(version) {
                 title: `DlcRouter | deployer: ${protocol.address}`,
                 value: 'DlcRouter',
             },
+            {
+                title: `DepositDemo | deployer: ${protocol.address}`,
+                value: 'DepositDemo',
+            },
+            {
+                title: `USDCBorrowVault | deployer: ${protocol.address}`,
+                value: 'USDCBorrowVault',
+            },
         ],
         min: 0,
-        max: 8,
+        max: 12,
     });
 
     console.log('Deploying contracts...', ...contractSelectPrompt.contracts);
@@ -184,7 +192,10 @@ module.exports = async function deployV1(version) {
             const MockV3Aggregator = await hardhat.ethers.getContractFactory(
                 'MockV3Aggregator'
             );
-            const mockV3Aggregator = await MockV3Aggregator.deploy(0, 0);
+            const mockV3Aggregator = await MockV3Aggregator.deploy(
+                8,
+                2612647400000
+            );
             await mockV3Aggregator.deployTransaction.wait();
             console.log(
                 `deployed contract MockV3Aggregator to ${mockV3Aggregator.address} (network: ${network})`
@@ -343,5 +354,137 @@ module.exports = async function deployV1(version) {
             web3.utils.soliditySha3('WHITELISTED_WALLET'),
             protocolAddress
         );
+    }
+
+    /////////////// Deposit Demo ///////////////
+
+    if (contractSelectPrompt.contracts.includes('DepositDemo')) {
+        let dlcManagerDeployInfo, dlcBtcAddress, protocolAddress;
+        try {
+            dlcManagerDeployInfo = await loadDeploymentInfo(
+                network,
+                'DlcManager',
+                version
+            );
+            dlcBtcAddress = (
+                await loadDeploymentInfo(network, 'DLCBTC', version)
+            ).contract.address;
+        } catch (error) {
+            console.error(
+                'Error: Missing dependencies. Please deploy DLCManager and DLCBTC first.'
+            );
+            console.error(error);
+            return;
+        }
+        protocolAddress = protocol.address;
+
+        console.log(
+            `deploying contract DepositDemo to network "${network}"...`
+        );
+        console.log(`Constructor params:`);
+        console.log(
+            `dlcManagerAddress: ${dlcManagerDeployInfo.contract.address}`
+        );
+        console.log(`dlcBtcAddress: ${dlcBtcAddress}`);
+        console.log(`protocolAddress: ${protocolAddress}`);
+        const DepositDemo = await hardhat.ethers.getContractFactory(
+            'DepositDemo'
+        );
+        const depositDemo = await DepositDemo.connect(protocol).deploy(
+            dlcManagerDeployInfo.contract.address,
+            dlcBtcAddress,
+            protocolAddress
+        );
+        await depositDemo.deployed();
+        console.log(
+            `deployed contract DepositDemo to ${depositDemo.address} (network: ${network})`
+        );
+        await saveDeploymentInfo(
+            deploymentInfo(hardhat, depositDemo, 'DepositDemo'),
+            version
+        );
+
+        console.log(
+            'Adding WHITELISTED_CONTRACT and WHITELISTED_WALLET to DlcManager...'
+        );
+        const dlcManager = new hardhat.ethers.Contract(
+            dlcManagerDeployInfo.contract.address,
+            dlcManagerDeployInfo.contract.abi,
+            admin
+        );
+
+        await dlcManager.grantRole(
+            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+            depositDemo.address
+        );
+        await dlcManager.grantRole(
+            web3.utils.soliditySha3('WHITELISTED_WALLET'),
+            protocolAddress
+        );
+    }
+
+    if (contractSelectPrompt.contracts.includes('USDCBorrowVault')) {
+        const dlcBtcAddress = (
+            await loadDeploymentInfo(network, 'DLCBTC', version)
+        ).contract.address;
+
+        const usdcAddress = (await loadDeploymentInfo(network, 'USDC', version))
+            .contract.address;
+
+        const usdc = await hardhat.ethers.getContractAt(
+            'USDStableCoinForDLCs',
+            usdcAddress
+        );
+
+        if (network === 'localhost') {
+            console.log(
+                `deploying contract MockV3Aggregator to network "${network}"...`
+            );
+            const MockV3Aggregator = await hardhat.ethers.getContractFactory(
+                'MockV3Aggregator'
+            );
+            const mockV3Aggregator = await MockV3Aggregator.deploy(
+                8,
+                2612647400000
+            );
+            await mockV3Aggregator.deployTransaction.wait();
+            console.log(
+                `deployed contract MockV3Aggregator to ${mockV3Aggregator.address} (network: ${network})`
+            );
+            CLpricefeed = mockV3Aggregator.address;
+        }
+
+        console.log(
+            `deploying contract USDCBorrowVault to network "${network}"...`
+        );
+        const USDCBorrowVault = await hardhat.ethers.getContractFactory(
+            'USDCBorrowVault'
+        );
+        const usdcBorrowVault = await USDCBorrowVault.connect(protocol).deploy(
+            dlcBtcAddress,
+            'vaultDLCBTC',
+            'vDLCBTC',
+            usdcAddress,
+            CLpricefeed
+        );
+
+        await usdcBorrowVault.deployed();
+        console.log(
+            `deployed contract USDCBorrowVault to ${usdcBorrowVault.address} (network: ${network})`
+        );
+        await saveDeploymentInfo(
+            deploymentInfo(hardhat, usdcBorrowVault, 'USDCBorrowVault'),
+            version
+        );
+
+        console.log('Minting 10M USDC to USDCBorrowVault...');
+        await usdc
+            .connect(usdcDeployer)
+            .mint(
+                usdcBorrowVault.address,
+                hardhat.ethers.utils.parseUnits('10000000', 'ether')
+            );
+
+        console.log('Done');
     }
 };

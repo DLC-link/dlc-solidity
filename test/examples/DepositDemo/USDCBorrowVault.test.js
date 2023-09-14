@@ -112,6 +112,7 @@ describe('USDCBorrowVault', function () {
     });
 
     it('has USDC reserves to lend out', async () => {
+        console.log(await usdc.balanceOf(usdcBorrowVault.address));
         expect(await usdc.balanceOf(usdcBorrowVault.address)).to.equal(
             ethers.utils.parseUnits(usdcReserve, 'ether')
         );
@@ -149,8 +150,10 @@ describe('USDCBorrowVault', function () {
 
         it('sends USDC to the user', async () => {
             // price/1e8 * depositAmount = usdcBalance
-            // 2612647400000/1e8 * 500000 = 13063237000
-            expect(await usdc.balanceOf(user.address)).to.equal(13063237000);
+            // 2612647400000 * 500000 = 1306323700000000000
+            expect(await usdc.balanceOf(user.address)).to.equal(
+                ethers.utils.parseUnits('130.63237', 'ether')
+            );
         });
 
         it('sends dlcBTC to the vault', async () => {
@@ -174,7 +177,7 @@ describe('USDCBorrowVault', function () {
 
     describe('withdraw', async () => {
         const depositAmount = 500000; //sats
-        const usdcBalance = 13063237000;
+        const usdcBalance = ethers.utils.parseUnits('130.63237', 'ether');
 
         xit('reverts if _receiver address is zero', async () => {});
         xit('reverts if user is not a shareholder', async () => {});
