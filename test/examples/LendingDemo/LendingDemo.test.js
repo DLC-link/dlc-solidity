@@ -58,7 +58,7 @@ describe('LendingContract', () => {
     let usdc;
     let lendingContract;
     let emergencyRefundTime;
-    let deployer, protocol, user;
+    let deployer, protocol, user, someRandomAccount;
 
     beforeEach(async () => {
         emergencyRefundTime = 1988622969;

@@ -15,6 +15,7 @@ const setupV1 = require('./12_V1-setup');
 const createV1 = require('./13_V1-create-dlc');
 const closeV1 = require('./14_V1-close-dlc');
 const setupVault = require('./15_V1-setup-vault');
+const setStatusFunded = require('./16_V1-set-status-funded');
 
 const addAttestor = require('./12_a_V1-add-attestor');
 const removeAttestor = require('./12_ab_V1-remove-attestor');
@@ -89,8 +90,8 @@ async function main() {
         .action(sendNFT);
 
     program
-        .command('deploy-v1')
-        .description('deploy V1 contracts')
+        .command('deploy')
+        .description('deploy contracts')
         .argument('[version]', 'version to deploy', 'v1')
         .action(deployV1);
 
@@ -114,30 +115,36 @@ async function main() {
         .action(registerProtocol);
 
     program
-        .command('setup-v1')
+        .command('setup')
         .description('add attestors and register protocolContract')
         .action(setupV1);
 
     program
-        .command('create-dlc-v1')
+        .command('create-dlc')
         .description('create a DLC')
         .argument('[attestorCount]', 'number of attestors', 1)
         .action(createV1);
 
     program
-        .command('close-dlc-v1')
+        .command('close-dlc')
         .description('close a DLC')
         .argument('<uuid>', 'uuid of DLC to close')
         .argument('[outcome]', 'outcome of DLC', 7890)
         .action(closeV1);
 
     program
-        .command('setup-vault-v1')
+        .command('setup-vault')
         .description('setup a vault on the DLCBroker contract')
         .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
         .argument('[attestorCount]', 'number of attestors', 1)
         .argument('[setFunded]', 'simulate funding', false)
         .action(setupVault);
+
+    program
+        .command('set-status-funded')
+        .description('set status to funded for uuid')
+        .argument('<uuid>', 'uuid of DLC')
+        .action(setStatusFunded);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work

@@ -84,10 +84,7 @@ contract MockDLCManagerV1 is AccessControl, Pausable {
         address sender,
         uint256 nonce
     ) private view returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(sender, nonce, blockhash(block.number - 1))
-            );
+        return keccak256(abi.encodePacked('someUUID'));
     }
 
     function getDLC(bytes32 _uuid) public view returns (DLC memory) {
@@ -228,7 +225,10 @@ contract MockDLCManagerV1 is AccessControl, Pausable {
         string calldata btcTxId
     ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
         _updateStatus(_uuid, Status.CLOSING, Status.CLOSED);
-        DLCLinkCompatibleV1(dlcs[_uuid].creator).postCloseDLCHandler(_uuid);
+        DLCLinkCompatibleV1(dlcs[_uuid].creator).postCloseDLCHandler(
+            _uuid,
+            btcTxId
+        );
         emit PostCloseDLC(
             _uuid,
             dlcs[_uuid].outcome,

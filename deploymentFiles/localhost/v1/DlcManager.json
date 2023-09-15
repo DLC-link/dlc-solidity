@@ -30,7 +30,7 @@
       "function hasRole(bytes32 role, address account) view returns (bool)",
       "function pauseContract()",
       "function paused() view returns (bool)",
-      "function postCloseDLC(bytes32 _uuid, string btcTxId)",
+      "function postCloseDLC(bytes32 _uuid, string _btcTxId)",
       "function renounceRole(bytes32 role, address account)",
       "function revokeRole(bytes32 role, address account)",
       "function setStatusFunded(bytes32 _uuid)",

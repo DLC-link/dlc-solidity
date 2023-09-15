@@ -31,6 +31,7 @@ struct Vault {
     uint256 nftId;
     address owner; // the account owning this Vault
     address originalCreator;
+    string btcTxId;
 }
 
 uint16 constant ALL_FOR_DEPOSITOR = 0;
@@ -122,7 +123,8 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
             vaultCollateral: btcDeposit,
             nftId: 0,
             owner: msg.sender,
-            originalCreator: msg.sender
+            originalCreator: msg.sender,
+            btcTxId: ''
         });
 
         vaultIDsByUUID[_uuid] = index;
@@ -194,7 +196,10 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         emit BurnBtcNft(_vault.dlcUUID, _vault.nftId);
     }
 
-    function postCloseDLCHandler(bytes32 _uuid) external onlyDLCManager {
+    function postCloseDLCHandler(
+        bytes32 _uuid,
+        string calldata _btxTxId
+    ) external onlyDLCManager {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
         require(vaults[vaultIDsByUUID[_uuid]].dlcUUID != 0, 'No such vault');
         require(
@@ -202,6 +207,8 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
                 _vault.status == VaultStatus.PreLiquidated,
             'Invalid Vault VaultStatus'
         );
+
+        _vault.btcTxId = _btxTxId;
 
         if (_vault.status == VaultStatus.PreLiquidated) {
             _updateStatus(_vault.id, VaultStatus.Liquidated);

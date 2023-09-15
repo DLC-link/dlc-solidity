@@ -224,17 +224,20 @@ contract DLCManagerV1 is AccessControl, Pausable {
 
     function postCloseDLC(
         bytes32 _uuid,
-        string calldata btcTxId
+        string calldata _btcTxId
     ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
         _updateStatus(_uuid, Status.CLOSING, Status.CLOSED);
-        DLCLinkCompatibleV1(dlcs[_uuid].creator).postCloseDLCHandler(_uuid);
+        DLCLinkCompatibleV1(dlcs[_uuid].creator).postCloseDLCHandler(
+            _uuid,
+            _btcTxId
+        );
         emit PostCloseDLC(
             _uuid,
             dlcs[_uuid].outcome,
             dlcs[_uuid].creator,
             dlcs[_uuid].protocolWallet,
             msg.sender,
-            btcTxId,
+            _btcTxId,
             'dlclink:post-close-dlc:v1'
         );
     }
