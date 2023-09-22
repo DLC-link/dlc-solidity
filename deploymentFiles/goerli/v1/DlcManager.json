@@ -2,7 +2,7 @@
   "network": "goerli",
   "contract": {
     "name": "DlcManager",
-    "address": "0x0e2BE8555D0e8DA8486Bf26fE2E212563e464ACD",
+    "address": "0x712FC8f29415661a1d318095C545B3dc076B5720",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor(address _adminAddress, address _attestorManagerAddress)",
@@ -30,7 +30,7 @@
       "function hasRole(bytes32 role, address account) view returns (bool)",
       "function pauseContract()",
       "function paused() view returns (bool)",
-      "function postCloseDLC(bytes32 _uuid, string btcTxId)",
+      "function postCloseDLC(bytes32 _uuid, string _btcTxId)",
       "function renounceRole(bytes32 role, address account)",
       "function revokeRole(bytes32 role, address account)",
       "function setStatusFunded(bytes32 _uuid)",
