@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.17;
+pragma solidity 0.8.17;
 
 import '../DLCManagerV1.sol';
 import '../DLCLinkCompatibleV1.sol';
