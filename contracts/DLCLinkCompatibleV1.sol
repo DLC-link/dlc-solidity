@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.17;
+pragma solidity 0.8.17;
 
 interface DLCLinkCompatibleV1 {
     function setStatusFunded(bytes32 uuid) external;
