@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
-import './BtcNft.sol';
-import '@openzeppelin/contracts/utils/math/SafeMath.sol';
-import '@openzeppelin/contracts/access/AccessControl.sol';
-import '@openzeppelin/contracts/utils/Address.sol';
-import '@openzeppelin/contracts/utils/Strings.sol';
-import '../../DLCManagerV1.sol';
-import '../../DLCLinkCompatibleV1.sol';
-import './DLCBTC.sol';
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "./BtcNft.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "../../DLCManagerV1.sol";
+import "../../DLCLinkCompatibleV1.sol";
+import "./DLCBTC.sol";
 
 enum VaultStatus {
     None,
@@ -41,14 +41,14 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
     using SafeMath for uint256;
     using Address for address;
 
-    bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
-    bytes32 public constant DLC_MANAGER_ROLE = keccak256('DLC_MANAGER_ROLE');
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant DLC_MANAGER_ROLE = keccak256("DLC_MANAGER_ROLE");
     DLCManagerV1 private _dlcManager;
     BtcNft private _btcNft;
-    DLCBTC private _dlcBTC;
+    DLCBTCExample private _dlcBTC;
     address private _protocolWalletAddress;
     string private _ipfsStorageURL =
-        'bafybeif6m56tynghkfpkafsfr2hgezvksxgxvrpdcaklvyx7zn7xbzme7i';
+        "bafybeif6m56tynghkfpkafsfr2hgezvksxgxvrpdcaklvyx7zn7xbzme7i";
 
     uint256 public index = 0;
     mapping(uint256 => Vault) public vaults;
@@ -65,11 +65,11 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
             _dlcManagerAddress != address(0) &&
                 _dlcNftAddress != address(0) &&
                 _dlcBTCAddress != address(0),
-            'DlcRouter: invalid addresses'
+            "DlcRouter: invalid addresses"
         );
         _dlcManager = DLCManagerV1(_dlcManagerAddress);
         _btcNft = BtcNft(_dlcNftAddress);
-        _dlcBTC = DLCBTC(_dlcBTCAddress);
+        _dlcBTC = DLCBTCExample(_dlcBTCAddress);
         _protocolWalletAddress = _protocolWallet;
         _setupRole(ADMIN_ROLE, _msgSender());
         _setupRole(DLC_MANAGER_ROLE, _dlcManagerAddress);
@@ -78,7 +78,7 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
     modifier onlyAdmin() {
         require(
             hasRole(ADMIN_ROLE, _msgSender()),
-            'DlcRouter: must have admin role to perform this action'
+            "DlcRouter: must have admin role to perform this action"
         );
         _;
     }
@@ -86,7 +86,7 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
     modifier onlyDLCManager() {
         require(
             hasRole(DLC_MANAGER_ROLE, _msgSender()),
-            'LendingContract: must have dlc-manager role to perform this action'
+            "LendingContract: must have dlc-manager role to perform this action"
         );
         _;
     }
@@ -107,7 +107,7 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         uint256 btcDeposit,
         uint8 attestorCount
     ) external returns (uint256) {
-        require(btcDeposit > 0, 'DlcRouter: btcDeposit must be greater than 0');
+        require(btcDeposit > 0, "DlcRouter: btcDeposit must be greater than 0");
 
         // Calling the dlc-manager contract & getting a uuid
         (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
@@ -124,7 +124,7 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
             nftId: 0,
             owner: msg.sender,
             originalCreator: msg.sender,
-            btcTxId: ''
+            btcTxId: ""
         });
 
         vaultIDsByUUID[_uuid] = index;
@@ -143,14 +143,14 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
 
     function _updateStatus(uint256 _vaultID, VaultStatus _status) private {
         Vault storage _vault = vaults[_vaultID];
-        require(_vault.status != _status, 'VaultStatus already set');
+        require(_vault.status != _status, "VaultStatus already set");
         _vault.status = _status;
         emit StatusUpdate(_vaultID, _vault.dlcUUID, _status);
     }
 
     function setStatusFunded(bytes32 _uuid) external override onlyDLCManager {
         Vault memory _vault = vaults[vaultIDsByUUID[_uuid]];
-        require(_vault.dlcUUID != 0, 'No such vault');
+        require(_vault.dlcUUID != 0, "No such vault");
         _updateStatus(_vault.id, VaultStatus.Funded);
     }
 
@@ -158,8 +158,8 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
 
     function mintBtcNft(bytes32 _uuid, string memory _uri) public onlyAdmin {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
-        require(_vault.dlcUUID != 0, 'No such vault');
-        require(_vault.status == VaultStatus.Funded, 'Vault in wrong state');
+        require(_vault.dlcUUID != 0, "No such vault");
+        require(_vault.status == VaultStatus.Funded, "Vault in wrong state");
         _vault.nftId = _btcNft.getNextMintId();
         // NOTE: DlcBroker contract must have MINTER_ROLE on btcNft
         _btcNft.safeMint(_vault.owner, _uri, address(this), _uuid);
@@ -174,10 +174,10 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         Vault storage _vault = vaults[_vaultID];
 
         address _NFTOwner = _btcNft.ownerOf(_vault.nftId);
-        require(_NFTOwner == msg.sender, 'Unauthorized');
+        require(_NFTOwner == msg.sender, "Unauthorized");
 
-        require(_vault.dlcUUID != 0, 'No such vault');
-        require(_vault.status == VaultStatus.NftIssued, 'Vault in wrong state');
+        require(_vault.dlcUUID != 0, "No such vault");
+        require(_vault.status == VaultStatus.NftIssued, "Vault in wrong state");
         if (_vault.owner == msg.sender) {
             //closing a vault where original creator is redeeming
             _payoutRatio = ALL_FOR_DEPOSITOR;
@@ -201,11 +201,11 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         string calldata _btxTxId
     ) external onlyDLCManager {
         Vault storage _vault = vaults[vaultIDsByUUID[_uuid]];
-        require(vaults[vaultIDsByUUID[_uuid]].dlcUUID != 0, 'No such vault');
+        require(vaults[vaultIDsByUUID[_uuid]].dlcUUID != 0, "No such vault");
         require(
             _vault.status == VaultStatus.PreRepaid ||
                 _vault.status == VaultStatus.PreLiquidated,
-            'Invalid Vault VaultStatus'
+            "Invalid Vault VaultStatus"
         );
 
         _vault.btcTxId = _btxTxId;

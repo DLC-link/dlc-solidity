@@ -6,7 +6,7 @@ const web3 = require('web3');
 describe('USDCBorrowVault', function () {
     let mockAttestorManager;
     let dlcManager;
-    let dlcBtc;
+    let DLCBTCExample;
     let depositDemo, usdcBorrowVault, usdc, mockV3Aggregator;
     let emergencyRefundTime;
     let deployer, protocol, user, someRandomAccount;
@@ -37,9 +37,12 @@ describe('USDCBorrowVault', function () {
         );
         await dlcManager.deployTransaction.wait();
 
-        const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
-        dlcBtc = await DLCBTC.deploy();
-        await dlcBtc.deployed();
+        const dlcbtc = await ethers.getContractFactory(
+            'DLCBTCExample',
+            deployer
+        );
+        DLCBTCExample = await dlcbtc.deploy();
+        await DLCBTCExample.deployed();
 
         const DepositDemo = await ethers.getContractFactory(
             'DepositDemo',
@@ -47,7 +50,7 @@ describe('USDCBorrowVault', function () {
         );
         depositDemo = await DepositDemo.deploy(
             dlcManager.address,
-            dlcBtc.address,
+            DLCBTCExample.address,
             protocol.address
         );
         await depositDemo.deployTransaction.wait();
@@ -65,9 +68,8 @@ describe('USDCBorrowVault', function () {
                 protocol.address
             );
 
-        const MockV3Aggregator = await ethers.getContractFactory(
-            'MockV3Aggregator'
-        );
+        const MockV3Aggregator =
+            await ethers.getContractFactory('MockV3Aggregator');
         mockV3Aggregator = await MockV3Aggregator.deploy(8, 2612647400000); // NOTE:
         await mockV3Aggregator.deployTransaction.wait();
 
@@ -83,7 +85,7 @@ describe('USDCBorrowVault', function () {
             protocol
         );
         usdcBorrowVault = await USDCBorrowVault.deploy(
-            dlcBtc.address,
+            DLCBTCExample.address,
             'vaultDLCBTC',
             'vDLCBTC',
             usdc.address,
@@ -107,8 +109,10 @@ describe('USDCBorrowVault', function () {
         expect(await usdcBorrowVault.deployTransaction).to.exist;
     });
 
-    it('its intended user has dlcBTC to deposit', async () => {
-        expect(await dlcBtc.balanceOf(user.address)).to.equal(btcDeposit);
+    it('its intended user has DLCBTCExample to deposit', async () => {
+        expect(await DLCBTCExample.balanceOf(user.address)).to.equal(
+            btcDeposit
+        );
     });
 
     it('has USDC reserves to lend out', async () => {
@@ -129,9 +133,10 @@ describe('USDCBorrowVault', function () {
         });
 
         beforeEach(async () => {
-            await dlcBtc
-                .connect(user)
-                .approve(usdcBorrowVault.address, depositAmount);
+            await DLCBTCExample.connect(user).approve(
+                usdcBorrowVault.address,
+                depositAmount
+            );
             const tx = await usdcBorrowVault
                 .connect(user)
                 ._deposit(depositAmount);
@@ -156,10 +161,10 @@ describe('USDCBorrowVault', function () {
             );
         });
 
-        it('sends dlcBTC to the vault', async () => {
-            expect(await dlcBtc.balanceOf(usdcBorrowVault.address)).to.equal(
-                depositAmount
-            );
+        it('sends DLCBTCExample to the vault', async () => {
+            expect(
+                await DLCBTCExample.balanceOf(usdcBorrowVault.address)
+            ).to.equal(depositAmount);
             expect(await usdcBorrowVault.totalAssets()).to.equal(depositAmount);
         });
 
@@ -183,9 +188,10 @@ describe('USDCBorrowVault', function () {
         xit('reverts if user is not a shareholder', async () => {});
 
         beforeEach(async () => {
-            await dlcBtc
-                .connect(user)
-                .approve(usdcBorrowVault.address, depositAmount);
+            await DLCBTCExample.connect(user).approve(
+                usdcBorrowVault.address,
+                depositAmount
+            );
             const tx = await usdcBorrowVault
                 .connect(user)
                 ._deposit(depositAmount);
@@ -251,14 +257,16 @@ describe('USDCBorrowVault', function () {
             expect(await usdc.balanceOf(user.address)).to.equal(0);
         });
 
-        it('returns dlcBTC to the user', async () => {
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+        it('returns DLCBTCExample to the user', async () => {
+            expect(await DLCBTCExample.balanceOf(user.address)).to.equal(
                 btcDeposit - depositAmount
             );
 
             await happyPathWithdraw();
 
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(btcDeposit);
+            expect(await DLCBTCExample.balanceOf(user.address)).to.equal(
+                btcDeposit
+            );
         });
 
         xit('updates the user deposit balance', async () => {

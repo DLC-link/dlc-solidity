@@ -6,7 +6,6 @@
     "insertPragma": false,
     "singleAttributePerLine": false,
     "bracketSameLine": false,
-    "jsxBracketSameLine": false,
     "jsxSingleQuote": false,
     "printWidth": 80,
     "proseWrap": "preserve",
@@ -16,5 +15,18 @@
     "singleQuote": true,
     "tabWidth": 4,
     "trailingComma": "es5",
-    "useTabs": false
+    "useTabs": false,
+    "overrides": [
+        {
+            "files": "*.sol",
+            "options": {
+                "printWidth": 80,
+                "tabWidth": 4,
+                "useTabs": false,
+                "singleQuote": false,
+                "bracketSpacing": false,
+                "explicitTypes": "preserve"
+            }
+        }
+    ]
 }

@@ -21,7 +21,7 @@ xdescribe('BrokerContract', () => {
     let mockV3Aggregator;
     let mockDlcManager;
     let brokerContract;
-    let dlcBtc;
+    let DLCBTCExample;
     let emergencyRefundTime;
     let deployer, broker, user;
     let btcCollateral;
@@ -38,9 +38,8 @@ xdescribe('BrokerContract', () => {
         someRandomAccount = accounts[3];
         liquidator = accounts[4];
 
-        const MockV3Aggregator = await ethers.getContractFactory(
-            'MockV3Aggregator'
-        );
+        const MockV3Aggregator =
+            await ethers.getContractFactory('MockV3Aggregator');
         mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
         await mockV3Aggregator.deployTransaction.wait();
 
@@ -58,9 +57,12 @@ xdescribe('BrokerContract', () => {
         mockBtcNftContract = await MockBtcNft.deploy();
         await mockBtcNftContract.deployed();
 
-        const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
-        dlcBtc = await DLCBTC.deploy();
-        await dlcBtc.deployed();
+        const DLCBTCExample = await ethers.getContractFactory(
+            'DLCBTCExample',
+            deployer
+        );
+        DLCBTCExample = await DLCBTCExample.deploy();
+        await DLCBTCExample.deployed();
 
         const BrokerContract = await ethers.getContractFactory(
             'DlcRouterV1',
@@ -69,7 +71,7 @@ xdescribe('BrokerContract', () => {
         brokerContract = await BrokerContract.deploy(
             mockDlcManager.address,
             mockBtcNftContract.address,
-            dlcBtc.address
+            DLCBTCExample.address
         );
         await brokerContract.deployTransaction.wait();
     });
@@ -110,9 +112,8 @@ xdescribe('BrokerContract', () => {
         // move this to the dlcManager
         it('emits a create NFT event from the DLCManager contract', async () => {
             await brokerContract.postCreateDLCHandler(mockDlcUUID);
-            const postCreateTx = await brokerContract.setStatusFunded(
-                mockDlcUUID
-            );
+            const postCreateTx =
+                await brokerContract.setStatusFunded(mockDlcUUID);
             const txReceipt = await postCreateTx.wait();
             const event = txReceipt.events.find(
                 (ev) => ev.event == 'MintBtcNft'
@@ -187,9 +188,8 @@ xdescribe('BrokerContract', () => {
                 .connect(user)
                 .closeVault(vault.id);
             await closeTx.wait();
-            const updatedVault = await brokerContract.getVaultByUUID(
-                mockDlcUUID
-            );
+            const updatedVault =
+                await brokerContract.getVaultByUUID(mockDlcUUID);
             expect(updatedVault).to.eql([
                 vault.id,
                 mockDlcUUID,
@@ -244,9 +244,8 @@ xdescribe('BrokerContract', () => {
                     .connect(liquidator)
                     .closeVault(vault.id);
                 await closeTx.wait();
-                const updatedVault = await brokerContract.getVaultByUUID(
-                    mockDlcUUID
-                );
+                const updatedVault =
+                    await brokerContract.getVaultByUUID(mockDlcUUID);
                 expect(updatedVault).to.eql([
                     vault.id,
                     mockDlcUUID,
@@ -340,9 +339,8 @@ xdescribe('BrokerContract', () => {
                 .connect(deployer)
                 .postCloseDLCHandler(mockDlcUUID);
             await postCloseTx.wait();
-            const updatedVault = await brokerContract.getVaultByUUID(
-                mockDlcUUID
-            );
+            const updatedVault =
+                await brokerContract.getVaultByUUID(mockDlcUUID);
             expect(updatedVault.status).to.equal(Status.Repaid);
         });
         it('sets the status to Liquidated if it was PreLiquidated', async () => {
@@ -380,7 +378,7 @@ xdescribe('BrokerContract', () => {
                 .connect(deployer)
                 .postCloseDLCHandler(mockDlcUUID);
             await postCloseTx.wait();
-            expect(await dlcBtc.balanceOf(liquidator.address)).to.equal(
+            expect(await DLCBTCExample.balanceOf(liquidator.address)).to.equal(
                 btcCollateral
             );
         });

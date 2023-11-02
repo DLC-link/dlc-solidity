@@ -14,6 +14,17 @@ const url = `https://${process.env.HARDHAT_NETWORK}.infura.io/v3/${process.env.I
 module.exports = {
     defaultNetwork: 'hardhat',
     solidity: '0.8.17',
+    compilers: [
+        {
+            version: '0.8.17',
+            settings: {
+                optimizer: {
+                    enabled: true,
+                    runs: 10,
+                },
+            },
+        },
+    ],
     networks: {
         hardhat: {},
         coverage: {

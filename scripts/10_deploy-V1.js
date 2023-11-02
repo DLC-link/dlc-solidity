@@ -58,8 +58,8 @@ module.exports = async function deployV1(version) {
                 value: 'BtcNft',
             },
             {
-                title: `DLCBTC | deployer: ${admin.address}`,
-                value: 'DLCBTC',
+                title: `DLCBTCExample | deployer: ${admin.address}`,
+                value: 'DLCBTCExample',
             },
             {
                 title: `DlcRouter | deployer: ${protocol.address}`,
@@ -84,9 +84,8 @@ module.exports = async function deployV1(version) {
 
     if (contractSelectPrompt.contracts.includes('AttestorManager')) {
         console.log(`Deploying AttestorManager to ${network}...`);
-        const AttestorManager = await hardhat.ethers.getContractFactory(
-            'AttestorManager'
-        );
+        const AttestorManager =
+            await hardhat.ethers.getContractFactory('AttestorManager');
         const attestorManager = await AttestorManager.deploy();
         await attestorManager.deployed();
         console.log(
@@ -107,9 +106,8 @@ module.exports = async function deployV1(version) {
         ).contract.address;
 
         console.log(`deploying contract DLCManager to network "${network}"...`);
-        const DLCManager = await hardhat.ethers.getContractFactory(
-            'DLCManagerV1'
-        );
+        const DLCManager =
+            await hardhat.ethers.getContractFactory('DLCManagerV1');
         const dlcManager = await DLCManager.deploy(
             admin.address,
             attestorManagerAddress
@@ -131,9 +129,8 @@ module.exports = async function deployV1(version) {
         console.log(
             `deploying contract MockProcotol to network "${network}"...`
         );
-        const MockProtocol = await hardhat.ethers.getContractFactory(
-            'MockProtocol'
-        );
+        const MockProtocol =
+            await hardhat.ethers.getContractFactory('MockProtocol');
 
         const mockProtocol = await MockProtocol.connect(protocol).deploy(
             dlcManagerAddress,
@@ -189,9 +186,8 @@ module.exports = async function deployV1(version) {
             console.log(
                 `deploying contract MockV3Aggregator to network "${network}"...`
             );
-            const MockV3Aggregator = await hardhat.ethers.getContractFactory(
-                'MockV3Aggregator'
-            );
+            const MockV3Aggregator =
+                await hardhat.ethers.getContractFactory('MockV3Aggregator');
             const mockV3Aggregator = await MockV3Aggregator.deploy(
                 8,
                 2612647400000
@@ -206,9 +202,8 @@ module.exports = async function deployV1(version) {
         console.log(
             `deploying contract LendingContractV1 to network "${network}"...`
         );
-        const LendingDemo = await hardhat.ethers.getContractFactory(
-            'LendingContractV1'
-        );
+        const LendingDemo =
+            await hardhat.ethers.getContractFactory('LendingContractV1');
         const lendingDemo = await LendingDemo.connect(protocol).deploy(
             dlcManagerAddress,
             usdcAddress,
@@ -272,16 +267,19 @@ module.exports = async function deployV1(version) {
         );
     }
 
-    if (contractSelectPrompt.contracts.includes('DLCBTC')) {
-        console.log(`deploying contract DLCBTC to network "${network}"...`);
-        const DLCBTC = await hardhat.ethers.getContractFactory('DLCBTC');
-        const dlcBtc = await DLCBTC.deploy();
-        await dlcBtc.deployed();
+    if (contractSelectPrompt.contracts.includes('DLCBTCExample')) {
         console.log(
-            `deployed contract dlcBtc to ${dlcBtc.address} (network: ${network})`
+            `deploying contract DLCBTCExample to network "${network}"...`
+        );
+        const DLCBTCExample =
+            await hardhat.ethers.getContractFactory('DLCBTCExample');
+        const DLCBTCExample = await DLCBTCExample.deploy();
+        await DLCBTCExample.deployed();
+        console.log(
+            `deployed contract DLCBTCExample to ${DLCBTCExample.address} (network: ${network})`
         );
         await saveDeploymentInfo(
-            deploymentInfo(hardhat, dlcBtc, 'DLCBTC'),
+            deploymentInfo(hardhat, DLCBTCExample, 'DLCBTCExample'),
             version
         );
     }
@@ -296,7 +294,7 @@ module.exports = async function deployV1(version) {
             await loadDeploymentInfo(network, 'BtcNft', version)
         ).contract.address;
         const dlcBtcAddress = (
-            await loadDeploymentInfo(network, 'DLCBTC', version)
+            await loadDeploymentInfo(network, 'DLCBTCExample', version)
         ).contract.address;
         const protocolAddress = protocol.address;
 
@@ -367,11 +365,11 @@ module.exports = async function deployV1(version) {
                 version
             );
             dlcBtcAddress = (
-                await loadDeploymentInfo(network, 'DLCBTC', version)
+                await loadDeploymentInfo(network, 'DLCBTCExample', version)
             ).contract.address;
         } catch (error) {
             console.error(
-                'Error: Missing dependencies. Please deploy DLCManager and DLCBTC first.'
+                'Error: Missing dependencies. Please deploy DLCManager and DLCBTCExample first.'
             );
             console.error(error);
             return;
@@ -387,9 +385,8 @@ module.exports = async function deployV1(version) {
         );
         console.log(`dlcBtcAddress: ${dlcBtcAddress}`);
         console.log(`protocolAddress: ${protocolAddress}`);
-        const DepositDemo = await hardhat.ethers.getContractFactory(
-            'DepositDemo'
-        );
+        const DepositDemo =
+            await hardhat.ethers.getContractFactory('DepositDemo');
         const depositDemo = await DepositDemo.connect(protocol).deploy(
             dlcManagerDeployInfo.contract.address,
             dlcBtcAddress,
@@ -425,7 +422,7 @@ module.exports = async function deployV1(version) {
 
     if (contractSelectPrompt.contracts.includes('USDCBorrowVault')) {
         const dlcBtcAddress = (
-            await loadDeploymentInfo(network, 'DLCBTC', version)
+            await loadDeploymentInfo(network, 'DLCBTCExample', version)
         ).contract.address;
 
         const usdcAddress = (await loadDeploymentInfo(network, 'USDC', version))
@@ -440,9 +437,8 @@ module.exports = async function deployV1(version) {
             console.log(
                 `deploying contract MockV3Aggregator to network "${network}"...`
             );
-            const MockV3Aggregator = await hardhat.ethers.getContractFactory(
-                'MockV3Aggregator'
-            );
+            const MockV3Aggregator =
+                await hardhat.ethers.getContractFactory('MockV3Aggregator');
             const mockV3Aggregator = await MockV3Aggregator.deploy(
                 8,
                 2612647400000
@@ -457,9 +453,8 @@ module.exports = async function deployV1(version) {
         console.log(
             `deploying contract USDCBorrowVault to network "${network}"...`
         );
-        const USDCBorrowVault = await hardhat.ethers.getContractFactory(
-            'USDCBorrowVault'
-        );
+        const USDCBorrowVault =
+            await hardhat.ethers.getContractFactory('USDCBorrowVault');
         const usdcBorrowVault = await USDCBorrowVault.connect(protocol).deploy(
             dlcBtcAddress,
             'vaultDLCBTC',
