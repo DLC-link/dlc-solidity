@@ -5,6 +5,7 @@ require('@openzeppelin/hardhat-upgrades');
 require('@nomicfoundation/hardhat-chai-matchers');
 require('@nomiclabs/hardhat-solhint');
 require('@nomiclabs/hardhat-etherscan');
+require('hardhat-gas-reporter');
 require('solidity-coverage');
 
 require('dotenv').config();
@@ -13,18 +14,15 @@ const url = `https://${process.env.HARDHAT_NETWORK}.infura.io/v3/${process.env.I
 
 module.exports = {
     defaultNetwork: 'hardhat',
-    solidity: '0.8.17',
-    compilers: [
-        {
-            version: '0.8.17',
-            settings: {
-                optimizer: {
-                    enabled: true,
-                    runs: 10,
-                },
+    solidity: {
+        version: '0.8.17',
+        settings: {
+            optimizer: {
+                enabled: true,
+                runs: 200,
             },
         },
-    ],
+    },
     networks: {
         hardhat: {},
         coverage: {
@@ -53,5 +51,10 @@ module.exports = {
         // Your API key for Etherscan
         // Obtain one at https://etherscan.io/
         apiKey: process.env['ETHERSCAN_API_KEY'],
+    },
+    gasReporter: {
+        currency: 'USD',
+        enabled: true,
+        coinmarketcap: process.env['COINMARKETCAP_API_KEY'],
     },
 };

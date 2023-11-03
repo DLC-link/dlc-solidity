@@ -39,7 +39,7 @@ contract TokenManager is
 
     DLCBTC public dlcBTC; // dlcBTC contract
     IDLCManagerV2 public dlcManager; // DLCManager contract
-    address public protocolWalletAddress; // router-wallet address
+    address public routerWalletAddress; // router-wallet address
     uint256 public minimumDeposit; // in sats
     uint256 public feeRate; // in basis points (10000 = 100%)
     uint256 public vaultCount;
@@ -82,19 +82,21 @@ contract TokenManager is
     function initialize(
         address _dlcManagerAddress,
         DLCBTC _tokenContract,
-        address _protocolWallet
+        address _routerWalletAddress
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, msg.sender);
+        _grantRole(DLC_ADMIN_ROLE, msg.sender);
         _grantRole(DLC_MANAGER_ROLE, _dlcManagerAddress);
         _grantRole(PAUSER_ROLE, msg.sender);
         dlcManager = IDLCManagerV2(_dlcManagerAddress);
         dlcBTC = _tokenContract;
-        protocolWalletAddress = _protocolWallet;
+        routerWalletAddress = _routerWalletAddress;
         minimumDeposit = 1000; // 0.00001 BTC
         feeRate = 0; // 0% fee for now
         vaultCount = 0;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
@@ -161,7 +163,7 @@ contract TokenManager is
             revert DepositTooSmall(btcDeposit, minimumDeposit);
 
         (bytes32 _uuid, string[] memory attestorList) = dlcManager.createDLC(
-            protocolWalletAddress,
+            routerWalletAddress,
             btcDeposit,
             attestorCount
         );
@@ -227,8 +229,8 @@ contract TokenManager is
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    function setProtocolWallet(address _protocolWallet) external onlyDLCAdmin {
-        protocolWalletAddress = _protocolWallet;
+    function setRouterWallet(address _routerWallet) external onlyDLCAdmin {
+        routerWalletAddress = _routerWallet;
     }
 
     function setMinimumDeposit(uint256 _minimumDeposit) external onlyDLCAdmin {
