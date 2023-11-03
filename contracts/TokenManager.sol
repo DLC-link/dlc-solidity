@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
 //     ___  __   ___    __ _       _
 //    /   \/ /  / __\  / /(_)_ __ | | __
 //   / /\ / /  / /    / / | | '_ \| |/ /
 //  / /_// /__/ /____/ /__| | | | |   <
 // /___,'\____|____(_)____/_|_| |_|_|\_\
+
+pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -13,6 +14,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IDLCManagerV2.sol";
 import "./DLCLinkCompatibleV2.sol";
 import "./DLCBTC.sol";
+import "./DLCLinkLibrary.sol";
 
 contract TokenManager is
     Initializable,
@@ -21,23 +23,7 @@ contract TokenManager is
     DLCLinkCompatibleV2
 {
     using SafeERC20 for DLCBTC;
-
-    enum VaultStatus {
-        Ready,
-        Funded,
-        PreClosed,
-        Closed
-    }
-
-    struct Vault {
-        bytes32 uuid;
-        string[] attestorList;
-        VaultStatus status;
-        uint256 btcDeposit; // btc deposit in sats
-        address owner; // the account owning this vault
-        string fundingTxId;
-        string closingTxId;
-    }
+    using DLCLink for DLCLink.DLC;
 
     ////////////////////////////////////////////////////////////////
     //                      STATE VARIABLES                       //
@@ -58,7 +44,7 @@ contract TokenManager is
     uint256 public feeRate; // in basis points (10000 = 100%)
     uint256 public vaultCount;
 
-    mapping(uint256 => Vault) public vaults;
+    mapping(address => bytes32[]) public userVaults;
     mapping(address => uint256) public vaultsPerAddress;
     mapping(bytes32 => uint256) public vaultIDsByUUID;
 
@@ -72,12 +58,6 @@ contract TokenManager is
     error NotOwner();
     error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
     error InsufficentTokenBalance(uint256 balance, uint256 amount);
-    error WrongVaultState();
-    error VaultStateAlreadySet(VaultStatus status);
-    error VaultNotFound();
-    error VaultNotReady();
-    error VaultNotFunded();
-    error VaultNotPreClosed();
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -96,11 +76,6 @@ contract TokenManager is
 
     modifier onlyPauser() {
         if (!hasRole(PAUSER_ROLE, msg.sender)) revert NotPauser();
-        _;
-    }
-
-    modifier onlyVaultOwner(bytes32 uuid) {
-        if (vaults[vaultIDsByUUID[uuid]].owner != msg.sender) revert NotOwner();
         _;
     }
 
@@ -134,8 +109,6 @@ contract TokenManager is
         string[] attestorList,
         address owner
     );
-
-    event StatusUpdate(bytes32 dlcUUID, VaultStatus newStatus);
 
     event Mint(address to, uint256 amount);
 
@@ -189,68 +162,44 @@ contract TokenManager is
 
         (bytes32 _uuid, string[] memory attestorList) = dlcManager.createDLC(
             protocolWalletAddress,
+            btcDeposit,
             attestorCount
         );
 
-        vaults[vaultCount] = Vault({
-            uuid: _uuid,
-            attestorList: attestorList,
-            status: VaultStatus.Ready,
-            btcDeposit: btcDeposit,
-            owner: msg.sender,
-            fundingTxId: "",
-            closingTxId: ""
-        });
+        userVaults[msg.sender].push(_uuid);
 
         vaultIDsByUUID[_uuid] = vaultCount;
         vaultsPerAddress[msg.sender]++;
         vaultCount++;
 
         emit SetupVault(_uuid, btcDeposit, attestorList, msg.sender);
-        emit StatusUpdate(_uuid, VaultStatus.Ready);
 
         return _uuid;
     }
 
     function setStatusFunded(
         bytes32 uuid,
-        string calldata btcTxId
+        string calldata /*btcTxId*/
     ) external override whenNotPaused onlyDLCManagerContract {
-        Vault storage vault = vaults[vaultIDsByUUID[uuid]];
-        VaultStatus _newStatus = VaultStatus.Funded;
-        if (vault.uuid == bytes32(0)) revert VaultNotFound();
-        if (vault.status != VaultStatus.Ready) revert VaultNotReady();
-        if (vault.status == _newStatus) revert VaultStateAlreadySet(_newStatus);
-
-        vault.fundingTxId = btcTxId;
-        vault.status = _newStatus;
-        emit StatusUpdate(uuid, _newStatus);
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
 
         _mintTokens(
-            vault.owner,
-            _getFeeAdjustedAmount(vault.btcDeposit, feeRate)
+            dlc.creator,
+            _getFeeAdjustedAmount(dlc.valueLocked, feeRate)
         );
     }
 
-    function closeVault(
-        bytes32 uuid
-    ) external whenNotPaused onlyVaultOwner(uuid) {
-        Vault storage vault = vaults[vaultIDsByUUID[uuid]];
-        VaultStatus _newStatus = VaultStatus.PreClosed;
-        if (vault.uuid == bytes32(0)) revert VaultNotFound();
-        // NOTE: ? should we allow closing a vault that is not funded?
-        if (vault.status != VaultStatus.Funded) revert VaultNotFunded();
-        if (vault.status == _newStatus) revert VaultStateAlreadySet(_newStatus);
-        if (vault.btcDeposit > dlcBTC.balanceOf(vault.owner))
+    function closeVault(bytes32 uuid) external whenNotPaused {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        if (dlc.creator != msg.sender) revert NotOwner();
+
+        if (dlc.valueLocked > dlcBTC.balanceOf(dlc.creator))
             revert InsufficentTokenBalance(
-                dlcBTC.balanceOf(vault.owner),
-                vault.btcDeposit
+                dlcBTC.balanceOf(dlc.creator),
+                dlc.valueLocked
             );
 
-        vault.status = _newStatus;
-        emit StatusUpdate(uuid, _newStatus);
-
-        _burnTokens(vault.owner, vault.btcDeposit);
+        _burnTokens(dlc.creator, dlc.valueLocked);
 
         dlcManager.closeDLC(uuid, _calculateOutcome());
     }
@@ -258,51 +207,20 @@ contract TokenManager is
     function postCloseDLCHandler(
         bytes32 uuid,
         string calldata btcTxId
-    ) external override whenNotPaused onlyDLCManagerContract {
-        Vault storage vault = vaults[vaultIDsByUUID[uuid]];
-        VaultStatus _newStatus = VaultStatus.Closed;
-        if (vault.uuid == bytes32(0)) revert VaultNotFound();
-        if (vault.status != VaultStatus.PreClosed) revert VaultNotPreClosed();
-        if (vault.status == _newStatus) revert VaultStateAlreadySet(_newStatus);
-
-        vault.closingTxId = btcTxId;
-        vault.status = _newStatus;
-        emit StatusUpdate(uuid, _newStatus);
-    }
+    ) external override whenNotPaused onlyDLCManagerContract {}
 
     ////////////////////////////////////////////////////////////////
     //                      VIEW FUNCTIONS                        //
     ////////////////////////////////////////////////////////////////
 
-    function getVault(bytes32 _uuid) public view returns (Vault memory) {
-        return vaults[vaultIDsByUUID[_uuid]];
+    function getVault(bytes32 _uuid) public view returns (DLCLink.DLC memory) {
+        return dlcManager.getDLC(_uuid);
     }
 
-    function getAllVaultsForAddress(
+    function getAllVaultUUIDsForAddress(
         address _address
-    ) public view returns (Vault[] memory) {
-        Vault[] memory _vaults = new Vault[](vaultsPerAddress[_address]);
-        uint256 _vaultCount = 0;
-        for (uint256 i = 0; i < vaultCount; i++) {
-            if (vaults[i].owner == _address) {
-                _vaults[_vaultCount] = vaults[i];
-                _vaultCount++;
-            }
-        }
-        return _vaults;
-    }
-
-    // Return a list of the Bitcoin tx ids of every Funded vault
-    function getFundedTxIds() public view returns (string[] memory) {
-        string[] memory _txIds = new string[](vaultCount);
-        uint256 _txIdCount = 0;
-        for (uint256 i = 0; i < vaultCount; i++) {
-            if (vaults[i].status == VaultStatus.Funded) {
-                _txIds[_txIdCount] = vaults[i].fundingTxId;
-                _txIdCount++;
-            }
-        }
-        return _txIds;
+    ) public view returns (bytes32[] memory) {
+        return userVaults[_address];
     }
 
     ////////////////////////////////////////////////////////////////

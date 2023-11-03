@@ -326,9 +326,7 @@ describe('DLCManagerV1', () => {
         it('reverts if called from a contract that isnt he owner/creator', async () => {
             await expect(
                 dlcManager.connect(randomAccount).closeDLC(uuid, outcome)
-            ).to.be.revertedWith(
-                'Only the DLC owner can call this function'
-            );
+            ).to.be.revertedWith('Only the DLC owner can call this function');
         });
 
         it('reverts if DLC is not in the right state', async () => {
@@ -347,7 +345,7 @@ describe('DLCManagerV1', () => {
 
         it('emits a CloseDLC event with the correct data', async () => {
             const tx = await mockProtocol
-                .connect(protocol)
+                .connect(user)
                 .requestCloseDLC(uuid, outcome);
             const receipt = await tx.wait();
             const event = receipt.events[0];

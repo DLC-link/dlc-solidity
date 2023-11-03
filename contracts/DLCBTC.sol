@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
 //     ___  __   ___    __ _       _
 //    /   \/ /  / __\  / /(_)_ __ | | __
 //   / /\ / /  / /    / / | | '_ \| |/ /
 //  / /_// /__/ /____/ /__| | | | |   <
 // /___,'\____|____(_)____/_|_| |_|_|\_\
+
+pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
