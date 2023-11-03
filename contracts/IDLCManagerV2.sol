@@ -13,7 +13,7 @@ interface IDLCManagerV2 {
 
     function setStatusFunded(bytes32 _uuid, string calldata _btcTxId) external;
 
-    function closeDLC(bytes32 _uuid, uint16 _outcome) external;
+    function closeDLC(bytes32 _uuid, uint256 _outcome) external;
 
     function postCloseDLC(bytes32 _uuid, string calldata _btcTxId) external;
 }

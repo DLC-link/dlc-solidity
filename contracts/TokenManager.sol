@@ -55,6 +55,7 @@ contract TokenManager is
     IDLCManagerV2 public dlcManager; // DLCManager contract
     address public protocolWalletAddress; // router-wallet address
     uint256 public minimumDeposit; // in sats
+    uint256 public feeRate; // in basis points (10000 = 100%)
     uint256 public vaultCount;
 
     mapping(uint256 => Vault) public vaults;
@@ -70,6 +71,7 @@ contract TokenManager is
     error NotPauser();
     error NotOwner();
     error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
+    error InsufficentTokenBalance(uint256 balance, uint256 amount);
     error WrongVaultState();
     error VaultStateAlreadySet(VaultStatus status);
     error VaultNotFound();
@@ -97,7 +99,7 @@ contract TokenManager is
         _;
     }
 
-    modifier onlyOwner(bytes32 uuid) {
+    modifier onlyVaultOwner(bytes32 uuid) {
         if (vaults[vaultIDsByUUID[uuid]].owner != msg.sender) revert NotOwner();
         _;
     }
@@ -114,6 +116,7 @@ contract TokenManager is
         dlcBTC = _tokenContract;
         protocolWalletAddress = _protocolWallet;
         minimumDeposit = 1000; // 0.00001 BTC
+        feeRate = 0; // 0% fee for now
         vaultCount = 0;
     }
 
@@ -134,9 +137,37 @@ contract TokenManager is
 
     event StatusUpdate(bytes32 dlcUUID, VaultStatus newStatus);
 
+    event Mint(address to, uint256 amount);
+
+    event Burn(address from, uint256 amount);
+
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
     ////////////////////////////////////////////////////////////////
+
+    // _amount is in sats
+    // _feeRate is in basis points, e.g. 100 = 1% fee
+    function _getFeeAdjustedAmount(
+        uint256 _amount,
+        uint256 _feeRate
+    ) internal pure returns (uint256) {
+        return (_amount * (10000 - _feeRate)) / 10000;
+    }
+
+    // NOTE: there is no BTC fee on unmint currently
+    function _calculateOutcome() internal pure returns (uint256) {
+        return 10000;
+    }
+
+    function _mintTokens(address _to, uint256 _amount) internal {
+        dlcBTC.mint(_to, _amount);
+        emit Mint(_to, _amount);
+    }
+
+    function _burnTokens(address _from, uint256 _amount) internal {
+        dlcBTC.burn(_from, _amount);
+        emit Burn(_from, _amount);
+    }
 
     ////////////////////////////////////////////////////////////////
     //                       MAIN FUNCTIONS                       //
@@ -195,27 +226,33 @@ contract TokenManager is
         vault.status = _newStatus;
         emit StatusUpdate(uuid, _newStatus);
 
-        // TODO:
-        // - we want to store the txids in an easily queryable mapping/two
-        // - we want to mint the tokens to the owner, preferably in a composable way
+        _mintTokens(
+            vault.owner,
+            _getFeeAdjustedAmount(vault.btcDeposit, feeRate)
+        );
     }
 
-    function closeVault(bytes32 uuid) external whenNotPaused onlyOwner(uuid) {
+    function closeVault(
+        bytes32 uuid
+    ) external whenNotPaused onlyVaultOwner(uuid) {
         Vault storage vault = vaults[vaultIDsByUUID[uuid]];
         VaultStatus _newStatus = VaultStatus.PreClosed;
         if (vault.uuid == bytes32(0)) revert VaultNotFound();
         // NOTE: ? should we allow closing a vault that is not funded?
         if (vault.status != VaultStatus.Funded) revert VaultNotFunded();
         if (vault.status == _newStatus) revert VaultStateAlreadySet(_newStatus);
+        if (vault.btcDeposit > dlcBTC.balanceOf(vault.owner))
+            revert InsufficentTokenBalance(
+                dlcBTC.balanceOf(vault.owner),
+                vault.btcDeposit
+            );
 
         vault.status = _newStatus;
         emit StatusUpdate(uuid, _newStatus);
 
-        // TODO: add outcome computation in a composable way
-        // burn the tokens
-        // call the dlcManager to close the dlc
+        _burnTokens(vault.owner, vault.btcDeposit);
 
-        // dlcManager.closeDLC(uuid, outcome);
+        dlcManager.closeDLC(uuid, _calculateOutcome());
     }
 
     function postCloseDLCHandler(
@@ -231,9 +268,6 @@ contract TokenManager is
         vault.closingTxId = btcTxId;
         vault.status = _newStatus;
         emit StatusUpdate(uuid, _newStatus);
-
-        // TODO:
-        // - we want to invalidate the txid
     }
 
     ////////////////////////////////////////////////////////////////
@@ -258,6 +292,19 @@ contract TokenManager is
         return _vaults;
     }
 
+    // Return a list of the Bitcoin tx ids of every Funded vault
+    function getFundedTxIds() public view returns (string[] memory) {
+        string[] memory _txIds = new string[](vaultCount);
+        uint256 _txIdCount = 0;
+        for (uint256 i = 0; i < vaultCount; i++) {
+            if (vaults[i].status == VaultStatus.Funded) {
+                _txIds[_txIdCount] = vaults[i].fundingTxId;
+                _txIdCount++;
+            }
+        }
+        return _txIds;
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -268,6 +315,10 @@ contract TokenManager is
 
     function setMinimumDeposit(uint256 _minimumDeposit) external onlyDLCAdmin {
         minimumDeposit = _minimumDeposit;
+    }
+
+    function setFeeRate(uint256 _feeRate) external onlyDLCAdmin {
+        feeRate = _feeRate;
     }
 
     function updateDLCManagerContract(

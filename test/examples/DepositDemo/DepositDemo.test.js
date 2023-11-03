@@ -143,8 +143,8 @@ describe('DepositDemo', function () {
             const deposit = await depositDemo.getDeposit(0);
             expect(deposit.depositAmount).to.equal(btcDeposit);
         });
-        it('mints btcDeposit amount of DLCBTCExample tokens to creator', async () => {
-            const userBalance = await DLCBTCExample.balanceOf(user.address);
+        it('mints btcDeposit amount of dlcBtc tokens to creator', async () => {
+            const userBalance = await dlcBtc.balanceOf(user.address);
             expect(userBalance).to.equal(btcDeposit);
         });
     });
@@ -171,10 +171,7 @@ describe('DepositDemo', function () {
             ).to.be.revertedWith('ERC20: insufficient allowance');
         });
         it('emits a StatusUpdate event', async () => {
-            await DLCBTCExample.connect(user).approve(
-                depositDemo.address,
-                btcDeposit
-            );
+            await dlcBtc.connect(user).approve(depositDemo.address, btcDeposit);
             const tx = await depositDemo.connect(user).closeDeposit(0);
             const receipt = await tx.wait();
             const event = receipt.events.find(
@@ -187,25 +184,17 @@ describe('DepositDemo', function () {
             ]);
         });
         it('sets the status of the deposit to preclosed', async () => {
-            await DLCBTCExample.connect(user).approve(
-                depositDemo.address,
-                btcDeposit
-            );
+            await dlcBtc.connect(user).approve(depositDemo.address, btcDeposit);
             await depositDemo.connect(user).closeDeposit(0);
             const deposit = await depositDemo.getDeposit(0);
             expect(deposit.status).to.equal(Status.PreClosed);
         });
-        it('burns the DLCBTCExample tokens', async () => {
-            const userBalanceBefore = await DLCBTCExample.balanceOf(
-                user.address
-            );
+        it('burns the dlcBtc tokens', async () => {
+            const userBalanceBefore = await dlcBtc.balanceOf(user.address);
             expect(userBalanceBefore).to.equal(btcDeposit);
-            await DLCBTCExample.connect(user).approve(
-                depositDemo.address,
-                btcDeposit
-            );
+            await dlcBtc.connect(user).approve(depositDemo.address, btcDeposit);
             await depositDemo.connect(user).closeDeposit(0);
-            const userBalance = await DLCBTCExample.balanceOf(user.address);
+            const userBalance = await dlcBtc.balanceOf(user.address);
             expect(userBalance).to.equal(0);
         });
     });

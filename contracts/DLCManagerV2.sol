@@ -19,7 +19,7 @@ struct DLC {
     string[] attestorList;
     address protocolWallet;
     address creator;
-    uint16 outcome;
+    uint256 outcome;
     Status status;
 }
 
@@ -196,7 +196,7 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
 
     event CloseDLC(
         bytes32 uuid,
-        uint16 outcome,
+        uint256 outcome,
         address creator,
         address protocolWallet,
         address sender,
@@ -205,7 +205,7 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
 
     function closeDLC(
         bytes32 _uuid,
-        uint16 _outcome
+        uint256 _outcome
     ) external txSenderIsUUIDCreator(_uuid) whenNotPaused {
         _updateStatus(_uuid, Status.FUNDED, Status.CLOSING);
         dlcs[_uuid].outcome = _outcome;
@@ -221,7 +221,7 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
 
     event PostCloseDLC(
         bytes32 uuid,
-        uint16 outcome,
+        uint256 outcome,
         address creator,
         address protocolWallet,
         address sender,
