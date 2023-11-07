@@ -41,12 +41,12 @@ contract TokenManager is
     IDLCManagerV2 public dlcManager; // DLCManager contract
     address public routerWalletAddress; // router-wallet address
     uint256 public minimumDeposit; // in sats
+    uint256 public maximumDeposit; // in sats
     uint256 public feeRate; // in basis points (10000 = 100%)
-    uint256 public vaultCount;
+    bool public whitelistingEnabled;
 
     mapping(address => bytes32[]) public userVaults;
-    mapping(address => uint256) public vaultsPerAddress;
-    mapping(bytes32 => uint256) public vaultIDsByUUID;
+    mapping(address => bool) private _whitelistedAddresses;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -56,7 +56,9 @@ contract TokenManager is
     error NotDLCManagerContract();
     error NotPauser();
     error NotOwner();
+    error NotWhitelisted();
     error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
+    error DepositTooLarge(uint256 deposit, uint256 maximumDeposit);
     error InsufficentTokenBalance(uint256 balance, uint256 amount);
 
     ////////////////////////////////////////////////////////////////
@@ -79,6 +81,12 @@ contract TokenManager is
         _;
     }
 
+    modifier onlyWhitelisted() {
+        if (whitelistingEnabled && !_whitelistedAddresses[msg.sender])
+            revert NotWhitelisted();
+        _;
+    }
+
     function initialize(
         address _dlcManagerAddress,
         DLCBTC _tokenContract,
@@ -91,9 +99,11 @@ contract TokenManager is
         dlcManager = IDLCManagerV2(_dlcManagerAddress);
         dlcBTC = _tokenContract;
         routerWalletAddress = _routerWalletAddress;
+        // NOTE:
         minimumDeposit = 1000; // 0.00001 BTC
-        feeRate = 0; // 0% fee for now
-        vaultCount = 0;
+        maximumDeposit = 1000000000; // 10 BTC
+        feeRate = 0; // 0% dlcBTC fee for now
+        whitelistingEnabled = true;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -158,9 +168,11 @@ contract TokenManager is
     function setupVault(
         uint256 btcDeposit,
         uint8 attestorCount
-    ) external whenNotPaused returns (bytes32) {
+    ) external whenNotPaused onlyWhitelisted returns (bytes32) {
         if (btcDeposit < minimumDeposit)
             revert DepositTooSmall(btcDeposit, minimumDeposit);
+        if (btcDeposit > maximumDeposit)
+            revert DepositTooLarge(btcDeposit, maximumDeposit);
 
         (bytes32 _uuid, string[] memory attestorList) = dlcManager.createDLC(
             routerWalletAddress,
@@ -169,10 +181,6 @@ contract TokenManager is
         );
 
         userVaults[msg.sender].push(_uuid);
-
-        vaultIDsByUUID[_uuid] = vaultCount;
-        vaultsPerAddress[msg.sender]++;
-        vaultCount++;
 
         emit SetupVault(_uuid, btcDeposit, attestorList, msg.sender);
 
@@ -229,6 +237,10 @@ contract TokenManager is
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
+    function whitelistAddress(address _address) external onlyDLCAdmin {
+        _whitelistedAddresses[_address] = true;
+    }
+
     function setRouterWallet(address _routerWallet) external onlyDLCAdmin {
         routerWalletAddress = _routerWallet;
     }
@@ -237,8 +249,18 @@ contract TokenManager is
         minimumDeposit = _minimumDeposit;
     }
 
+    function setMaximumDeposit(uint256 _maximumDeposit) external onlyDLCAdmin {
+        maximumDeposit = _maximumDeposit;
+    }
+
     function setFeeRate(uint256 _feeRate) external onlyDLCAdmin {
         feeRate = _feeRate;
+    }
+
+    function setWhitelistingEnabled(
+        bool _whitelistingEnabled
+    ) external onlyDLCAdmin {
+        whitelistingEnabled = _whitelistingEnabled;
     }
 
     function updateDLCManagerContract(

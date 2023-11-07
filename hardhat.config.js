@@ -4,7 +4,6 @@ require('@nomicfoundation/hardhat-toolbox');
 require('@openzeppelin/hardhat-upgrades');
 require('@nomicfoundation/hardhat-chai-matchers');
 require('@nomiclabs/hardhat-solhint');
-require('@nomiclabs/hardhat-etherscan');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
 

@@ -138,12 +138,12 @@ contract MockDLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
     ////////////////////////////////////////////////////////////////
 
     function _generateUUID(
-        address sender,
-        uint256 nonce
+        address /*sender*/,
+        uint256 /*nonce*/
     ) private view returns (bytes32) {
         return
-            keccak256(
-                abi.encodePacked(sender, nonce, blockhash(block.number - 1))
+            bytes32(
+                0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967
             );
     }
 
@@ -167,9 +167,9 @@ contract MockDLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
         string[] memory _attestorList = new string[](3);
 
-        _attestorList[1] = "https://attestor1.com";
-        _attestorList[2] = "https://attestor2.com";
-        _attestorList[3] = "https://attestor3.com";
+        _attestorList[0] = "https://attestor1.com";
+        _attestorList[1] = "https://attestor2.com";
+        _attestorList[2] = "https://attestor3.com";
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
