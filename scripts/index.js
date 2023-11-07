@@ -3,19 +3,20 @@ require('dotenv').config();
 const path = require('path');
 const { Command } = require('commander');
 const version = require('../package.json').version;
-const mintStablecoin = require('./01_mint-usdc');
+const mintStablecoin = require('./demos/01_mint-usdc');
 const addRoleToManager = require('./02_add-role-to-manager');
-const addRoleToBtcNft = require('./03_add-role-to-btcnft');
-const lendingSetupLoan = require('./04_lending-setup-loan');
-const lendingCloseLoan = require('./05_lending-close-loan');
-const sendEth = require('./08_send-eth');
-const sendNFT = require('./09_send-nft');
+const addRoleToBtcNft = require('./demos/03_add-role-to-btcnft');
+const lendingSetupLoan = require('./demos/04_lending-setup-loan');
+const lendingCloseLoan = require('./demos/05_lending-close-loan');
+const sendEth = require('./demos/08_send-eth');
+const sendNFT = require('./demos/09_send-nft');
 const deployV1 = require('./10_deploy-V1');
-const setupV1 = require('./12_V1-setup');
 const createV1 = require('./13_V1-create-dlc');
 const closeV1 = require('./14_V1-close-dlc');
-const setupVault = require('./15_V1-setup-vault');
+const setupVault = require('./demos/15_V1-setup-vault');
 const setStatusFunded = require('./16_V1-set-status-funded');
+
+const v2Flow = require('./17_V2-flow');
 
 const addAttestor = require('./12_a_V1-add-attestor');
 const removeAttestor = require('./12_ab_V1-remove-attestor');
@@ -115,11 +116,6 @@ async function main() {
         .action(registerProtocol);
 
     program
-        .command('setup')
-        .description('add attestors and register protocolContract')
-        .action(setupV1);
-
-    program
         .command('create-dlc')
         .description('create a DLC')
         .argument('[attestorCount]', 'number of attestors', 1)
@@ -145,6 +141,11 @@ async function main() {
         .description('set status to funded for uuid')
         .argument('<uuid>', 'uuid of DLC')
         .action(setStatusFunded);
+
+    program
+        .command('v2-flow')
+        .description('interactive v2 management flows')
+        .action(v2Flow);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
