@@ -35,6 +35,7 @@ module.exports = {
                 process.env['KEY'],
                 process.env['KEY2'],
                 process.env['KEY3'],
+                process.env['KEY_FOR_SAFE'],
             ],
         },
         goerli: {
@@ -43,6 +44,7 @@ module.exports = {
                 process.env['KEY'],
                 process.env['KEY2'],
                 process.env['KEY3'],
+                process.env['KEY_FOR_SAFE'],
             ],
         },
     },

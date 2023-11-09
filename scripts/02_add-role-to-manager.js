@@ -1,5 +1,5 @@
 require('dotenv').config();
-const web3 = require('web3');
+
 const hardhat = require('hardhat');
 const {
     loadDeploymentInfo,
@@ -18,7 +18,11 @@ module.exports = async function addRoleToManager(role, grantRoleToAddress) {
         deployInfo.contract.abi,
         accounts[0]
     );
-    const RoleInBytes = web3.utils.soliditySha3(role);
+    const RoleInBytes = hardhat.ethers.utils.id(role);
     const tx = await dlcManager.grantRole(RoleInBytes, grantRoleToAddress);
+    const txRequest = await dlcManager.populateTransaction.grantRole(
+        RoleInBytes,
+        grantRoleToAddress
+    );
     console.log(tx);
 };

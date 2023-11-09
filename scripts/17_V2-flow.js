@@ -1,6 +1,6 @@
 require('dotenv').config();
 const hardhat = require('hardhat');
-const web3 = require('web3');
+
 const prompts = require('prompts');
 const chalk = require('chalk');
 const {

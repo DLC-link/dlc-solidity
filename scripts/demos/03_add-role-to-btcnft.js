@@ -1,24 +1,25 @@
 require('dotenv').config();
+
 const hardhat = require('hardhat');
 const {
     loadDeploymentInfo,
-} = require('./helpers/deployment-handlers_versioned');
+} = require('../helpers/deployment-handlers_versioned');
 
-module.exports = async function lendingCloseLoan(loanID) {
+module.exports = async function addRoleToBtcNft(role, grantRoleToAddress) {
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'LendingContract',
+        'BtcNft',
         'v1'
     );
     const accounts = await hardhat.ethers.getSigners();
 
-    const lendingDemo = new hardhat.ethers.Contract(
+    const dlcManager = new hardhat.ethers.Contract(
         deployInfo.contract.address,
         deployInfo.contract.abi,
         accounts[0]
     );
-
-    const tx = await lendingDemo.closeLoan(loanID);
+    const RoleInBytes = hardhat.ethers.utils.id(role);
+    const tx = await dlcManager.grantRole(RoleInBytes, grantRoleToAddress);
     const receipt = await tx.wait();
-    console.log(receipt);
+    console.log(``);
 };

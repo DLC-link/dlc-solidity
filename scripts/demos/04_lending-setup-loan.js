@@ -2,7 +2,7 @@ require('dotenv').config();
 const hardhat = require('hardhat');
 const {
     loadDeploymentInfo,
-} = require('./helpers/deployment-handlers_versioned');
+} = require('../helpers/deployment-handlers_versioned');
 
 module.exports = async function lendingSetupLoan(
     btcDeposit = 100000000,

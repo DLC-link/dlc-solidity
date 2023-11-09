@@ -1,7 +1,7 @@
 const hardhat = require('hardhat');
 const {
     loadDeploymentInfo,
-} = require('./helpers/deployment-handlers_versioned');
+} = require('../helpers/deployment-handlers_versioned');
 
 module.exports = async function setupVault(
     btcDeposit,

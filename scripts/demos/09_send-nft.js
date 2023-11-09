@@ -4,7 +4,7 @@ const {
     saveDeploymentInfo,
     deploymentInfo,
     loadDeploymentInfo,
-} = require('./helpers/deployment-handlers_versioned');
+} = require('../helpers/deployment-handlers_versioned');
 
 module.exports = async function sendNFT(privateKey, addressTo, id) {
     if (!privateKey || !addressTo || !id) throw 'Missing params';

@@ -1,6 +1,6 @@
 require('dotenv').config();
 const hardhat = require('hardhat');
-const web3 = require('web3');
+
 const prompts = require('prompts');
 const {
     saveDeploymentInfo,
@@ -240,11 +240,11 @@ module.exports = async function deployV1(version) {
         );
 
         await dlcManager.grantRole(
-            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
             lendingDemo.address
         );
         await dlcManager.grantRole(
-            web3.utils.soliditySha3('WHITELISTED_WALLET'),
+            hardhat.ethers.utils.id('WHITELISTED_WALLET'),
             protocol.address
         );
 
@@ -267,19 +267,20 @@ module.exports = async function deployV1(version) {
         );
     }
 
+    // NOTE: this was renamed after creating the real DLCBTC contract
     if (contractSelectPrompt.contracts.includes('DLCBTCExample')) {
         console.log(
             `deploying contract DLCBTCExample to network "${network}"...`
         );
         const DLCBTCExample =
             await hardhat.ethers.getContractFactory('DLCBTCExample');
-        const DLCBTCExample = await DLCBTCExample.deploy();
-        await DLCBTCExample.deployed();
+        const dlcBtcExample = await DLCBTCExample.deploy();
+        await dlcBtcExample.deployed();
         console.log(
-            `deployed contract DLCBTCExample to ${DLCBTCExample.address} (network: ${network})`
+            `deployed contract DLCBTCExample to ${dlcBtcExample.address} (network: ${network})`
         );
         await saveDeploymentInfo(
-            deploymentInfo(hardhat, DLCBTCExample, 'DLCBTCExample'),
+            deploymentInfo(hardhat, dlcBtcExample, 'DLCBTCExample'),
             version
         );
     }
@@ -345,11 +346,11 @@ module.exports = async function deployV1(version) {
         );
 
         await dlcManager.grantRole(
-            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
             dlcRouter.address
         );
         await dlcManager.grantRole(
-            web3.utils.soliditySha3('WHITELISTED_WALLET'),
+            hardhat.ethers.utils.id('WHITELISTED_WALLET'),
             protocolAddress
         );
     }
@@ -411,11 +412,11 @@ module.exports = async function deployV1(version) {
         );
 
         await dlcManager.grantRole(
-            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
             depositDemo.address
         );
         await dlcManager.grantRole(
-            web3.utils.soliditySha3('WHITELISTED_WALLET'),
+            hardhat.ethers.utils.id('WHITELISTED_WALLET'),
             protocolAddress
         );
     }

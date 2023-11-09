@@ -22,6 +22,8 @@ const addAttestor = require('./12_a_V1-add-attestor');
 const removeAttestor = require('./12_ab_V1-remove-attestor');
 const registerProtocol = require('./12_b_V1-register-protocol');
 
+const safeContractProposal = require('./helpers/safe-api-service');
+
 async function main() {
     const program = new Command();
 
@@ -146,6 +148,11 @@ async function main() {
         .command('v2-flow')
         .description('interactive v2 management flows')
         .action(v2Flow);
+
+    program
+        .command('test-safe-api')
+        .description('test safe api')
+        .action(safeContractProposal);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
