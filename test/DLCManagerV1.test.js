@@ -1,6 +1,5 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const web3 = require('web3');
 
 async function whitelistProtocolContractAndAddress(
     dlcManager,
@@ -8,11 +7,11 @@ async function whitelistProtocolContractAndAddress(
     protocolWallet
 ) {
     await dlcManager.grantRole(
-        web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+        ethers.utils.id('WHITELISTED_CONTRACT'),
         mockProtocol.address
     );
     await dlcManager.grantRole(
-        web3.utils.soliditySha3('WHITELISTED_WALLET'),
+        ethers.utils.id('WHITELISTED_WALLET'),
         protocolWallet.address
     );
 }
@@ -107,7 +106,7 @@ describe('DLCManagerV1', () => {
 
         it('reverts if called with a non-whitelisted protocolWallet address', async () => {
             await dlcManager.grantRole(
-                web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+                ethers.utils.id('WHITELISTED_CONTRACT'),
                 mockProtocol.address
             );
             await expect(
@@ -199,7 +198,7 @@ describe('DLCManagerV1', () => {
 
         it('reverts if not called from the associated wallet', async () => {
             await dlcManager.grantRole(
-                web3.utils.soliditySha3('WHITELISTED_WALLET'),
+                ethers.utils.id('WHITELISTED_WALLET'),
                 randomAccount.address
             );
 
@@ -258,7 +257,7 @@ describe('DLCManagerV1', () => {
 
         it('reverts if not called from the associated wallet', async () => {
             await dlcManager.grantRole(
-                web3.utils.soliditySha3('WHITELISTED_WALLET'),
+                ethers.utils.id('WHITELISTED_WALLET'),
                 randomAccount.address
             );
 
@@ -405,7 +404,7 @@ describe('DLCManagerV1', () => {
 
         it('reverts if not called from the associated wallet', async () => {
             await dlcManager.grantRole(
-                web3.utils.soliditySha3('WHITELISTED_WALLET'),
+                ethers.utils.id('WHITELISTED_WALLET'),
                 randomAccount.address
             );
 

@@ -1,10 +1,9 @@
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
-const web3 = require('web3');
 
 function getRoleInBytes(role) {
-    return web3.utils.soliditySha3(role);
+    return ethers.utils.id(role);
 }
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';

@@ -1,6 +1,5 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const web3 = require('web3');
 
 async function whitelistProtocolContract(
     lendingContract,
@@ -11,15 +10,12 @@ async function whitelistProtocolContract(
     await dlcManager
         .connect(deployer)
         .grantRole(
-            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+            ethers.utils.id('WHITELISTED_CONTRACT'),
             lendingContract.address
         );
     await dlcManager
         .connect(deployer)
-        .grantRole(
-            web3.utils.soliditySha3('WHITELISTED_WALLET'),
-            protocol.address
-        );
+        .grantRole(ethers.utils.id('WHITELISTED_WALLET'), protocol.address);
 }
 
 async function setupFundedLoan(
@@ -70,9 +66,8 @@ describe('LendingContract', () => {
         user = accounts[2];
         someRandomAccount = accounts[3];
 
-        const MockV3Aggregator = await ethers.getContractFactory(
-            'MockV3Aggregator'
-        );
+        const MockV3Aggregator =
+            await ethers.getContractFactory('MockV3Aggregator');
         mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
         await mockV3Aggregator.deployTransaction.wait();
 

@@ -1,7 +1,6 @@
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
-const web3 = require('web3');
 
 describe('USDCBorrowVault', function () {
     let mockAttestorManager;
@@ -58,15 +57,12 @@ describe('USDCBorrowVault', function () {
         await dlcManager
             .connect(deployer)
             .grantRole(
-                web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
+                ethers.utils.id('WHITELISTED_CONTRACT'),
                 depositDemo.address
             );
         await dlcManager
             .connect(deployer)
-            .grantRole(
-                web3.utils.soliditySha3('WHITELISTED_WALLET'),
-                protocol.address
-            );
+            .grantRole(ethers.utils.id('WHITELISTED_WALLET'), protocol.address);
 
         const MockV3Aggregator =
             await ethers.getContractFactory('MockV3Aggregator');
