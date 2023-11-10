@@ -13,6 +13,13 @@ const mockAttestorList = [
     'https://attestor3.com',
 ];
 
+const Status = {
+    READY: 0,
+    FUNDED: 1,
+    CLOSING: 2,
+    CLOSED: 3,
+};
+
 describe('TokenManager', function () {
     let tokenManager, mockDLCManagerV2, dlcBtc;
     let deployer, routerWallet, user, someRandomAccount;
@@ -75,6 +82,7 @@ describe('TokenManager', function () {
                 );
             });
         });
+
         describe('setMinimumDeposit', async () => {
             it('reverts on unauthorized calls', async () => {
                 await expect(
@@ -88,6 +96,7 @@ describe('TokenManager', function () {
                 expect(await tokenManager.minimumDeposit()).to.equal(1000);
             });
         });
+
         describe('setMaximumDeposit', async () => {
             it('reverts on unauthorized calls', async () => {
                 await expect(
@@ -101,19 +110,50 @@ describe('TokenManager', function () {
                 expect(await tokenManager.maximumDeposit()).to.equal(1000);
             });
         });
-        describe('setFeeRate', async () => {
+
+        describe('setMintFeeRate', async () => {
             it('reverts on unauthorized calls', async () => {
                 await expect(
                     tokenManager
                         .connect(someRandomAccount)
-                        .setFeeRate(someRandomAccount.address)
+                        .setMintFeeRate(someRandomAccount.address)
                 ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
             });
-            it('should set fee rate', async () => {
-                await tokenManager.connect(deployer).setFeeRate(1000);
-                expect(await tokenManager.feeRate()).to.equal(1000);
+            it('should set mint fee rate', async () => {
+                await tokenManager.connect(deployer).setMintFeeRate(1000);
+                expect(await tokenManager.mintFeeRate()).to.equal(1000);
+            });
+            it('should change the amount of tokens minted', async () => {
+                await tokenManager.connect(deployer).setMintFeeRate(1000);
+                expect(
+                    await tokenManager
+                        .connect(user)
+                        .previewFeeAdjustedAmount(deposit)
+                ).to.equal(deposit * 0.9);
+
+                await tokenManager.connect(deployer).setMintFeeRate(2000);
+                expect(
+                    await tokenManager
+                        .connect(user)
+                        .previewFeeAdjustedAmount(deposit)
+                ).to.equal(deposit * 0.8);
             });
         });
+
+        describe('setOutcomeFee', async () => {
+            it('reverts on unauthorized calls', async () => {
+                await expect(
+                    tokenManager
+                        .connect(someRandomAccount)
+                        .setOutcomeFee(someRandomAccount.address)
+                ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
+            });
+            it('should set outcome fee rate', async () => {
+                await tokenManager.connect(deployer).setOutcomeFee(1000);
+                expect(await tokenManager.outcomeFee()).to.equal(1000);
+            });
+        });
+
         describe('pauseContract', async () => {
             it('is only callable by PAUSER_ROLE', async () => {
                 await expect(
@@ -133,13 +173,13 @@ describe('TokenManager', function () {
             });
         });
     });
+
     describe('setupVault', async () => {
         it('reverts when called by non-whitelisted address', async () => {
             await expect(
                 tokenManager.connect(user).setupVault(deposit, attestorCount)
             ).to.be.revertedWithCustomError(tokenManager, 'NotWhitelisted');
         });
-
         it('is only callable when contract is unpaused', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             await tokenManager.connect(deployer).pauseContract();
@@ -210,6 +250,7 @@ describe('TokenManager', function () {
         });
         xit('emits the correct event', async () => {});
     });
+
     describe('setStatusFunded', async () => {
         it('is only callable when contract is unpaused', async () => {
             await tokenManager.connect(deployer).pauseContract();
@@ -240,7 +281,19 @@ describe('TokenManager', function () {
             );
         });
     });
+
     describe('closeVault', async () => {
+        beforeEach(async () => {
+            await tokenManager.connect(deployer).whitelistAddress(user.address);
+            const tx = await tokenManager
+                .connect(user)
+                .setupVault(deposit, attestorCount);
+            await tx.wait();
+            const tx2 = await mockDLCManagerV2
+                .connect(routerWallet)
+                .setStatusFunded(mockUUID, 'someTx');
+            await tx2.wait();
+        });
         it('is only callable when contract is unpaused', async () => {
             await tokenManager.connect(deployer).pauseContract();
             await expect(
@@ -252,7 +305,30 @@ describe('TokenManager', function () {
                 tokenManager.connect(someRandomAccount).closeVault(mockUUID)
             ).to.be.revertedWithCustomError(tokenManager, 'NotOwner');
         });
+        it('reverts if user does not have enough dlcBTC tokens', async () => {
+            await dlcBtc
+                .connect(user)
+                .transfer(someRandomAccount.address, 5000);
+            await expect(
+                tokenManager.connect(user).closeVault(mockUUID)
+            ).to.be.revertedWithCustomError(
+                tokenManager,
+                'InsufficientTokenBalance'
+            );
+        });
+        it('burns the users dlcBTC tokens', async () => {
+            await tokenManager.connect(user).closeVault(mockUUID);
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(0);
+        });
+        it('calls the DLCManager to close the DLC with full repayment', async () => {
+            const tx = await tokenManager.connect(user).closeVault(mockUUID);
+            await tx.wait();
+            const vault = await tokenManager.getVault(mockUUID);
+            expect(vault.status).to.equal(Status.CLOSING);
+            expect(vault.outcome).to.equal(BigNumber.from(10000));
+        });
     });
+
     describe('postCloseDLCHandler', async () => {
         it('is only callable when contract is unpaused', async () => {
             await tokenManager.connect(deployer).pauseContract();

@@ -42,7 +42,8 @@ contract TokenManager is
     address public routerWalletAddress; // router-wallet address
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
-    uint256 public feeRate; // in basis points (10000 = 100%)
+    uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
+    uint256 public outcomeFee; // in basis points (10000 = 100%) -- BTC
     bool public whitelistingEnabled;
 
     mapping(address => bytes32[]) public userVaults;
@@ -59,7 +60,7 @@ contract TokenManager is
     error NotWhitelisted();
     error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
     error DepositTooLarge(uint256 deposit, uint256 maximumDeposit);
-    error InsufficentTokenBalance(uint256 balance, uint256 amount);
+    error InsufficientTokenBalance(uint256 balance, uint256 amount);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -102,7 +103,8 @@ contract TokenManager is
         // NOTE:
         minimumDeposit = 1000; // 0.00001 BTC
         maximumDeposit = 1000000000; // 10 BTC
-        feeRate = 0; // 0% dlcBTC fee for now
+        mintFeeRate = 0; // 0% dlcBTC fee for now
+        outcomeFee = 0; // 0% BTC bias for now
         whitelistingEnabled = true;
     }
 
@@ -131,17 +133,15 @@ contract TokenManager is
     ////////////////////////////////////////////////////////////////
 
     // _amount is in sats
-    // _feeRate is in basis points, e.g. 100 = 1% fee
+    // mintFeeRate is in basis points, e.g. 100 = 1% fee
     function _getFeeAdjustedAmount(
-        uint256 _amount,
-        uint256 _feeRate
-    ) internal pure returns (uint256) {
-        return (_amount * (10000 - _feeRate)) / 10000;
+        uint256 _amount
+    ) internal view returns (uint256) {
+        return (_amount * (10000 - mintFeeRate)) / 10000;
     }
 
-    // NOTE: there is no BTC fee on unmint currently
-    function _calculateOutcome() internal pure returns (uint256) {
-        return 10000;
+    function _calculateOutcome() internal view returns (uint256) {
+        return 10000 - outcomeFee;
     }
 
     function _mintTokens(address _to, uint256 _amount) internal {
@@ -193,10 +193,7 @@ contract TokenManager is
     ) external override whenNotPaused onlyDLCManagerContract {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
 
-        _mintTokens(
-            dlc.creator,
-            _getFeeAdjustedAmount(dlc.valueLocked, feeRate)
-        );
+        _mintTokens(dlc.creator, _getFeeAdjustedAmount(dlc.valueLocked));
     }
 
     function closeVault(bytes32 uuid) external whenNotPaused {
@@ -204,7 +201,7 @@ contract TokenManager is
         if (dlc.creator != msg.sender) revert NotOwner();
 
         if (dlc.valueLocked > dlcBTC.balanceOf(dlc.creator))
-            revert InsufficentTokenBalance(
+            revert InsufficientTokenBalance(
                 dlcBTC.balanceOf(dlc.creator),
                 dlc.valueLocked
             );
@@ -233,6 +230,12 @@ contract TokenManager is
         return userVaults[_address];
     }
 
+    function previewFeeAdjustedAmount(
+        uint256 _amount
+    ) external view returns (uint256) {
+        return _getFeeAdjustedAmount(_amount);
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -253,8 +256,12 @@ contract TokenManager is
         maximumDeposit = _maximumDeposit;
     }
 
-    function setFeeRate(uint256 _feeRate) external onlyDLCAdmin {
-        feeRate = _feeRate;
+    function setMintFeeRate(uint256 _mintFeeRate) external onlyDLCAdmin {
+        mintFeeRate = _mintFeeRate;
+    }
+
+    function setOutcomeFee(uint256 _outcomeFee) external onlyDLCAdmin {
+        outcomeFee = _outcomeFee;
     }
 
     function setWhitelistingEnabled(
