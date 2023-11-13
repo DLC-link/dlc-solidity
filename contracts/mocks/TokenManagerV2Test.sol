@@ -89,14 +89,15 @@ contract TokenManagerV2Test is
     }
 
     function initialize(
+        address _adminAddress,
         address _dlcManagerAddress,
         DLCBTC _tokenContract,
         address _routerWalletAddress
     ) public initializer {
-        __AccessControlDefaultAdminRules_init(2 days, msg.sender);
-        _grantRole(DLC_ADMIN_ROLE, msg.sender);
+        __AccessControlDefaultAdminRules_init(2 days, _adminAddress);
+        _grantRole(DLC_ADMIN_ROLE, _adminAddress);
         _grantRole(DLC_MANAGER_ROLE, _dlcManagerAddress);
-        _grantRole(PAUSER_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, _adminAddress);
         dlcManager = IDLCManagerV2(_dlcManagerAddress);
         dlcBTC = _tokenContract;
         routerWalletAddress = _routerWalletAddress;
