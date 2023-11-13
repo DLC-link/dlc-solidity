@@ -3,7 +3,8 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-module.exports = async function createDLC(attestorCount) {
+// For testing purposes only
+module.exports = async function createDLC(attestorCount, version) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
     const protocol = accounts[1];
@@ -11,7 +12,7 @@ module.exports = async function createDLC(attestorCount) {
     const dlcManagerDeployInfo = await loadDeploymentInfo(
         hardhat.network.name,
         'DlcManager',
-        'v1'
+        version
     );
 
     const dlcManager = new hardhat.ethers.Contract(
@@ -23,7 +24,7 @@ module.exports = async function createDLC(attestorCount) {
     const mockProtocolDeployInfo = await loadDeploymentInfo(
         hardhat.network.name,
         'MockProtocol',
-        'v1'
+        version
     );
 
     const mockProtocol = new hardhat.ethers.Contract(

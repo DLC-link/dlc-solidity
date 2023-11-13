@@ -4,23 +4,23 @@ const path = require('path');
 const { Command } = require('commander');
 const version = require('../package.json').version;
 const mintStablecoin = require('./demos/01_mint-usdc');
-const addRoleToManager = require('./02_add-role-to-manager');
+const addRoleToManager = require('./00-grant-role-on-manager');
 const addRoleToBtcNft = require('./demos/03_add-role-to-btcnft');
 const lendingSetupLoan = require('./demos/04_lending-setup-loan');
 const lendingCloseLoan = require('./demos/05_lending-close-loan');
 const sendEth = require('./demos/08_send-eth');
 const sendNFT = require('./demos/09_send-nft');
-const deployV1 = require('./10_deploy-V1');
-const createV1 = require('./13_V1-create-dlc');
-const closeV1 = require('./14_V1-close-dlc');
+const deployV1 = require('./51_deploy-V1');
+const createV1 = require('./01-create-dlc');
+const closeV1 = require('./02-close-dlc');
 const setupVault = require('./demos/15_V1-setup-vault');
-const setStatusFunded = require('./16_V1-set-status-funded');
+const setStatusFunded = require('./03-set-status-funded');
 
-const v2Flow = require('./17_V2-flow');
+const contractAdmin = require('./50_contract-admin');
 
-const addAttestor = require('./12_a_V1-add-attestor');
-const removeAttestor = require('./12_ab_V1-remove-attestor');
-const registerProtocol = require('./12_b_V1-register-protocol');
+const addAttestor = require('./10-add-attestor');
+const removeAttestor = require('./11-remove-attestor');
+const registerProtocol = require('./04-register-protocol');
 
 const safeContractProposal = require('./helpers/safe-api-service');
 
@@ -41,7 +41,7 @@ async function main() {
         .action(mintStablecoin);
 
     program
-        .command('add-role-to-manager')
+        .command('grant-role-on-manager')
         .description('grant role to grantRoleToAddress on DLCManager contract')
         .argument('[role]', 'the role to grant', 'DLC_ADMIN_ROLE')
         .argument(
@@ -49,6 +49,7 @@ async function main() {
             'the recipient of the role',
             process.env.ADMIN_ADDRESS
         )
+        .argument('[version]', 'version of DLCManager contract', 'v2')
         .action(addRoleToManager);
 
     program
@@ -102,12 +103,14 @@ async function main() {
         .command('add-attestor')
         .description('add attestor')
         .argument('<address>', 'address of attestor')
+        .argument('[version]', 'version of AttestorManager contract', 'v2')
         .action(addAttestor);
 
     program
         .command('remove-attestor')
         .description('remove attestor')
         .argument('<address>', 'address of attestor')
+        .argument('[version]', 'version of AttestorManager contract', 'v2')
         .action(removeAttestor);
 
     program
@@ -115,12 +118,14 @@ async function main() {
         .description('register protocol contract')
         .argument('<contractAddress>', 'address of protocol contract')
         .argument('<walletAddress>', 'address of protocol wallet')
+        .argument('[version]', 'version of DLCManager contract', 'v2')
         .action(registerProtocol);
 
     program
         .command('create-dlc')
         .description('create a DLC')
         .argument('[attestorCount]', 'number of attestors', 1)
+        .argument('[version]', 'version of DLCManager contract', 'v2')
         .action(createV1);
 
     program
@@ -128,6 +133,7 @@ async function main() {
         .description('close a DLC')
         .argument('<uuid>', 'uuid of DLC to close')
         .argument('[outcome]', 'outcome of DLC', 7890)
+        .argument('[version]', 'version of DLCManager contract', 'v2')
         .action(closeV1);
 
     program
@@ -142,12 +148,14 @@ async function main() {
         .command('set-status-funded')
         .description('set status to funded for uuid')
         .argument('<uuid>', 'uuid of DLC')
+        .argument('[version]', 'version of DLCManager contract', 'v2')
         .action(setStatusFunded);
 
     program
-        .command('v2-flow')
-        .description('interactive v2 management flows')
-        .action(v2Flow);
+        .command('contract-admin')
+        .description('interactive admin tools')
+        .argument('[version]', 'version of contracts', 'v2')
+        .action(contractAdmin);
 
     program
         .command('test-safe-api')

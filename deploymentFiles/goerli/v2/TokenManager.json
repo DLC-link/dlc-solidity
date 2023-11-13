@@ -1,9 +1,9 @@
 {
-  "network": "localhost",
+  "network": "goerli",
   "contract": {
     "name": "TokenManager",
-    "address": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-    "signerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "address": "0x8334dBDF0A74210ba6E81bB62ee71a199f0f97E9",
+    "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
       "error DepositTooLarge(uint256 deposit, uint256 maximumDeposit)",

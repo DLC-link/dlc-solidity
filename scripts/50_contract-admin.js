@@ -7,7 +7,8 @@ const {
     saveDeploymentInfo,
     deploymentInfo,
     loadDeploymentInfo,
-} = require('./helpers/deployment-handlers_versioned');
+} = require('./helpers/deployment-handlers_versioned.js');
+const dlcAdminSafes = require('./helpers/dlc-admin-safes.js');
 
 async function promptUser(message) {
     const response = await prompts({
@@ -19,11 +20,11 @@ async function promptUser(message) {
     return response.continue;
 }
 
-async function loadContract(requirement, network, contractName, version) {
-    const deployment = await loadDeploymentInfo(network, contractName, version);
+async function loadContract(requirement, network, version) {
+    const deployment = await loadDeploymentInfo(network, requirement, version);
     if (!deployment) {
         const shouldContinue = await promptUser(
-            `Requirement "${requirement}" not found. Continue?`
+            `Deployment "${requirement}" not found. Continue?`
         );
         if (!shouldContinue) {
             throw new Error('Deployment aborted by user.');
@@ -33,17 +34,20 @@ async function loadContract(requirement, network, contractName, version) {
     return deployment.contract.address;
 }
 
-module.exports = async function V2flow() {
+module.exports = async function contractAdmin(_version) {
     const network = hardhat.network.name;
-    const version = 'v2';
+    const version = _version;
     const accounts = await hardhat.ethers.getSigners();
     const deployer = accounts[0];
-    const routerWallet = accounts[1];
+    const routerWallet = accounts[2];
+    const dlcAdminSafe = dlcAdminSafes[network];
+    if (!dlcAdminSafe) throw new Error('DLC Admin Safe address not found.');
 
     const contractConfigs = [
         {
             name: 'AttestorManager',
             deployer: deployer.address,
+            upgradeable: false,
             requirements: [],
             deploy: async (contracts) => {
                 console.log(`Deploying AttestorManager to ${network}...`);
@@ -60,23 +64,40 @@ module.exports = async function V2flow() {
                 );
                 return attestorManager.address;
             },
+            verify: async () => {
+                const address = await loadContract(
+                    'AttestorManager',
+                    network,
+                    version
+                );
+                await hardhat.run('verify:verify', {
+                    address: address,
+                });
+            },
         },
         {
             name: 'DLCManager',
             deployer: deployer.address,
+            upgradeable: true,
             requirements: ['AttestorManager'],
             deploy: async (contracts) => {
                 const attestorManagerAddress = contracts['AttestorManager'];
                 if (!attestorManagerAddress)
                     throw new Error('AttestorManager deployment not found.');
+                const shouldContinue = await promptUser(
+                    `You are about to deploy DLCManager to ${network}.\nContructor arguments: _adminAddress: ${dlcAdminSafe}, _attestorManager: ${attestorManagerAddress}\n Continue?`
+                );
+                if (!shouldContinue) {
+                    throw new Error('Deployment aborted by user.');
+                }
                 console.log(
                     `Deploying contract DLCManagerV2 to network "${network}"...`
                 );
                 const DLCManager =
                     await hardhat.ethers.getContractFactory('DLCManagerV2');
-                const dlcManager = await DLCManager.deploy(
-                    deployer.address,
-                    attestorManagerAddress
+                const dlcManager = await hardhat.upgrades.deployProxy(
+                    DLCManager,
+                    [dlcAdminSafe, attestorManagerAddress]
                 );
                 await dlcManager.deployed();
                 console.log(
@@ -88,10 +109,21 @@ module.exports = async function V2flow() {
                 );
                 return dlcManager.address;
             },
+            verify: async () => {
+                const address = await loadContract(
+                    'DlcManager',
+                    network,
+                    version
+                );
+                await hardhat.run('verify:verify', {
+                    address: address,
+                });
+            },
         },
         {
             name: 'DLCBTC',
             deployer: deployer.address,
+            upgradeable: false,
             requirements: [],
             deploy: async (contracts) => {
                 console.log(
@@ -108,17 +140,19 @@ module.exports = async function V2flow() {
                     deploymentInfo(hardhat, dlcBtc, 'DLCBTC'),
                     version
                 );
-                console.log(
-                    chalk.bgYellow(
-                        "Don't forget to transfer ownership of DLCBTC to TokenManager, once it's deployed!"
-                    )
-                );
                 return dlcBtc.address;
+            },
+            verify: async () => {
+                const address = await loadContract('DLCBTC', network, version);
+                await hardhat.run('verify:verify', {
+                    address: address,
+                });
             },
         },
         {
             name: 'TokenManager',
             deployer: deployer.address,
+            upgradeable: true,
             requirements: ['DLCBTC', 'DLCManager'],
             deploy: async (contracts) => {
                 const DLCBTCAddress = contracts['DLCBTC'];
@@ -137,7 +171,12 @@ module.exports = async function V2flow() {
                 );
                 const tokenManager = await hardhat.upgrades.deployProxy(
                     TokenManager,
-                    [DLCManagerAddress, DLCBTCAddress, routerWallet.address]
+                    [
+                        dlcAdminSafe,
+                        DLCManagerAddress,
+                        DLCBTCAddress,
+                        routerWallet.address,
+                    ]
                 );
                 await tokenManager.deployed();
                 console.log(
@@ -147,7 +186,32 @@ module.exports = async function V2flow() {
                     deploymentInfo(hardhat, tokenManager, 'TokenManager'),
                     version
                 );
+
+                const shouldTransferOwnership = await promptUser(
+                    `Would you like to transfer ownership of DLCBTC contract to ${tokenManager.address}?`
+                );
+                if (shouldTransferOwnership) {
+                    const dlcBtc = await hardhat.ethers.getContractAt(
+                        'DLCBTC',
+                        DLCBTCAddress
+                    );
+                    await dlcBtc.transferOwnership(tokenManager.address);
+                    console.log(
+                        `Transferred ownership of DLCBTC to TokenManager at ${tokenManager.address}`
+                    );
+                }
+
                 return tokenManager.address;
+            },
+            verify: async () => {
+                const address = await loadContract(
+                    'TokenManager',
+                    network,
+                    version
+                );
+                await hardhat.run('verify:verify', {
+                    address: address,
+                });
             },
         },
     ];
@@ -172,15 +236,23 @@ module.exports = async function V2flow() {
                 description: 'Deploy V2 contracts',
                 value: 'deploy',
             },
+            {
+                title: 'Transfer DLCBTC Ownership',
+                value: 'transfer-dlcbtc',
+                description: 'Transfer ownership of DLCBTC after deployment',
+            },
+            {
+                title: 'Begin Transfer DEFAULT_ADMIN_ROLE',
+                value: 'transfer-admin',
+            },
             { title: 'Upgrade Proxy Implementation', value: 'upgrade' },
             { title: 'Verify Contract', value: 'verify' },
         ],
-        initial: 1,
+        initial: 0,
     });
 
     switch (action.value) {
-        case 'deploy':
-            // select contracts to deploy
+        case 'deploy': {
             const contractSelectPrompt = await prompts({
                 type: 'multiselect',
                 name: 'contracts',
@@ -192,10 +264,8 @@ module.exports = async function V2flow() {
                 min: 0,
                 max: 12,
             });
-            // check prerequisites, confirm
 
             await hardhat.run('compile');
-
             const deployedContracts = {};
 
             for (const contractName of contractSelectPrompt.contracts) {
@@ -211,7 +281,6 @@ module.exports = async function V2flow() {
                             deployedContracts[requirement] = await loadContract(
                                 requirement,
                                 network,
-                                requirement,
                                 version
                             );
                         }
@@ -239,20 +308,42 @@ module.exports = async function V2flow() {
                     );
                 }
             }
-
-            // deploy contracts
-            // save info
-            // wait and verify
             break;
-        case 'upgrade':
+        }
+        case 'transfer-admin': {
+            // this should call the transfer ADMIN role process for a given contract BY THE DEPLOYER.
+            break;
+        }
+        case 'upgrade': {
             // select contract to upgrade
             // test? prompt? confirm?
             // upgrade
             // wait and verify
             break;
-        case 'verify':
+        }
+        case 'verify': {
             // select contract
+            const contractSelectPrompt = await prompts({
+                type: 'select',
+                name: 'contracts',
+                message: `Select contract to verify on ${network}`,
+                choices: contractConfigs.map((config) => ({
+                    title: `${config.name}`,
+                    value: config.name,
+                })),
+            });
+            const contractName = contractSelectPrompt.contracts;
+            const contractConfig = contractConfigs.find(
+                (config) => config.name === contractName
+            );
+            try {
+                await contractConfig.verify();
+            } catch (error) {
+                console.error(error);
+            }
+
             break;
+        }
         default:
             break;
     }

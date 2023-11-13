@@ -1,9 +1,9 @@
 {
-  "network": "localhost",
+  "network": "goerli",
   "contract": {
     "name": "DlcManager",
-    "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-    "signerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "address": "0x5601dA89c2bE336b32B36B47dd916aC44eFc7ccE",
+    "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
       "error ContractNotWhitelisted()",

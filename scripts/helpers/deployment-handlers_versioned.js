@@ -20,7 +20,12 @@ async function saveDeploymentInfo(info, version, filename = undefined) {
     }
     console.log(`Writing deployment info to ${filename}`);
     const content = JSON.stringify(info, null, 2) + '\n';
-    await fs.writeFile(filename, content, { encoding: 'utf-8' });
+    try {
+        await fs.writeFile(filename, content, { encoding: 'utf-8' });
+    } catch (e) {
+        console.error(`Error writing deployment info to ${filename}: ${e}`);
+        return false;
+    }
     return true;
 }
 

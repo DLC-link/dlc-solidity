@@ -6,10 +6,12 @@ require('@nomicfoundation/hardhat-chai-matchers');
 require('@nomiclabs/hardhat-solhint');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
+require('solidity-docgen');
 
 require('dotenv').config();
 
 const url = `https://${process.env.HARDHAT_NETWORK}.infura.io/v3/${process.env.INFURA_PROJECT_ID}`;
+const gasPriceApi = `https://api.arbiscan.io/api?module=proxy&action=eth_gasPrice&apikey=${process.env.ARBISCAN_API_KEY}`;
 
 module.exports = {
     defaultNetwork: 'hardhat',
@@ -47,6 +49,15 @@ module.exports = {
                 process.env['KEY_FOR_SAFE'],
             ],
         },
+        arbitrumGoerli: {
+            url: 'https://goerli-rollup.arbitrum.io/rpc',
+            chainId: 421613,
+            //accounts: [GOERLI_TESTNET_PRIVATE_KEY]
+        },
+        arbitrumOne: {
+            url: 'https://arb1.arbitrum.io/rpc',
+            //accounts: [ARBITRUM_MAINNET_TEMPORARY_PRIVATE_KEY]
+        },
     },
     etherscan: {
         // Your API key for Etherscan
@@ -57,5 +68,11 @@ module.exports = {
         currency: 'USD',
         enabled: true,
         coinmarketcap: process.env['COINMARKETCAP_API_KEY'],
+        // gasPriceApi: gasPriceApi,
+        // gasPrice: 1,
+    },
+    docgen: {
+        pages: 'files',
+        exclude: ['mocks', 'test', 'examples'],
     },
 };

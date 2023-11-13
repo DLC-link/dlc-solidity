@@ -3,14 +3,15 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-module.exports = async function closeDLC(uuid, outcome) {
+// For testing purposes only
+module.exports = async function closeDLC(uuid, outcome, version) {
     const accounts = await hardhat.ethers.getSigners();
     const protocol = accounts[1];
 
     const mockProtocolDeployInfo = await loadDeploymentInfo(
         hardhat.network.name,
         'MockProtocol',
-        'v1'
+        version
     );
 
     const mockProtocol = new hardhat.ethers.Contract(

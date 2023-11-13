@@ -4,7 +4,7 @@
   "solidity.packageDefaultDependenciesDirectory": "node_modules",
   "editor.formatOnSave": true,
   "diffEditor.ignoreTrimWhitespace": false,
-  "files.autoSave": "onWindowChange",
+  "files.autoSave": "onFocusChange",
   "files.insertFinalNewline": true,
   "editor.tabSize": 4
 }

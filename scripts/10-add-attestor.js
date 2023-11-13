@@ -4,14 +4,14 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 
 // attestor URL MUST start with http:// or https://
-module.exports = async function removeAttestor(attestor) {
+module.exports = async function addAttestor(attestor, version) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
 
     const attestorManagerDeployInfo = await loadDeploymentInfo(
         hardhat.network.name,
         'AttestorManager',
-        'v1'
+        version
     );
 
     const attestorManager = new hardhat.ethers.Contract(
@@ -20,14 +20,10 @@ module.exports = async function removeAttestor(attestor) {
         admin
     );
 
-    if (await attestorManager.isAttestor(attestor)) {
-        console.log(`Removing attestor ${attestor}`);
-        const tx = await attestorManager
-            .connect(admin)
-            .removeAttestor(attestor);
-        const rec = await tx.wait();
-        console.log(rec);
+    if (!(await attestorManager.isAttestor(attestor))) {
+        console.log(`Adding attestor ${attestor}`);
+        await attestorManager.connect(admin).addAttestor(attestor);
     } else {
-        console.log(`Attestor ${attestor} is not registered`);
+        console.log(`Attestor ${attestor} already added`);
     }
 };
