@@ -7,14 +7,20 @@
 
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./DLCLinkCompatibleV2.sol";
 import "./IDLCManagerV2.sol";
 import "./AttestorManager.sol";
 import "./DLCLinkLibrary.sol";
 
-contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
+contract DLCManagerV2 is
+    Initializable,
+    AccessControlDefaultAdminRulesUpgradeable,
+    PausableUpgradeable,
+    IDLCManagerV2
+{
     using DLCLink for DLCLink.DLC;
     using DLCLink for DLCLink.DLCStatus;
 
@@ -30,7 +36,7 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
         0xb9ec2c8072d6792e79a05f449c2577c76c4206da58e44ef66dde03fbe8d28112; // keccak256("WHITELISTED_WALLET")
 
     AttestorManager private _attestorManager;
-    uint256 private _index = 0;
+    uint256 private _index;
     mapping(uint256 => DLCLink.DLC) public dlcs;
     mapping(bytes32 => uint256) public dlcIDsByUUID;
 
@@ -44,7 +50,6 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
     error UnathorizedWallet();
     error NotCreatorContract();
     error WrongDLCState();
-    error DLCStateAlreadySet(DLCLink.DLCStatus status);
     error DLCNotFound();
     error DLCNotReady();
     error DLCNotFunded();
@@ -85,12 +90,19 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
         _;
     }
 
-    constructor(address _adminAddress, address _attestorManagerAddress) {
-        // Grant the contract deployer the default admin role
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(DLC_ADMIN_ROLE, _adminAddress);
-
+    function initialize(
+        address _adminAddress,
+        address _attestorManagerAddress
+    ) public initializer {
+        __AccessControlDefaultAdminRules_init(2 days, _adminAddress);
+        _grantRole(DLC_ADMIN_ROLE, _adminAddress);
+        _index = 0;
         _attestorManager = AttestorManager(_attestorManagerAddress);
+    }
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
     }
 
     ////////////////////////////////////////////////////////////////
@@ -221,7 +233,6 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
-        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.fundingTxId = _btcTxId;
         dlc.status = _newStatus;
@@ -249,7 +260,6 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
-        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.outcome = _outcome;
         dlc.status = _newStatus;
@@ -273,7 +283,6 @@ contract DLCManagerV2 is AccessControl, Pausable, IDLCManagerV2 {
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.CLOSING) revert DLCNotClosing();
-        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.closingTxId = _btcTxId;
         dlc.status = _newStatus;
