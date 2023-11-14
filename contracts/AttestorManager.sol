@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import '@openzeppelin/contracts/access/AccessControl.sol';
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract AttestorManager is AccessControl {
-    bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     // Mapping for Attestors, key is the string and value is a boolean to check if attestor exists.
     mapping(string => bool) private _attestors;
@@ -19,7 +19,7 @@ contract AttestorManager is AccessControl {
     modifier onlyAdmin() {
         require(
             hasRole(ADMIN_ROLE, _msgSender()),
-            'AttestorManager: must have admin role to perform this action'
+            "AttestorManager: must have admin role to perform this action"
         );
         _;
     }
@@ -27,7 +27,7 @@ contract AttestorManager is AccessControl {
     // Function to add a new Attestor.
     // It must start with 'https://' or 'http://'.
     function addAttestor(string memory attestor) public onlyAdmin {
-        require(!_attestors[attestor], 'Attestor already exists');
+        require(!_attestors[attestor], "Attestor already exists");
 
         _attestors[attestor] = true;
         _attestorKeys.push(attestor);
@@ -35,7 +35,7 @@ contract AttestorManager is AccessControl {
 
     // Function to remove an Attestor. Only admin can remove an Attestor.
     function removeAttestor(string memory attestor) public onlyAdmin {
-        require(_attestors[attestor], 'Attestor does not exist');
+        require(_attestors[attestor], "Attestor does not exist");
 
         _attestors[attestor] = false;
 
@@ -65,7 +65,7 @@ contract AttestorManager is AccessControl {
     function getRandomAttestors(
         uint256 number
     ) public view returns (string[] memory) {
-        require(number <= _attestorKeys.length, 'Not enough Attestors');
+        require(number <= _attestorKeys.length, "Not enough Attestors");
 
         string[] memory tempKeys = new string[](_attestorKeys.length);
         for (uint256 i = 0; i < _attestorKeys.length; i++) {
@@ -74,7 +74,7 @@ contract AttestorManager is AccessControl {
 
         string[] memory selectedAttestors = new string[](number);
         for (uint256 i = 0; i < number; i++) {
-            uint256 randomIndex = randomNumber(i, tempKeys.length - i);
+            uint256 randomIndex = _randomNumber(i, tempKeys.length - i);
 
             // Move the selected key to the selected attestors array
             selectedAttestors[i] = tempKeys[randomIndex];
@@ -87,7 +87,7 @@ contract AttestorManager is AccessControl {
     }
 
     // Generates a random number.
-    function randomNumber(
+    function _randomNumber(
         uint256 salt,
         uint256 limit
     ) private view returns (uint256) {

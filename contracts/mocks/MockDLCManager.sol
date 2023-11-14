@@ -7,20 +7,14 @@
 
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "./DLCLinkCompatibleV2.sol";
-import "./IDLCManagerV2.sol";
-import "./AttestorManager.sol";
-import "./DLCLinkLibrary.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "../DLCLinkCompatible.sol";
+import "../IDLCManager.sol";
+// import "./AttestorManager.sol";
+import "../DLCLinkLibrary.sol";
 
-contract DLCManagerV2 is
-    Initializable,
-    AccessControlDefaultAdminRulesUpgradeable,
-    PausableUpgradeable,
-    IDLCManagerV2
-{
+contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     using DLCLink for DLCLink.DLC;
     using DLCLink for DLCLink.DLCStatus;
 
@@ -28,15 +22,15 @@ contract DLCManagerV2 is
     //                      STATE VARIABLES                       //
     ////////////////////////////////////////////////////////////////
 
-    bytes32 public constant DLC_ADMIN_ROLE =
-        0x2bf88000669ee6f7a648a231f4adbc117f5a8e34f980c08420b9b9a9f2640aa1; // keccak256("DLC_ADMIN_ROLE")
-    bytes32 public constant WHITELISTED_CONTRACT =
-        0xec26500344858148ae6c4dd068dc3bae426095ee44cdb32b94288d883648f619; // keccak256("WHITELISTED_CONTRACT")
-    bytes32 public constant WHITELISTED_WALLET =
-        0xb9ec2c8072d6792e79a05f449c2577c76c4206da58e44ef66dde03fbe8d28112; // keccak256("WHITELISTED_WALLET")
+    // bytes32 public constant DLC_ADMIN_ROLE =
+    //     0x2bf88000669ee6f7a648a231f4adbc117f5a8e34f980c08420b9b9a9f2640aa1; // keccak256("DLC_ADMIN_ROLE")
+    // bytes32 public constant WHITELISTED_CONTRACT =
+    //     0xec26500344858148ae6c4dd068dc3bae426095ee44cdb32b94288d883648f619; // keccak256("WHITELISTED_CONTRACT")
+    // bytes32 public constant WHITELISTED_WALLET =
+    //     0xb9ec2c8072d6792e79a05f449c2577c76c4206da58e44ef66dde03fbe8d28112; // keccak256("WHITELISTED_WALLET")
 
-    AttestorManager private _attestorManager;
-    uint256 private _index;
+    // AttestorManager private _attestorManager;
+    uint256 private _index = 0;
     mapping(uint256 => DLCLink.DLC) public dlcs;
     mapping(bytes32 => uint256) public dlcIDsByUUID;
 
@@ -50,6 +44,7 @@ contract DLCManagerV2 is
     error UnathorizedWallet();
     error NotCreatorContract();
     error WrongDLCState();
+    error DLCStateAlreadySet(DLCLink.DLCStatus status);
     error DLCNotFound();
     error DLCNotReady();
     error DLCNotFunded();
@@ -59,50 +54,42 @@ contract DLCManagerV2 is
     //                         MODIFIERS                          //
     ////////////////////////////////////////////////////////////////
 
-    modifier onlyAdmin() {
-        if (!hasRole(DLC_ADMIN_ROLE, msg.sender)) revert NotDLCAdmin();
-        _;
-    }
+    // modifier onlyAdmin() {
+    //     if (!hasRole(DLC_ADMIN_ROLE, msg.sender)) revert NotDLCAdmin();
+    //     _;
+    // }
 
-    modifier onlyWhiteListedContracts() {
-        if (!hasRole(WHITELISTED_CONTRACT, msg.sender))
-            revert ContractNotWhitelisted();
-        _;
-    }
+    // modifier onlyWhiteListedContracts() {
+    //     if (!hasRole(WHITELISTED_CONTRACT, msg.sender))
+    //         revert ContractNotWhitelisted();
+    //     _;
+    // }
 
-    modifier onlyWhitelistedWallet(address _wallet) {
-        if (!hasRole(WHITELISTED_WALLET, _wallet))
-            revert WalletNotWhitelisted();
-        _;
-    }
+    // modifier onlyWhitelistedWallet(address _wallet) {
+    //     if (!hasRole(WHITELISTED_WALLET, _wallet))
+    //         revert WalletNotWhitelisted();
+    //     _;
+    // }
 
-    modifier onlyWhitelistedAndConnectedWallet(bytes32 _uuid) {
-        if (!hasRole(WHITELISTED_WALLET, msg.sender))
-            revert WalletNotWhitelisted();
-        if (dlcs[dlcIDsByUUID[_uuid]].protocolWallet != msg.sender)
-            revert UnathorizedWallet();
-        _;
-    }
+    // modifier onlyWhitelistedAndConnectedWallet(bytes32 _uuid) {
+    //     if (!hasRole(WHITELISTED_WALLET, msg.sender))
+    //         revert WalletNotWhitelisted();
+    //     if (dlcs[dlcIDsByUUID[_uuid]].protocolWallet != msg.sender)
+    //         revert UnathorizedWallet();
+    //     _;
+    // }
 
-    modifier onlyCreatorContract(bytes32 _uuid) {
-        if (dlcs[dlcIDsByUUID[_uuid]].protocolContract != msg.sender)
-            revert NotCreatorContract();
-        _;
-    }
+    // modifier onlyCreatorContract(bytes32 _uuid) {
+    //     if (dlcs[dlcIDsByUUID[_uuid]].protocolContract != msg.sender)
+    //         revert NotCreatorContract();
+    //     _;
+    // }
 
-    function initialize(
-        address _adminAddress,
-        address _attestorManagerAddress
-    ) public initializer {
-        __AccessControlDefaultAdminRules_init(2 days, _adminAddress);
-        _grantRole(DLC_ADMIN_ROLE, _adminAddress);
-        _index = 0;
-        _attestorManager = AttestorManager(_attestorManagerAddress);
-    }
-
-    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
-        _disableInitializers();
+        // Grant the contract deployer the default admin role
+        // _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        // _setupRole(DLC_ADMIN_ROLE, _adminAddress);
+        // _attestorManager = AttestorManager(_attestorManagerAddress);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -151,12 +138,12 @@ contract DLCManagerV2 is
     ////////////////////////////////////////////////////////////////
 
     function _generateUUID(
-        address sender,
-        uint256 nonce
+        address /*sender*/,
+        uint256 /*nonce*/
     ) private view returns (bytes32) {
         return
-            keccak256(
-                abi.encodePacked(sender, nonce, blockhash(block.number - 1))
+            bytes32(
+                0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967
             );
     }
 
@@ -168,32 +155,21 @@ contract DLCManagerV2 is
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked
-    )
-        external
-        override
-        onlyWhiteListedContracts
-        whenNotPaused
-        returns (bytes32, string[] memory)
-    {
+    ) external override whenNotPaused returns (bytes32, string[] memory) {
         return this.createDLC(_protocolWallet, _valueLocked, 3);
     }
 
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked,
-        uint8 _attestorCount
-    )
-        external
-        override
-        onlyWhiteListedContracts
-        onlyWhitelistedWallet(_protocolWallet)
-        whenNotPaused
-        returns (bytes32, string[] memory)
-    {
+        uint8 /*_attestorCount*/
+    ) external override whenNotPaused returns (bytes32, string[] memory) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
-        string[] memory _attestorList = _attestorManager.getRandomAttestors(
-            _attestorCount
-        );
+        string[] memory _attestorList = new string[](3);
+
+        _attestorList[0] = "https://attestor1.com";
+        _attestorList[1] = "https://attestor2.com";
+        _attestorList[2] = "https://attestor3.com";
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
@@ -227,17 +203,18 @@ contract DLCManagerV2 is
     function setStatusFunded(
         bytes32 _uuid,
         string calldata _btcTxId
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
+    ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.FUNDED;
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
+        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.fundingTxId = _btcTxId;
         dlc.status = _newStatus;
 
-        DLCLinkCompatibleV2(dlc.protocolContract).setStatusFunded(
+        DLCLinkCompatible(dlc.protocolContract).setStatusFunded(
             _uuid,
             _btcTxId
         );
@@ -251,15 +228,13 @@ contract DLCManagerV2 is
         );
     }
 
-    function closeDLC(
-        bytes32 _uuid,
-        uint256 _outcome
-    ) external onlyCreatorContract(_uuid) whenNotPaused {
+    function closeDLC(bytes32 _uuid, uint256 _outcome) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSING;
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
+        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.outcome = _outcome;
         dlc.status = _newStatus;
@@ -277,17 +252,18 @@ contract DLCManagerV2 is
     function postCloseDLC(
         bytes32 _uuid,
         string calldata _btcTxId
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
+    ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSED;
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.CLOSING) revert DLCNotClosing();
+        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.closingTxId = _btcTxId;
         dlc.status = _newStatus;
 
-        DLCLinkCompatibleV2(dlc.protocolContract).postCloseDLCHandler(
+        DLCLinkCompatible(dlc.protocolContract).postCloseDLCHandler(
             _uuid,
             _btcTxId
         );
@@ -319,9 +295,9 @@ contract DLCManagerV2 is
         return dlcs[index];
     }
 
-    function getAllAttestors() public view returns (string[] memory) {
-        return _attestorManager.getAllAttestors();
-    }
+    // function getAllAttestors() public view returns (string[] memory) {
+    //     return _attestorManager.getAllAttestors();
+    // }
 
     function getFundedTxIds() public view returns (string[] memory) {
         string[] memory _fundedTxIds = new string[](_index);
@@ -339,11 +315,11 @@ contract DLCManagerV2 is
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    function pauseContract() external onlyAdmin {
-        _pause();
-    }
+    // function pauseContract() external onlyAdmin {
+    //     _pause();
+    // }
 
-    function unpauseContract() external onlyAdmin {
-        _unpause();
-    }
+    // function unpauseContract() external onlyAdmin {
+    //     _unpause();
+    // }
 }

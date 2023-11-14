@@ -11,8 +11,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRule
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../IDLCManagerV2.sol";
-import "../DLCLinkCompatibleV2.sol";
+import "../IDLCManager.sol";
+import "../DLCLinkCompatible.sol";
 import "../DLCBTC.sol";
 import "../DLCLinkLibrary.sol";
 
@@ -20,7 +20,7 @@ contract TokenManagerV2Test is
     Initializable,
     AccessControlDefaultAdminRulesUpgradeable,
     PausableUpgradeable,
-    DLCLinkCompatibleV2
+    DLCLinkCompatible
 {
     using SafeERC20 for DLCBTC;
     using DLCLink for DLCLink.DLC;
@@ -38,7 +38,7 @@ contract TokenManagerV2Test is
         0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a; // keccak256("PAUSER_ROLE");
 
     DLCBTC public dlcBTC; // dlcBTC contract
-    IDLCManagerV2 public dlcManager; // DLCManager contract
+    IDLCManager public dlcManager; // DLCManager contract
     address public routerWalletAddress; // router-wallet address
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
@@ -98,7 +98,7 @@ contract TokenManagerV2Test is
         _grantRole(DLC_ADMIN_ROLE, _adminAddress);
         _grantRole(DLC_MANAGER_ROLE, _dlcManagerAddress);
         _grantRole(PAUSER_ROLE, _adminAddress);
-        dlcManager = IDLCManagerV2(_dlcManagerAddress);
+        dlcManager = IDLCManager(_dlcManagerAddress);
         dlcBTC = _tokenContract;
         routerWalletAddress = _routerWalletAddress;
         // NOTE:
@@ -278,7 +278,7 @@ contract TokenManagerV2Test is
     function updateDLCManagerContract(
         address _dlcManagerAddress
     ) external onlyDLCAdmin {
-        dlcManager = IDLCManagerV2(_dlcManagerAddress);
+        dlcManager = IDLCManager(_dlcManagerAddress);
         _grantRole(DLC_MANAGER_ROLE, _dlcManagerAddress);
     }
 

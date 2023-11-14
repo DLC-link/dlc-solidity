@@ -91,10 +91,10 @@ module.exports = async function contractAdmin(_version) {
                     throw new Error('Deployment aborted by user.');
                 }
                 console.log(
-                    `Deploying contract DLCManagerV2 to network "${network}"...`
+                    `Deploying contract DLCManager to network "${network}"...`
                 );
                 const DLCManager =
-                    await hardhat.ethers.getContractFactory('DLCManagerV2');
+                    await hardhat.ethers.getContractFactory('DLCManager');
                 const dlcManager = await hardhat.upgrades.deployProxy(
                     DLCManager,
                     [dlcAdminSafe, attestorManagerAddress]
@@ -233,7 +233,7 @@ module.exports = async function contractAdmin(_version) {
         choices: [
             {
                 title: 'Deploy Contracts',
-                description: 'Deploy V2 contracts',
+                description: 'Deploy contracts',
                 value: 'deploy',
             },
             {
@@ -348,14 +348,14 @@ module.exports = async function contractAdmin(_version) {
             break;
     }
 
-    let mockDLCManagerV2, dlcBtc, tokenManager;
+    let mockDLCManager, dlcBtc, tokenManager;
 
-    // const MockDLCManagerV2 =
-    //     await hardhat.ethers.getContractFactory('MockDLCManagerV2');
-    // mockDLCManagerV2 = await MockDLCManagerV2.deploy();
-    // await mockDLCManagerV2.deployed();
+    // const MockDLCManager =
+    //     await hardhat.ethers.getContractFactory('MockDLCManager');
+    // mockDLCManager = await MockDLCManager.deploy();
+    // await mockDLCManager.deployed();
     // console.log(
-    //     `deployed contract MockDLCManagerV2 to ${mockDLCManagerV2.address}`
+    //     `deployed contract MockDLCManager to ${mockDLCManager.address}`
     // );
 
     // const DLCBTC = await hardhat.ethers.getContractFactory('DLCBTC', deployer);

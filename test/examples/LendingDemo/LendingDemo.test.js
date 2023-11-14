@@ -1,22 +1,8 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
-async function whitelistProtocolContract(
-    lendingContract,
-    protocol,
-    dlcManager,
-    deployer
-) {
-    await dlcManager
-        .connect(deployer)
-        .grantRole(
-            ethers.utils.id('WHITELISTED_CONTRACT'),
-            lendingContract.address
-        );
-    await dlcManager
-        .connect(deployer)
-        .grantRole(ethers.utils.id('WHITELISTED_WALLET'), protocol.address);
-}
+const someBtxTxId =
+    '0x1234567890123456789012345678901234567890123456789012345678901234';
 
 async function setupFundedLoan(
     dlcManager,
@@ -30,23 +16,16 @@ async function setupFundedLoan(
         // emergencyRefundTime: 5,
     }
 ) {
-    await whitelistProtocolContract(
-        lendingContract,
-        protocol,
-        dlcManager,
-        deployer
-    );
     const tx = await lendingContract
         .connect(user)
         .setupLoan(loanParams.btcDeposit, loanParams.attestorCount);
     const txF = await tx.wait();
     const tx3 = await dlcManager
         .connect(protocol)
-        .setStatusFunded(txF.events[1].args.dlcUUID);
+        .setStatusFunded(txF.events[1].args.dlcUUID, someBtxTxId);
     const txF3 = await tx3.wait();
 }
 
-// TODO: Outdated since V1
 describe('LendingContract', () => {
     let mockV3Aggregator;
     let mockAttestorManager;
@@ -77,11 +56,8 @@ describe('LendingContract', () => {
         mockAttestorManager = await MockAttestorManager.deploy();
         await mockAttestorManager.deployTransaction.wait();
 
-        const DLCManager = await ethers.getContractFactory('MockDLCManagerV1');
-        dlcManager = await DLCManager.deploy(
-            deployer.address,
-            mockAttestorManager.address
-        );
+        const DLCManager = await ethers.getContractFactory('MockDLCManager');
+        dlcManager = await DLCManager.deploy();
         await dlcManager.deployTransaction.wait();
 
         const USDC = await ethers.getContractFactory('USDStableCoinForDLCs');
@@ -124,12 +100,6 @@ describe('LendingContract', () => {
         });
 
         it('reverts if loan is not funded', async () => {
-            await whitelistProtocolContract(
-                lendingContract,
-                protocol,
-                dlcManager,
-                deployer
-            );
             const tx = await lendingContract.connect(user).setupLoan(0, 0);
             const txF = await tx.wait();
             await expect(

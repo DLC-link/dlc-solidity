@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import '@openzeppelin/contracts/access/AccessControl.sol';
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract MockAttestorManager {
     // Mapping for Attestors, key is the string and value is a boolean to check if attestor exists.
@@ -13,7 +13,7 @@ contract MockAttestorManager {
 
     // Function to add an Attestor. Only admin can add an Attestor.
     function addAttestor(string memory attestor) public {
-        require(!_attestors[attestor], 'Attestor already exists');
+        require(!_attestors[attestor], "Attestor already exists");
 
         _attestors[attestor] = true;
         _attestorKeys.push(attestor);
@@ -21,7 +21,7 @@ contract MockAttestorManager {
 
     // Function to remove an Attestor. Only admin can remove an Attestor.
     function removeAttestor(string memory attestor) public {
-        require(_attestors[attestor], 'Attestor does not exist');
+        require(_attestors[attestor], "Attestor does not exist");
 
         _attestors[attestor] = false;
 
@@ -45,17 +45,17 @@ contract MockAttestorManager {
 
     // Function to get a specific number of random Attestors.
     function getRandomAttestors(
-        uint256 number
+        uint256 /*number*/
     ) public pure returns (string[] memory) {
         string[] memory attestors = new string[](3);
-        attestors[0] = 'localhost';
-        attestors[1] = 'dlc.link/oracle';
-        attestors[2] = 'someAttestorDomain.com';
+        attestors[0] = "localhost";
+        attestors[1] = "dlc.link/oracle";
+        attestors[2] = "someAttestorDomain.com";
         return attestors;
     }
 
     // Generates a random number.
-    function randomNumber(
+    function _randomNumber(
         uint256 salt,
         uint256 limit
     ) private view returns (uint256) {

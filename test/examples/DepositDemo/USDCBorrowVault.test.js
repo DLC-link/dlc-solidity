@@ -3,15 +3,15 @@ const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
 
 describe('USDCBorrowVault', function () {
-    let mockAttestorManager;
     let dlcManager;
     let DLCBTCExample;
     let depositDemo, usdcBorrowVault, usdc, mockV3Aggregator;
-    let emergencyRefundTime;
     let deployer, protocol, user, someRandomAccount;
 
     let mockUUID =
         '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
+    let someBtcTxId =
+        '0x1234567890123456789012345678901234567890123456789012345678901234';
     let btcDeposit = 1000000; //sats
     let usdcReserve = '100000'; //usdc
     let attestorCount = 3;
@@ -23,17 +23,8 @@ describe('USDCBorrowVault', function () {
         user = accounts[2];
         someRandomAccount = accounts[3];
 
-        const MockAttestorManager = await ethers.getContractFactory(
-            'MockAttestorManager'
-        );
-        mockAttestorManager = await MockAttestorManager.deploy();
-        await mockAttestorManager.deployTransaction.wait();
-
-        const DLCManager = await ethers.getContractFactory('MockDLCManagerV1');
-        dlcManager = await DLCManager.deploy(
-            deployer.address,
-            mockAttestorManager.address
-        );
+        const DLCManager = await ethers.getContractFactory('MockDLCManager');
+        dlcManager = await DLCManager.deploy();
         await dlcManager.deployTransaction.wait();
 
         const dlcbtc = await ethers.getContractFactory(
@@ -53,16 +44,6 @@ describe('USDCBorrowVault', function () {
             protocol.address
         );
         await depositDemo.deployTransaction.wait();
-
-        await dlcManager
-            .connect(deployer)
-            .grantRole(
-                ethers.utils.id('WHITELISTED_CONTRACT'),
-                depositDemo.address
-            );
-        await dlcManager
-            .connect(deployer)
-            .grantRole(ethers.utils.id('WHITELISTED_WALLET'), protocol.address);
 
         const MockV3Aggregator =
             await ethers.getContractFactory('MockV3Aggregator');
@@ -98,7 +79,9 @@ describe('USDCBorrowVault', function () {
             .connect(user)
             .setupDeposit(btcDeposit, attestorCount);
         const receipt = await tx.wait();
-        await dlcManager.connect(protocol).setStatusFunded(mockUUID);
+        await dlcManager
+            .connect(protocol)
+            .setStatusFunded(mockUUID, someBtcTxId);
     });
 
     it('is deployed for the tests', async () => {

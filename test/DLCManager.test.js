@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const hardhat = require('hardhat');
 
 async function whitelistProtocolContractAndAddress(
     dlcManager,
@@ -16,10 +17,12 @@ async function whitelistProtocolContractAndAddress(
     );
 }
 
-describe('DLCManagerV1', () => {
+describe('DLCManager', () => {
     let dlcManager, mockAttestorManager, mockProtocol;
     let accounts, deployer, protocol, protocolWallet, user;
 
+    const valueLocked = 100000000; // 1 BTC
+    const btxTxId = '0x1234567890';
     const attestorCount = 3;
     const attestorList = [
         'localhost',
@@ -44,11 +47,11 @@ describe('DLCManagerV1', () => {
         await mockAttestorManager.deployed();
 
         // DLCManager
-        const DLCManager = await ethers.getContractFactory('DLCManagerV1');
-        dlcManager = await DLCManager.deploy(
+        const DLCManager = await ethers.getContractFactory('DLCManager');
+        dlcManager = await hardhat.upgrades.deployProxy(DLCManager, [
             deployer.address,
-            mockAttestorManager.address
-        );
+            mockAttestorManager.address,
+        ]);
         await dlcManager.deployed();
 
         // MockProtocol
@@ -84,13 +87,17 @@ describe('DLCManagerV1', () => {
         });
         it('reverts correctly when paused', async () => {
             await expect(
-                mockProtocol.connect(user).requestCreateDLC(attestorCount)
+                mockProtocol
+                    .connect(user)
+                    .requestCreateDLC(valueLocked, attestorCount)
             ).to.be.revertedWith('Pausable: paused');
         });
         it('allows functions when unpaused', async () => {
             await dlcManager.unpauseContract();
             await expect(
-                mockProtocol.connect(user).requestCreateDLC(attestorCount)
+                mockProtocol
+                    .connect(user)
+                    .requestCreateDLC(valueLocked, attestorCount)
             ).to.not.be.revertedWith('Pausable: paused');
         });
     });
@@ -98,9 +105,12 @@ describe('DLCManagerV1', () => {
     describe('createDLC', async () => {
         it('reverts if called from a non-whitelisted contract', async () => {
             await expect(
-                mockProtocol.connect(user).requestCreateDLC(attestorCount)
-            ).to.be.revertedWith(
-                'Only whitelisted contracts can call this function'
+                mockProtocol
+                    .connect(user)
+                    .requestCreateDLC(valueLocked, attestorCount)
+            ).to.be.revertedWithCustomError(
+                dlcManager,
+                'ContractNotWhitelisted'
             );
         });
 
@@ -110,8 +120,10 @@ describe('DLCManagerV1', () => {
                 mockProtocol.address
             );
             await expect(
-                mockProtocol.connect(user).requestCreateDLC(attestorCount)
-            ).to.be.revertedWith('Unathorized Wallet Address');
+                mockProtocol
+                    .connect(user)
+                    .requestCreateDLC(valueLocked, attestorCount)
+            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
         });
 
         it('emits a CreateDLC event with the correct data', async () => {
@@ -123,7 +135,7 @@ describe('DLCManagerV1', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
 
             const receipt = await tx.wait();
             const event = receipt.events[0];
@@ -133,12 +145,12 @@ describe('DLCManagerV1', () => {
             expect(decodedEvent.name).to.equal('CreateDLC');
             expect(decodedEvent.args.uuid).to.not.equal(undefined);
             expect(decodedEvent.args.attestorList).to.deep.equal(attestorList);
-            expect(decodedEvent.args.creator).to.equal(mockProtocol.address);
+            expect(decodedEvent.args.creator).to.equal(user.address);
             expect(decodedEvent.args.protocolWallet).to.equal(
                 protocolWallet.address
             );
             expect(decodedEvent.args.eventSource).to.equal(
-                'dlclink:create-dlc:v1'
+                'dlclink:create-dlc:v2'
             );
         });
 
@@ -151,11 +163,11 @@ describe('DLCManagerV1', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
             const receipt = await tx.wait();
             const tx2 = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
             const receipt2 = await tx2.wait();
 
             const decodedEvent = dlcManager.interface.parseLog(
@@ -170,65 +182,6 @@ describe('DLCManagerV1', () => {
         });
     });
 
-    xdescribe('postCreateDLC', async () => {
-        let uuid;
-        beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
-
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(attestorCount);
-            const receipt = await tx.wait();
-            const event = receipt.events[0];
-            const decodedEvent = dlcManager.interface.parseLog(event);
-            uuid = decodedEvent.args.uuid;
-        });
-
-        it('reverts if called from a non-whitelisted wallet', async () => {
-            await expect(
-                dlcManager.connect(randomAccount).postCreateDLC(uuid)
-            ).to.be.revertedWith(
-                'Only whitelisted wallets can call this function'
-            );
-        });
-
-        it('reverts if not called from the associated wallet', async () => {
-            await dlcManager.grantRole(
-                ethers.utils.id('WHITELISTED_WALLET'),
-                randomAccount.address
-            );
-
-            await expect(
-                dlcManager.connect(randomAccount).postCreateDLC(uuid)
-            ).to.be.revertedWith('Unathorized');
-        });
-
-        it('emits a PostCreateDLC event with the correct data', async () => {
-            const tx = await dlcManager
-                .connect(protocolWallet)
-                .postCreateDLC(uuid);
-            const receipt = await tx.wait();
-            const event = receipt.events.find(
-                (e) => e.event === 'PostCreateDLC'
-            );
-
-            expect(event.event).to.equal('PostCreateDLC');
-            expect(event.args.uuid).to.equal(uuid);
-            expect(event.args.creator).to.equal(mockProtocol.address);
-            expect(event.args.protocolWallet).to.equal(protocolWallet.address);
-
-            // Sender should be the protocol wallet on success
-            expect(event.args.sender).to.equal(protocolWallet.address);
-            expect(event.args.eventSource).to.equal(
-                'dlclink:post-create-dlc:v1'
-            );
-        });
-    });
-
     describe('setStatusFunded', async () => {
         let uuid;
         beforeEach(async () => {
@@ -240,7 +193,7 @@ describe('DLCManagerV1', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -249,10 +202,8 @@ describe('DLCManagerV1', () => {
 
         it('reverts if called from a non-whitelisted wallet', async () => {
             await expect(
-                dlcManager.connect(randomAccount).setStatusFunded(uuid)
-            ).to.be.revertedWith(
-                'Only whitelisted wallets can call this function'
-            );
+                dlcManager.connect(randomAccount).setStatusFunded(uuid, btxTxId)
+            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
         });
 
         it('reverts if not called from the associated wallet', async () => {
@@ -262,28 +213,35 @@ describe('DLCManagerV1', () => {
             );
 
             await expect(
-                dlcManager.connect(randomAccount).setStatusFunded(uuid)
-            ).to.be.revertedWith('Unathorized');
+                dlcManager.connect(randomAccount).setStatusFunded(uuid, btxTxId)
+            ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
         });
 
-        xit('reverts if DLC is not in the right state', async () => {
+        it('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
             const newUuid = decodedEvent.args.uuid;
 
+            const tx2 = await dlcManager
+                .connect(protocolWallet)
+                .setStatusFunded(newUuid, btxTxId);
+            await tx2.wait();
+
             await expect(
-                dlcManager.connect(protocolWallet).setStatusFunded(newUuid)
-            ).to.be.revertedWith('Invalid Status Transition');
+                dlcManager
+                    .connect(protocolWallet)
+                    .setStatusFunded(newUuid, btxTxId)
+            ).to.be.revertedWithCustomError(dlcManager, 'DLCNotReady');
         });
 
         it('emits a StatusFunded event with the correct data', async () => {
             const tx = await dlcManager
                 .connect(protocolWallet)
-                .setStatusFunded(uuid);
+                .setStatusFunded(uuid, btxTxId);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'SetStatusFunded'
@@ -291,11 +249,11 @@ describe('DLCManagerV1', () => {
 
             expect(event.event).to.equal('SetStatusFunded');
             expect(event.args.uuid).to.equal(uuid);
-            expect(event.args.creator).to.equal(mockProtocol.address);
+            expect(event.args.creator).to.equal(user.address);
             expect(event.args.protocolWallet).to.equal(protocolWallet.address);
             expect(event.args.sender).to.equal(protocolWallet.address);
             expect(event.args.eventSource).to.equal(
-                'dlclink:set-status-funded:v1'
+                'dlclink:set-status-funded:v2'
             );
         });
     });
@@ -313,25 +271,27 @@ describe('DLCManagerV1', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
 
-            await dlcManager.connect(protocolWallet).setStatusFunded(uuid);
+            await dlcManager
+                .connect(protocolWallet)
+                .setStatusFunded(uuid, btxTxId);
         });
 
-        it('reverts if called from a contract that isnt he owner/creator', async () => {
+        it('reverts if not called by the creator contract', async () => {
             await expect(
                 dlcManager.connect(randomAccount).closeDLC(uuid, outcome)
-            ).to.be.revertedWith('Only the DLC owner can call this function');
+            ).to.be.revertedWithCustomError(dlcManager, 'NotCreatorContract');
         });
 
         it('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -339,7 +299,7 @@ describe('DLCManagerV1', () => {
 
             await expect(
                 mockProtocol.connect(protocol).requestCloseDLC(newUuid, outcome)
-            ).to.be.revertedWith('Invalid Status Transition');
+            ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFunded');
         });
 
         it('emits a CloseDLC event with the correct data', async () => {
@@ -354,13 +314,13 @@ describe('DLCManagerV1', () => {
             expect(decodedEvent.name).to.equal('CloseDLC');
             expect(decodedEvent.args.uuid).to.equal(uuid);
             expect(decodedEvent.args.outcome).to.equal(outcome);
-            expect(decodedEvent.args.creator).to.equal(mockProtocol.address);
+            expect(decodedEvent.args.creator).to.equal(user.address);
             expect(decodedEvent.args.protocolWallet).to.equal(
                 protocolWallet.address
             );
             expect(decodedEvent.args.sender).to.equal(mockProtocol.address);
             expect(decodedEvent.args.eventSource).to.equal(
-                'dlclink:close-dlc:v1'
+                'dlclink:close-dlc:v2'
             );
         });
     });
@@ -378,7 +338,7 @@ describe('DLCManagerV1', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -386,7 +346,7 @@ describe('DLCManagerV1', () => {
 
             const tx3 = await dlcManager
                 .connect(protocolWallet)
-                .setStatusFunded(uuid);
+                .setStatusFunded(uuid, btxTxId);
             await tx3.wait();
             const tx4 = await mockProtocol
                 .connect(protocol)
@@ -396,10 +356,8 @@ describe('DLCManagerV1', () => {
 
         it('reverts if called from a non-whitelisted wallet', async () => {
             await expect(
-                dlcManager.connect(randomAccount).postCloseDLC(uuid, outcome)
-            ).to.be.revertedWith(
-                'Only whitelisted wallets can call this function'
-            );
+                dlcManager.connect(randomAccount).postCloseDLC(uuid, btxTxId)
+            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
         });
 
         it('reverts if not called from the associated wallet', async () => {
@@ -410,13 +368,13 @@ describe('DLCManagerV1', () => {
 
             await expect(
                 dlcManager.connect(randomAccount).postCloseDLC(uuid, outcome)
-            ).to.be.revertedWith('Unathorized');
+            ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
         });
 
         it('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(attestorCount);
+                .requestCreateDLC(valueLocked, attestorCount);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -426,7 +384,7 @@ describe('DLCManagerV1', () => {
                 dlcManager
                     .connect(protocolWallet)
                     .postCloseDLC(newUuid, outcome)
-            ).to.be.revertedWith('Invalid Status Transition');
+            ).to.be.revertedWithCustomError(dlcManager, 'DLCNotClosing');
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {
@@ -441,7 +399,7 @@ describe('DLCManagerV1', () => {
             expect(event.event).to.equal('PostCloseDLC');
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.outcome).to.equal(outcome);
-            expect(event.args.creator).to.equal(mockProtocol.address);
+            expect(event.args.creator).to.equal(user.address);
             expect(event.args.protocolWallet).to.equal(protocolWallet.address);
             expect(event.args.sender).to.equal(protocolWallet.address);
         });

@@ -5,9 +5,8 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "../../DLCManagerV1.sol";
-import "../../DLCLinkCompatibleV1.sol";
-import "hardhat/console.sol";
+import "../../DLCManager.sol";
+import "../../DLCLinkCompatible.sol";
 import "../NFTMinting/DLCBTC.sol";
 
 enum DepositStatus {
@@ -25,15 +24,16 @@ struct Deposit {
     DepositStatus status;
     uint256 depositAmount; // btc deposit in sats
     address owner; // the account owning this loan
-    string btcTxId;
+    string fundingTx;
+    string closingTx;
 }
 
-contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
+contract DepositDemo is DLCLinkCompatible, AccessControl {
     using Math for uint256;
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant DLC_MANAGER_ROLE = keccak256("DLC_MANAGER_ROLE");
 
-    DLCManagerV1 private _dlcManager;
+    IDLCManager private _dlcManager;
     DLCBTCExample private _dlcBTC;
 
     address private _protocolWalletAddress;
@@ -48,7 +48,7 @@ contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
         address _dlcBTCAddress,
         address _protocolWallet
     ) {
-        _dlcManager = DLCManagerV1(_dlcManagerAddress);
+        _dlcManager = IDLCManager(_dlcManagerAddress);
         _dlcBTC = DLCBTCExample(_dlcBTCAddress);
         _protocolWalletAddress = _protocolWallet;
         _setupRole(ADMIN_ROLE, _msgSender());
@@ -89,6 +89,7 @@ contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
     ) external returns (uint256) {
         (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
             _protocolWalletAddress,
+            btcDeposit,
             attestorCount
         );
 
@@ -99,7 +100,8 @@ contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
             status: DepositStatus.Ready,
             depositAmount: btcDeposit,
             owner: msg.sender,
-            btcTxId: ""
+            fundingTx: "",
+            closingTx: ""
         });
 
         depositIDsByUUID[_uuid] = index;
@@ -127,11 +129,15 @@ contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
         emit StatusUpdate(_depositID, _deposit.dlcUUID, _status);
     }
 
-    function setStatusFunded(bytes32 _uuid) external override onlyDLCManager {
+    function setStatusFunded(
+        bytes32 _uuid,
+        string calldata btxTxId
+    ) external override onlyDLCManager {
         uint256 _depositID = depositIDsByUUID[_uuid];
         require(deposits[_depositID].dlcUUID != 0, "No deposit with that uuid");
         _updateStatus(_depositID, DepositStatus.Funded);
-        Deposit memory _deposit = deposits[_depositID];
+        Deposit storage _deposit = deposits[_depositID];
+        _deposit.fundingTx = btxTxId;
         _dlcBTC.mint(_deposit.owner, _deposit.depositAmount);
     }
 
@@ -177,7 +183,7 @@ contract DepositDemo is DLCLinkCompatibleV1, AccessControl {
             _deposit.status == DepositStatus.PreClosed,
             "Invalid Deposit Status"
         );
-        _deposit.btcTxId = _btxTxId;
+        _deposit.closingTx = _btxTxId;
         _updateStatus(_deposit.id, DepositStatus.Closed);
     }
 

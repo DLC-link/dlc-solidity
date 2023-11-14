@@ -3,7 +3,7 @@ pragma solidity 0.8.17;
 
 import "./DLCLinkLibrary.sol";
 
-interface IDLCManagerV2 {
+interface IDLCManager {
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked
@@ -21,7 +21,5 @@ interface IDLCManagerV2 {
 
     function postCloseDLC(bytes32 _uuid, string calldata _btcTxId) external;
 
-    function getDLC(
-        bytes32 _uuid
-    ) external view returns (DLCLink.DLC memory);
+    function getDLC(bytes32 _uuid) external view returns (DLCLink.DLC memory);
 }

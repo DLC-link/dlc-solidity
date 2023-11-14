@@ -22,7 +22,7 @@ const Status = {
 };
 
 describe('TokenManager', function () {
-    let tokenManager, tokenManagerV2, mockDLCManagerV2, dlcBtc;
+    let tokenManager, tokenManagerV2, mockDLCManager, dlcBtc;
     let deployer, routerWallet, user, someRandomAccount;
 
     let deposit = 100000000; // 1 BTC
@@ -35,10 +35,10 @@ describe('TokenManager', function () {
         user = accounts[2];
         someRandomAccount = accounts[3];
 
-        const MockDLCManagerV2 =
-            await ethers.getContractFactory('MockDLCManagerV2');
-        mockDLCManagerV2 = await MockDLCManagerV2.deploy();
-        await mockDLCManagerV2.deployed();
+        const MockDLCManager =
+            await ethers.getContractFactory('MockDLCManager');
+        mockDLCManager = await MockDLCManager.deploy();
+        await mockDLCManager.deployed();
 
         const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
         dlcBtc = await DLCBTC.deploy();
@@ -50,7 +50,7 @@ describe('TokenManager', function () {
         );
         tokenManager = await upgrades.deployProxy(TokenManager, [
             deployer.address,
-            mockDLCManagerV2.address,
+            mockDLCManager.address,
             dlcBtc.address,
             routerWallet.address,
         ]);

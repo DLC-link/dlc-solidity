@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "../../DLCManagerV1.sol";
-import "../../DLCLinkCompatibleV1.sol";
+import "../../DLCManager.sol";
+import "../../DLCLinkCompatible.sol";
 import "./DLCBTC.sol";
 
 enum VaultStatus {
@@ -31,19 +31,20 @@ struct Vault {
     uint256 nftId;
     address owner; // the account owning this Vault
     address originalCreator;
-    string btcTxId;
+    string fundingTx;
+    string closingTx;
 }
 
 uint16 constant ALL_FOR_DEPOSITOR = 0;
 uint16 constant ALL_FOR_ROUTER = 100;
 
-contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
+contract DlcRouter is DLCLinkCompatible, AccessControl {
     using SafeMath for uint256;
     using Address for address;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant DLC_MANAGER_ROLE = keccak256("DLC_MANAGER_ROLE");
-    DLCManagerV1 private _dlcManager;
+    IDLCManager private _dlcManager;
     BtcNft private _btcNft;
     DLCBTCExample private _dlcBTC;
     address private _protocolWalletAddress;
@@ -67,7 +68,7 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
                 _dlcBTCAddress != address(0),
             "DlcRouter: invalid addresses"
         );
-        _dlcManager = DLCManagerV1(_dlcManagerAddress);
+        _dlcManager = IDLCManager(_dlcManagerAddress);
         _btcNft = BtcNft(_dlcNftAddress);
         _dlcBTC = DLCBTCExample(_dlcBTCAddress);
         _protocolWalletAddress = _protocolWallet;
@@ -112,6 +113,7 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         // Calling the dlc-manager contract & getting a uuid
         (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
             _protocolWalletAddress,
+            btcDeposit,
             attestorCount
         );
 
@@ -124,7 +126,8 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
             nftId: 0,
             owner: msg.sender,
             originalCreator: msg.sender,
-            btcTxId: ""
+            fundingTx: "",
+            closingTx: ""
         });
 
         vaultIDsByUUID[_uuid] = index;
@@ -148,10 +151,14 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         emit StatusUpdate(_vaultID, _vault.dlcUUID, _status);
     }
 
-    function setStatusFunded(bytes32 _uuid) external override onlyDLCManager {
+    function setStatusFunded(
+        bytes32 _uuid,
+        string calldata btxTxId
+    ) external override onlyDLCManager {
         Vault memory _vault = vaults[vaultIDsByUUID[_uuid]];
         require(_vault.dlcUUID != 0, "No such vault");
         _updateStatus(_vault.id, VaultStatus.Funded);
+        _vault.fundingTx = btxTxId;
     }
 
     event MintBtcNft(bytes32 dlcUUID, uint256 nftId);
@@ -173,8 +180,8 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
         uint16 _payoutRatio;
         Vault storage _vault = vaults[_vaultID];
 
-        address _NFTOwner = _btcNft.ownerOf(_vault.nftId);
-        require(_NFTOwner == msg.sender, "Unauthorized");
+        address _nftOwner = _btcNft.ownerOf(_vault.nftId);
+        require(_nftOwner == msg.sender, "Unauthorized");
 
         require(_vault.dlcUUID != 0, "No such vault");
         require(_vault.status == VaultStatus.NftIssued, "Vault in wrong state");
@@ -208,7 +215,7 @@ contract DlcRouter is DLCLinkCompatibleV1, AccessControl {
             "Invalid Vault VaultStatus"
         );
 
-        _vault.btcTxId = _btxTxId;
+        _vault.closingTx = _btxTxId;
 
         if (_vault.status == VaultStatus.PreLiquidated) {
             _updateStatus(_vault.id, VaultStatus.Liquidated);

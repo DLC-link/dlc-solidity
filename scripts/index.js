@@ -27,6 +27,8 @@ const safeContractProposal = require('./helpers/safe-api-service');
 async function main() {
     const program = new Command();
 
+    program.version(`${version}`);
+
     program
         .name('dlc-link-eth')
         .description('CLI scripts to help with DLC.Link utilities')
@@ -49,7 +51,7 @@ async function main() {
             'the recipient of the role',
             process.env.ADMIN_ADDRESS
         )
-        .argument('[version]', 'version of DLCManager contract', 'v2')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(addRoleToManager);
 
     program
@@ -103,14 +105,14 @@ async function main() {
         .command('add-attestor')
         .description('add attestor')
         .argument('<address>', 'address of attestor')
-        .argument('[version]', 'version of AttestorManager contract', 'v2')
+        .argument('[version]', 'version of AttestorManager contract', 'v1')
         .action(addAttestor);
 
     program
         .command('remove-attestor')
         .description('remove attestor')
         .argument('<address>', 'address of attestor')
-        .argument('[version]', 'version of AttestorManager contract', 'v2')
+        .argument('[version]', 'version of AttestorManager contract', 'v1')
         .action(removeAttestor);
 
     program
@@ -118,14 +120,14 @@ async function main() {
         .description('register protocol contract')
         .argument('<contractAddress>', 'address of protocol contract')
         .argument('<walletAddress>', 'address of protocol wallet')
-        .argument('[version]', 'version of DLCManager contract', 'v2')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(registerProtocol);
 
     program
         .command('create-dlc')
         .description('create a DLC')
         .argument('[attestorCount]', 'number of attestors', 1)
-        .argument('[version]', 'version of DLCManager contract', 'v2')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(createV1);
 
     program
@@ -133,7 +135,7 @@ async function main() {
         .description('close a DLC')
         .argument('<uuid>', 'uuid of DLC to close')
         .argument('[outcome]', 'outcome of DLC', 7890)
-        .argument('[version]', 'version of DLCManager contract', 'v2')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(closeV1);
 
     program
@@ -148,13 +150,13 @@ async function main() {
         .command('set-status-funded')
         .description('set status to funded for uuid')
         .argument('<uuid>', 'uuid of DLC')
-        .argument('[version]', 'version of DLCManager contract', 'v2')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(setStatusFunded);
 
     program
         .command('contract-admin')
         .description('interactive admin tools')
-        .argument('[version]', 'version of contracts', 'v2')
+        .argument('[version]', 'version of contracts', 'v1')
         .action(contractAdmin);
 
     program
