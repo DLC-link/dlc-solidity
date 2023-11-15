@@ -32,6 +32,7 @@ module.exports = async function safeContractProposal(txRequest, signer) {
 
     console.log('txRequest', txRequest);
 
+    // TODO: add nonce
     const safeTransactionData = {
         to: txRequest.to,
         data: txRequest.data,

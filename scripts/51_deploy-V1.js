@@ -1,6 +1,6 @@
 require('dotenv').config();
 const hardhat = require('hardhat');
-
+const chalk = require('chalk');
 const prompts = require('prompts');
 const {
     saveDeploymentInfo,
@@ -9,7 +9,10 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const chainlinkPricefeedAddresses = require('./helpers/chainlink-pricefeed-addresses');
 
+// DEPRECATED
 module.exports = async function deployV1(version) {
+    console.log(chalk.red('DEPRECATED: Please use contract-admin instead'));
+    return;
     const network = hardhat.network.name;
     const response = await prompts({
         type: 'confirm',

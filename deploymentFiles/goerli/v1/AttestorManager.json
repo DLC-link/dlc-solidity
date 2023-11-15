@@ -2,7 +2,7 @@
   "network": "goerli",
   "contract": {
     "name": "AttestorManager",
-    "address": "0xEfb7bF402F6E3948D899957eca0821A1fC38eB4b",
+    "address": "0xb1F086510EA477B858Bff8FcA34167EaB6813739",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",

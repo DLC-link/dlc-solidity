@@ -40,6 +40,8 @@ module.exports = async function contractAdmin(_version) {
                 description: 'Deploy contracts',
                 value: 'deploy',
             },
+            { title: 'Verify Contract', value: 'verify' },
+            { title: 'Upgrade Proxy Implementation', value: 'upgrade' },
             {
                 title: 'Transfer DLCBTC Ownership',
                 value: 'transfer-dlcbtc',
@@ -49,8 +51,10 @@ module.exports = async function contractAdmin(_version) {
                 title: 'Begin Transfer DEFAULT_ADMIN_ROLE',
                 value: 'transfer-admin',
             },
-            { title: 'Upgrade Proxy Implementation', value: 'upgrade' },
-            { title: 'Verify Contract', value: 'verify' },
+            {
+                title: 'Transfer ProxyAdmin Ownership',
+                value: 'transfer-proxyadmin',
+            },
         ],
         initial: 0,
     });
@@ -123,17 +127,7 @@ module.exports = async function contractAdmin(_version) {
             }
             break;
         }
-        case 'transfer-admin': {
-            // this should call the transfer ADMIN role process for a given contract BY THE DEPLOYER.
-            break;
-        }
-        case 'upgrade': {
-            // select contract to upgrade
-            // test? prompt? confirm?
-            // upgrade
-            // wait and verify
-            break;
-        }
+
         case 'verify': {
             // select contract
             if (network === 'localhost') {
@@ -159,6 +153,76 @@ module.exports = async function contractAdmin(_version) {
                 console.error(error);
             }
 
+            break;
+        }
+        case 'upgrade': {
+            const contractSelectPrompt = await prompts({
+                type: 'select',
+                name: 'contracts',
+                message: `Select contract to upgrade on ${network}`,
+                choices: contractConfigs
+                    .filter((config) => config.upgradeable)
+                    .map((config) => ({
+                        title: `${config.name}`,
+                        value: config.name,
+                    })),
+            });
+            const contractName = contractSelectPrompt.contracts;
+            const contractConfig = contractConfigs.find(
+                (config) => config.name === contractName
+            );
+            const proxyAddress = await loadContractAddress(
+                contractConfig.name,
+                network,
+                version
+            );
+            const newImplementation = await hardhat.ethers.getContractFactory(
+                contractConfig.name
+            );
+            const address = await hardhat.upgrades.prepareUpgrade(
+                proxyAddress,
+                newImplementation
+            );
+            console.log('New implementation address', address);
+
+            try {
+                await hardhat.upgrades.upgradeProxy(
+                    proxyAddress,
+                    newImplementation
+                );
+            } catch (error) {
+                console.log(chalk.bgYellow('Try upgrading from the SAFE'));
+                console.error(error);
+            }
+
+            break;
+        }
+        case 'transfer-dlcbtc': {
+            break;
+        }
+        case 'transfer-admin': {
+            // this should call the transfer ADMIN role process for a given contract BY THE DEPLOYER.
+            break;
+        }
+        case 'transfer-proxyadmin': {
+            const currentAdmin = await (
+                await hardhat.upgrades.admin.getInstance()
+            ).functions['owner()']();
+
+            console.log(
+                chalk.bgYellow('Current ProxyAdmin owner:', currentAdmin)
+            );
+            if (currentAdmin == dlcAdminSafe) return;
+
+            const newAdmin = await prompts({
+                type: 'text',
+                name: 'value',
+                message: 'Enter new ProxyAdmin address',
+            });
+            if (!newAdmin.value) return;
+            console.log('Transferring ownership of ProxyAdmin...');
+            await hardhat.upgrades.admin.transferProxyAdminOwnership(newAdmin);
+            console.log('Transferred ownership of ProxyAdmin to:', newAdmin);
             break;
         }
         default:

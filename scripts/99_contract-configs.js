@@ -6,6 +6,7 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const { promptUser, loadContractAddress } = require('./helpers/utils');
 const getChainLinkBTCPriceFeedAddress = require('./helpers/chainlink-pricefeed-addresses');
+const grantRoleOnManager = require('./00-grant-role-on-manager');
 
 // This is a pure function that just logs
 async function beforeDeployment(contractName, constructorArguments, network) {
@@ -56,6 +57,7 @@ module.exports = function getContractConfigs(networkConfig) {
                     attestorManager,
                     version
                 );
+                // TODO: In case we keep the AttestorManager, we should transfer ROLEs away from deployer
                 return attestorManager.address;
             },
             verify: async () => {
@@ -227,7 +229,7 @@ module.exports = function getContractConfigs(networkConfig) {
             },
         },
         {
-            name: 'LendingDemo',
+            name: 'LendingContract',
             deployer: deployer.address,
             upgradeable: false,
             requirements: ['USDC', 'DLCManager'],
@@ -259,11 +261,11 @@ module.exports = function getContractConfigs(networkConfig) {
                 );
                 await lendingDemo.deployed();
 
-                await afterDeployment('LendingDemo', lendingDemo, version);
+                await afterDeployment('LendingContract', lendingDemo, version);
 
                 if (network === 'localhost') {
                     const shouldMintUsdc = await promptUser(
-                        `Would you like to mint 10M USDC to LendingDemo @ ${lendingDemo.address}?`
+                        `Would you like to mint 10M USDC to LendingContract @ ${lendingDemo.address}?`
                     );
                     if (shouldMintUsdc) {
                         const usdc = await hardhat.ethers.getContractAt(
@@ -280,20 +282,18 @@ module.exports = function getContractConfigs(networkConfig) {
                 }
 
                 const shouldWhitelistLendingDemo = await promptUser(
-                    `Would you like to whitelist LendingDemo @ ${lendingDemo.address} in DLCManager @ ${dlcManagerAddress}?`
+                    `Would you like to whitelist LendingContract @ ${lendingDemo.address} in DLCManager @ ${dlcManagerAddress}?`
                 );
                 if (shouldWhitelistLendingDemo) {
-                    const dlcManager = await hardhat.ethers.getContractAt(
-                        'DLCManager',
-                        dlcManagerAddress
+                    await grantRoleOnManager(
+                        'WHITELISTED_CONTRACT',
+                        lendingDemo.address,
+                        version
                     );
-                    await dlcManager.grantRole(
-                        hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
-                        lendingDemo.address
-                    );
-                    await dlcManager.grantRole(
-                        hardhat.ethers.utils.id('WHITELISTED_WALLET'),
-                        routerWallet.address
+                    await grantRoleOnManager(
+                        'WHITELISTED_WALLET',
+                        routerWallet.address,
+                        version
                     );
                 }
 
@@ -301,7 +301,7 @@ module.exports = function getContractConfigs(networkConfig) {
             },
             verify: async () => {
                 const address = await loadContractAddress(
-                    'LendingDemo',
+                    'LendingContract',
                     network,
                     version
                 );

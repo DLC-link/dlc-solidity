@@ -11,38 +11,38 @@ module.exports = async function grantRoleOnManager(
     grantRoleToAddress,
     version
 ) {
+    const roleInBytes = hardhat.ethers.utils.id(role);
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
         'DlcManager',
         version
     );
-    const accounts = await hardhat.ethers.getSigners();
+    const dlcManager = new hardhat.ethers.Contract(
+        deployInfo.contract.address,
+        deployInfo.contract.abi
+    );
 
-    if (hardhat.network.name === 'localhost') {
-        const dlcManager = new hardhat.ethers.Contract(
-            deployInfo.contract.address,
-            deployInfo.contract.abi,
-            accounts[0]
-        );
-        const roleInBytes = hardhat.ethers.utils.id(role);
-        const tx = await dlcManager.grantRole(roleInBytes, grantRoleToAddress);
+    const accounts = await hardhat.ethers.getSigners();
+    const admin = accounts[3] || accounts[0];
+
+    if (
+        hardhat.network.name === 'localhost' ||
+        (await dlcManager.hasRole(
+            hardhat.ethers.utils.id('DEFAULT_ADMIN_ROLE'),
+            admin.address
+        ))
+    ) {
+        const tx = await dlcManager
+            .connect(admin)
+            .grantRole(roleInBytes, grantRoleToAddress);
         await tx.wait();
         console.log(tx);
         return;
     } else {
-        // NOTE: TODO: accounts[3] should be the SAFE_FOR_KEY account
-        const dlcManager = new hardhat.ethers.Contract(
-            deployInfo.contract.address,
-            deployInfo.contract.abi,
-            accounts[0]
-        );
-
-        const roleInBytes = hardhat.ethers.utils.id(role);
-        const txRequest = await dlcManager.populateTransaction.grantRole(
-            roleInBytes,
-            grantRoleToAddress
-        );
-        await safeContractProposal(txRequest, accounts[0]);
+        const txRequest = await dlcManager
+            .connect(admin)
+            .populateTransaction.grantRole(roleInBytes, grantRoleToAddress);
+        await safeContractProposal(txRequest, admin);
         return;
     }
 };
