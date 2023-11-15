@@ -102,16 +102,14 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         uint256 valueLocked,
         address protocolContract,
         address creator,
-        address protocolWallet,
-        string eventSource
+        address protocolWallet
     );
 
     event SetStatusFunded(
         bytes32 uuid,
         address creator,
         address protocolWallet,
-        address sender,
-        string eventSource
+        address sender
     );
 
     event CloseDLC(
@@ -119,8 +117,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         uint256 outcome,
         address creator,
         address protocolWallet,
-        address sender,
-        string eventSource
+        address sender
     );
 
     event PostCloseDLC(
@@ -129,8 +126,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         address creator,
         address protocolWallet,
         address sender,
-        string btcTxId,
-        string eventSource
+        string btcTxId
     );
 
     ////////////////////////////////////////////////////////////////
@@ -177,6 +173,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
+            timestamp: block.timestamp,
             creator: tx.origin,
             outcome: 0,
             status: DLCLink.DLCStatus.READY,
@@ -190,8 +187,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             _valueLocked,
             msg.sender,
             tx.origin,
-            _protocolWallet,
-            "dlclink:create-dlc:v2"
+            _protocolWallet
         );
 
         dlcIDsByUUID[_uuid] = _index;
@@ -223,8 +219,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             _uuid,
             dlc.creator,
             dlc.protocolWallet,
-            msg.sender,
-            "dlclink:set-status-funded:v2"
+            msg.sender
         );
     }
 
@@ -244,8 +239,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             _outcome,
             dlc.creator,
             dlc.protocolWallet,
-            msg.sender,
-            "dlclink:close-dlc:v2"
+            msg.sender
         );
     }
 
@@ -274,8 +268,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             dlc.creator,
             dlc.protocolWallet,
             msg.sender,
-            _btcTxId,
-            "dlclink:post-close-dlc:v2"
+            _btcTxId
         );
     }
 

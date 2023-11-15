@@ -20,6 +20,7 @@ library DLCLink {
         string[] attestorList;
         address protocolWallet;
         address protocolContract;
+        uint256 timestamp;
         uint256 valueLocked;
         address creator;
         uint256 outcome;

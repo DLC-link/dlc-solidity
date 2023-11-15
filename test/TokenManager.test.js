@@ -248,6 +248,7 @@ describe('TokenManager', function () {
             expect(vault.status).to.equal(0);
             expect(vault.fundingTxId).to.equal('');
             expect(vault.closingTxId).to.equal('');
+            console.log(vault.timestamp);
         });
         xit('emits the correct event', async () => {});
     });

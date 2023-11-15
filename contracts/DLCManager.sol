@@ -116,15 +116,14 @@ contract DLCManager is
         address protocolContract,
         address creator,
         address protocolWallet,
-        string eventSource
+        uint256 timestamp
     );
 
     event SetStatusFunded(
         bytes32 uuid,
         address creator,
         address protocolWallet,
-        address sender,
-        string eventSource
+        address sender
     );
 
     event CloseDLC(
@@ -132,8 +131,7 @@ contract DLCManager is
         uint256 outcome,
         address creator,
         address protocolWallet,
-        address sender,
-        string eventSource
+        address sender
     );
 
     event PostCloseDLC(
@@ -142,8 +140,7 @@ contract DLCManager is
         address creator,
         address protocolWallet,
         address sender,
-        string btcTxId,
-        string eventSource
+        string btcTxId
     );
 
     ////////////////////////////////////////////////////////////////
@@ -201,6 +198,7 @@ contract DLCManager is
             protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
+            timestamp: block.timestamp,
             creator: tx.origin,
             outcome: 0,
             status: DLCLink.DLCStatus.READY,
@@ -215,7 +213,7 @@ contract DLCManager is
             msg.sender,
             tx.origin,
             _protocolWallet,
-            "dlclink:create-dlc:v2"
+            block.timestamp
         );
 
         dlcIDsByUUID[_uuid] = _index;
@@ -246,8 +244,7 @@ contract DLCManager is
             _uuid,
             dlc.creator,
             dlc.protocolWallet,
-            msg.sender,
-            "dlclink:set-status-funded:v2"
+            msg.sender
         );
     }
 
@@ -269,8 +266,7 @@ contract DLCManager is
             _outcome,
             dlc.creator,
             dlc.protocolWallet,
-            msg.sender,
-            "dlclink:close-dlc:v2"
+            msg.sender
         );
     }
 
@@ -298,8 +294,7 @@ contract DLCManager is
             dlc.creator,
             dlc.protocolWallet,
             msg.sender,
-            _btcTxId,
-            "dlclink:post-close-dlc:v2"
+            _btcTxId
         );
     }
 
