@@ -3,36 +3,9 @@ const hardhat = require('hardhat');
 
 const prompts = require('prompts');
 const chalk = require('chalk');
-const {
-    saveDeploymentInfo,
-    deploymentInfo,
-    loadDeploymentInfo,
-} = require('./helpers/deployment-handlers_versioned.js');
-const dlcAdminSafes = require('./helpers/dlc-admin-safes.js');
-
-async function promptUser(message) {
-    const response = await prompts({
-        type: 'confirm',
-        name: 'continue',
-        message,
-        initial: false,
-    });
-    return response.continue;
-}
-
-async function loadContract(requirement, network, version) {
-    const deployment = await loadDeploymentInfo(network, requirement, version);
-    if (!deployment) {
-        const shouldContinue = await promptUser(
-            `Deployment "${requirement}" not found. Continue?`
-        );
-        if (!shouldContinue) {
-            throw new Error('Deployment aborted by user.');
-        }
-        return undefined;
-    }
-    return deployment.contract.address;
-}
+const dlcAdminSafes = require('./helpers/dlc-admin-safes');
+const getContractConfigs = require('./99_contract-configs');
+const { promptUser, loadContractAddress } = require('./helpers/utils');
 
 module.exports = async function contractAdmin(_version) {
     const network = hardhat.network.name;
@@ -43,186 +16,17 @@ module.exports = async function contractAdmin(_version) {
     const dlcAdminSafe = dlcAdminSafes[network];
     if (!dlcAdminSafe) throw new Error('DLC Admin Safe address not found.');
 
-    const contractConfigs = [
-        {
-            name: 'AttestorManager',
-            deployer: deployer.address,
-            upgradeable: false,
-            requirements: [],
-            deploy: async (contracts) => {
-                console.log(`Deploying AttestorManager to ${network}...`);
-                const AttestorManager =
-                    await hardhat.ethers.getContractFactory('AttestorManager');
-                const attestorManager = await AttestorManager.deploy();
-                await attestorManager.deployed();
-                console.log(
-                    `Deployed contract AttestorManager to ${attestorManager.address} (network: ${network})`
-                );
-                await saveDeploymentInfo(
-                    deploymentInfo(hardhat, attestorManager, 'AttestorManager'),
-                    version
-                );
-                return attestorManager.address;
-            },
-            verify: async () => {
-                const address = await loadContract(
-                    'AttestorManager',
-                    network,
-                    version
-                );
-                await hardhat.run('verify:verify', {
-                    address: address,
-                });
-            },
-        },
-        {
-            name: 'DLCManager',
-            deployer: deployer.address,
-            upgradeable: true,
-            requirements: ['AttestorManager'],
-            deploy: async (contracts) => {
-                const attestorManagerAddress = contracts['AttestorManager'];
-                if (!attestorManagerAddress)
-                    throw new Error('AttestorManager deployment not found.');
-                const shouldContinue = await promptUser(
-                    `You are about to deploy DLCManager to ${network}.\nContructor arguments: _adminAddress: ${dlcAdminSafe}, _attestorManager: ${attestorManagerAddress}\n Continue?`
-                );
-                if (!shouldContinue) {
-                    throw new Error('Deployment aborted by user.');
-                }
-                console.log(
-                    `Deploying contract DLCManager to network "${network}"...`
-                );
-                const DLCManager =
-                    await hardhat.ethers.getContractFactory('DLCManager');
-                const dlcManager = await hardhat.upgrades.deployProxy(
-                    DLCManager,
-                    [dlcAdminSafe, attestorManagerAddress]
-                );
-                await dlcManager.deployed();
-                console.log(
-                    `Deployed contract DLCManager to ${dlcManager.address} (network: ${network})`
-                );
-                await saveDeploymentInfo(
-                    deploymentInfo(hardhat, dlcManager, 'DlcManager'),
-                    version
-                );
-                return dlcManager.address;
-            },
-            verify: async () => {
-                const address = await loadContract(
-                    'DlcManager',
-                    network,
-                    version
-                );
-                await hardhat.run('verify:verify', {
-                    address: address,
-                });
-            },
-        },
-        {
-            name: 'DLCBTC',
-            deployer: deployer.address,
-            upgradeable: false,
-            requirements: [],
-            deploy: async (contracts) => {
-                console.log(
-                    `deploying contract DLCBTC to network "${network}"...`
-                );
-                const DLCBTC =
-                    await hardhat.ethers.getContractFactory('DLCBTC');
-                const dlcBtc = await DLCBTC.deploy();
-                await dlcBtc.deployed();
-                console.log(
-                    `deployed contract DLCBTC to ${dlcBtc.address} (network: ${network})`
-                );
-                await saveDeploymentInfo(
-                    deploymentInfo(hardhat, dlcBtc, 'DLCBTC'),
-                    version
-                );
-                return dlcBtc.address;
-            },
-            verify: async () => {
-                const address = await loadContract('DLCBTC', network, version);
-                await hardhat.run('verify:verify', {
-                    address: address,
-                });
-            },
-        },
-        {
-            name: 'TokenManager',
-            deployer: deployer.address,
-            upgradeable: true,
-            requirements: ['DLCBTC', 'DLCManager'],
-            deploy: async (contracts) => {
-                const DLCBTCAddress = contracts['DLCBTC'];
-                if (!DLCBTCAddress)
-                    throw new Error('DLCBTC deployment not found.');
-                const DLCManagerAddress = contracts['DLCManager'];
-                if (!DLCManagerAddress)
-                    throw new Error('DLCManager deployment not found.');
-                console.log(
-                    `Deploying contract TokenManager to network "${network}"...`
-                );
-
-                const TokenManager = await hardhat.ethers.getContractFactory(
-                    'TokenManager',
-                    deployer
-                );
-                const tokenManager = await hardhat.upgrades.deployProxy(
-                    TokenManager,
-                    [
-                        dlcAdminSafe,
-                        DLCManagerAddress,
-                        DLCBTCAddress,
-                        routerWallet.address,
-                    ]
-                );
-                await tokenManager.deployed();
-                console.log(
-                    `Deployed contract TokenManager to ${tokenManager.address} (network: ${network})`
-                );
-                await saveDeploymentInfo(
-                    deploymentInfo(hardhat, tokenManager, 'TokenManager'),
-                    version
-                );
-
-                const shouldTransferOwnership = await promptUser(
-                    `Would you like to transfer ownership of DLCBTC contract to ${tokenManager.address}?`
-                );
-                if (shouldTransferOwnership) {
-                    const dlcBtc = await hardhat.ethers.getContractAt(
-                        'DLCBTC',
-                        DLCBTCAddress
-                    );
-                    await dlcBtc.transferOwnership(tokenManager.address);
-                    console.log(
-                        `Transferred ownership of DLCBTC to TokenManager at ${tokenManager.address}`
-                    );
-                }
-
-                return tokenManager.address;
-            },
-            verify: async () => {
-                const address = await loadContract(
-                    'TokenManager',
-                    network,
-                    version
-                );
-                await hardhat.run('verify:verify', {
-                    address: address,
-                });
-            },
-        },
-    ];
-
-    let response = await prompts({
-        type: 'confirm',
-        name: 'continue',
-        message: `You are about to interact with network: ${network}.\nDeployer account: ${deployer.address}\nRouter-wallet account: ${routerWallet.address}\nContinue?`,
-        initial: false,
+    const contractConfigs = getContractConfigs({
+        version,
+        deployer,
+        routerWallet,
+        dlcAdminSafe,
     });
-    if (!response.continue) {
+
+    let response = await promptUser(
+        `You are about to interact with network: ${network}.\nDeployer account: ${deployer.address}\nRouter-wallet account: ${routerWallet.address}\nContinue?`
+    );
+    if (!response) {
         return;
     }
 
@@ -264,7 +68,10 @@ module.exports = async function contractAdmin(_version) {
                 min: 0,
                 max: 12,
             });
-
+            if (!contractSelectPrompt.contracts.length) {
+                console.log('No contracts selected. Deployment aborted.');
+                return;
+            }
             await hardhat.run('compile');
             const deployedContracts = {};
 
@@ -278,11 +85,17 @@ module.exports = async function contractAdmin(_version) {
 
                     for (const requirement of requirements) {
                         if (!deployedContracts[requirement]) {
-                            deployedContracts[requirement] = await loadContract(
-                                requirement,
-                                network,
-                                version
+                            console.log(
+                                chalk.yellow(
+                                    `Loading earlier deployment of requirement: ${requirement}...`
+                                )
                             );
+                            deployedContracts[requirement] =
+                                await loadContractAddress(
+                                    requirement,
+                                    network,
+                                    version
+                                );
                         }
 
                         fulfilledRequirements[requirement] =
@@ -323,6 +136,10 @@ module.exports = async function contractAdmin(_version) {
         }
         case 'verify': {
             // select contract
+            if (network === 'localhost') {
+                console.warn('Cannot verify contracts on localhost.');
+                return;
+            }
             const contractSelectPrompt = await prompts({
                 type: 'select',
                 name: 'contracts',
