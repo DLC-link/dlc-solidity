@@ -16,6 +16,21 @@ import "./DLCLinkCompatible.sol";
 import "./DLCBTC.sol";
 import "./DLCLinkLibrary.sol";
 
+/**
+ * @author  DLC.Link 2023
+ * @title   TokenManager
+ * @notice  This contract is responsible for minting and burning dlcBTC tokens
+ * It interacts with the DLCManager contract to handle DLCs
+ * When a DLC is funded, the DLCManager contract will call setStatusFunded(),
+ * which in turn will mint the tokens to the user.
+ * @dev     This contract is the owner of the dlcBTC contract
+ * @dev     It is upgradable through the OpenZeppelin proxy pattern
+ * @dev     Launched with Whitelisted useraddresses enabled first
+ * @dev     It is extendable to allow taking fees during vault creation and/or during DLC closing.
+ * @dev     It is governed by the DLC_ADMIN_ROLE, a multisig
+ * @custom:contact robert@dlc.link
+ * @custom:website https://www.dlc.link
+ */
 contract TokenManager is
     Initializable,
     AccessControlDefaultAdminRulesUpgradeable,
@@ -125,6 +140,8 @@ contract TokenManager is
         address owner
     );
 
+    event CloseVault(bytes32 dlcUUID, uint256 outcome, address owner);
+
     event Mint(address to, uint256 amount);
 
     event Burn(address from, uint256 amount);
@@ -133,8 +150,13 @@ contract TokenManager is
     //                    INTERNAL FUNCTIONS                      //
     ////////////////////////////////////////////////////////////////
 
-    // _amount is in sats
-    // mintFeeRate is in basis points, e.g. 100 = 1% fee
+    /**
+     * @notice  Calculates the amount of dlcBTC to mint to the user
+     * @dev     There are no plans to take ERC20 fees on mint, so the fee rate is 0
+     * @dev     mintFeeRate is in basis points, e.g. 100 = 1% fee
+     * @param   _amount  amount in sats
+     * @return  uint256  amount reduced by the fee rate
+     */
     function _getFeeAdjustedAmount(
         uint256 _amount
     ) internal view returns (uint256) {
@@ -159,13 +181,13 @@ contract TokenManager is
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    // NOTE: we could set up an overload with a preset number of attestors
-    // function setupVault(
-    //     uint256 btcDeposit
-    // ) external whenNotPaused returns (bytes32) {
-    //     return this.setupVault(btcDeposit, 1);
-    // }
-
+    /**
+     * @notice  Creates a new vault for the user
+     * @dev     It calls the DLCManager contract to create a new DLC
+     * @param   btcDeposit  amount to be locked (in sats)
+     * @param   attestorCount  number of attestors to be used in the DLC
+     * @return  bytes32  uuid of the new vault/DLC
+     */
     function setupVault(
         uint256 btcDeposit,
         uint8 attestorCount
@@ -188,6 +210,11 @@ contract TokenManager is
         return _uuid;
     }
 
+    /**
+     * @notice  Callback function called by the DLCManager contract when a DLC is funded
+     * @dev     It initiates the mint to the user
+     * @param   uuid  uuid of the vault/DLC
+     */
     function setStatusFunded(
         bytes32 uuid,
         string calldata /*btcTxId*/
@@ -197,6 +224,11 @@ contract TokenManager is
         _mintTokens(dlc.creator, _getFeeAdjustedAmount(dlc.valueLocked));
     }
 
+    /**
+     * @notice  Burns the tokens and requests the closing of the vault
+     * @dev     User must have enough dlcBTC tokens to close the DLC fully
+     * @param   uuid  uuid of the vault/DLC
+     */
     function closeVault(bytes32 uuid) external whenNotPaused {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         if (dlc.creator != msg.sender) revert NotOwner();
@@ -208,8 +240,10 @@ contract TokenManager is
             );
 
         _burnTokens(dlc.creator, dlc.valueLocked);
+        uint256 outcome = _calculateOutcome();
 
-        dlcManager.closeDLC(uuid, _calculateOutcome());
+        dlcManager.closeDLC(uuid, outcome);
+        emit CloseVault(uuid, outcome, msg.sender);
     }
 
     function postCloseDLCHandler(

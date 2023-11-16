@@ -15,6 +15,16 @@ import "./IDLCManager.sol";
 import "./AttestorManager.sol";
 import "./DLCLinkLibrary.sol";
 
+/**
+ * @author  DLC.Link 2023
+ * @title   DLCManager
+ * @dev     This is the contract the Attestor Layer listens to.
+ * Protocol contracts should implement the DLCLinkCompatible interface and interact with this contract.
+ * @dev     It is upgradable through the OpenZeppelin proxy pattern
+ * @notice  DLCManager is the main contract of the DLC.Link protocol.
+ * @custom:contact robert@dlc.link
+ * @custom:website https://www.dlc.link
+ */
 contract DLCManager is
     Initializable,
     AccessControlDefaultAdminRulesUpgradeable,
@@ -175,6 +185,15 @@ contract DLCManager is
         return this.createDLC(_protocolWallet, _valueLocked, 3);
     }
 
+    /**
+     * @notice  Triggers the creation of an Announcement in the Attestor Layer.
+     * @dev     Call this function from a whitelisted protocol-contract.
+     * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
+     * @param   _valueLocked  Value to be locked in the DLC, in Satoshis.
+     * @param   _attestorCount  Desired number of Attestors for this DLC.
+     * @return  bytes32  A generated UUID.
+     * @return  string[]  The selected attestor list URLs.
+     */
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked,
@@ -222,6 +241,12 @@ contract DLCManager is
         return (_uuid, _attestorList);
     }
 
+    /**
+     * @notice  Confirms that a DLC was 'funded' on the Bitcoin blockchain.
+     * @dev     Called by the connected router-wallet.
+     * @param   _uuid  UUID of the DLC.
+     * @param   _btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     */
     function setStatusFunded(
         bytes32 _uuid,
         string calldata _btcTxId
@@ -248,6 +273,14 @@ contract DLCManager is
         );
     }
 
+    /**
+     * @notice  Triggers the creation of an Attestation.
+     * @dev     Attestors will sign the provided _outcome.
+     * There are several ways to design the outcome values, depending on the use case.
+     * See the DLC.Link documentation for more details.
+     * @param   _uuid  UUID of the DLC.
+     * @param   _outcome  Outcome of the DLC, generally a number between 0-10000. (10000 = 100%)
+     */
     function closeDLC(
         bytes32 _uuid,
         uint256 _outcome
@@ -270,6 +303,12 @@ contract DLCManager is
         );
     }
 
+    /**
+     * @notice  Triggered after a closing Tx has been confirmed Bitcoin.
+     * @dev     Similarly to setStatusFunded, this is called by a router-wallet.
+     * @param   _uuid  UUID of the DLC.
+     * @param   _btcTxId  Closing Bitcoin Tx id.
+     */
     function postCloseDLC(
         bytes32 _uuid,
         string calldata _btcTxId
