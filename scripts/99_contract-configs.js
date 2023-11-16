@@ -244,15 +244,13 @@ module.exports = function getContractConfigs(networkConfig) {
                     await getChainLinkBTCPriceFeedAddress(network);
 
                 await beforeDeployment(
-                    'LendingContractV1',
+                    'LendingContract',
                     `_dlcManager: ${dlcManagerAddress}, _usdc: ${usdcAddress}, _routerWallet: ${routerWallet.address}, _pricefeed: ${pricefeedAddress}`,
                     network
                 );
 
                 const LendingDemo =
-                    await hardhat.ethers.getContractFactory(
-                        'LendingContractV1'
-                    );
+                    await hardhat.ethers.getContractFactory('LendingContract');
                 const lendingDemo = await LendingDemo.deploy(
                     dlcManagerAddress,
                     usdcAddress,

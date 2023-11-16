@@ -39,11 +39,11 @@ struct Loan {
  * @dev     Not to be used in production.
  * @notice  This is an example contract showing a simple interfacing with the DLCManager contract.
  */
-contract LendingContractV1 is DLCLinkCompatible, AccessControl {
+contract LendingContract is DLCLinkCompatible, AccessControl {
     using SafeMath for uint256;
     IDLCManager private _dlcManager;
     IERC20 private _usdc;
-    address private _btcPriceFeedAddress;
+    AggregatorV3Interface private _btcPriceFeed;
     address private _protocolWalletAddress;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -65,7 +65,7 @@ contract LendingContractV1 is DLCLinkCompatible, AccessControl {
         _dlcManager = IDLCManager(_dlcManagerAddress);
         _usdc = IERC20(_usdcAddress);
         _protocolWalletAddress = _protocolWallet;
-        _btcPriceFeedAddress = _priceFeedAddress;
+        _btcPriceFeed = AggregatorV3Interface(_priceFeedAddress);
         _setupRole(ADMIN_ROLE, _msgSender());
         _setupRole(DLC_MANAGER_ROLE, _dlcManagerAddress);
     }
@@ -248,15 +248,6 @@ contract LendingContractV1 is DLCLinkCompatible, AccessControl {
         );
     }
 
-    // Gives back BTC price data. 8 decimals, e.g. $22,836 = 2283600000000
-    function _getLatestPrice(
-        address _feedAddress
-    ) internal view returns (int256, uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(_feedAddress);
-        (, int256 price, , uint256 timeStamp, ) = priceFeed.latestRoundData();
-        return (price, timeStamp);
-    }
-
     event DoesNotNeedLiquidation(
         uint256 loanid,
         bytes32 dlcUUID,
@@ -264,7 +255,8 @@ contract LendingContractV1 is DLCLinkCompatible, AccessControl {
     );
 
     function attemptLiquidate(uint256 _loanID) public {
-        (int256 _price, ) = _getLatestPrice(_btcPriceFeedAddress);
+        // Gives back BTC price data. 8 decimals, e.g. $22,836 = 2283600000000
+        (, int256 _price, , , ) = _btcPriceFeed.latestRoundData();
         Loan memory _loan = loans[_loanID];
         bool _needsLiquidation = checkLiquidation(_loan.id, _price);
         if (!_needsLiquidation) {

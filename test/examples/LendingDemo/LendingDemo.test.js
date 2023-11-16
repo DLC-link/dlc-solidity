@@ -65,7 +65,7 @@ describe('LendingContract', () => {
         await usdc.deployed();
 
         const LendingContract = await ethers.getContractFactory(
-            'LendingContractV1',
+            'LendingContract',
             protocol
         );
         lendingContract = await LendingContract.deploy(
