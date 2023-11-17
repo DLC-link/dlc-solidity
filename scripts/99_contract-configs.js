@@ -40,59 +40,21 @@ module.exports = function getContractConfigs(networkConfig) {
     const { version, deployer, routerWallet, dlcAdminSafe } = networkConfig;
     return [
         {
-            name: 'AttestorManager',
-            deployer: deployer.address,
-            upgradeable: false,
-            requirements: [],
-            deploy: async (contracts) => {
-                await beforeDeployment('AttestorManager', '', network);
-
-                const AttestorManager =
-                    await hardhat.ethers.getContractFactory('AttestorManager');
-                const attestorManager = await AttestorManager.deploy();
-                await attestorManager.deployed();
-
-                await afterDeployment(
-                    'AttestorManager',
-                    attestorManager,
-                    version
-                );
-                // TODO: In case we keep the AttestorManager, we should transfer ROLEs away from deployer
-                return attestorManager.address;
-            },
-            verify: async () => {
-                const address = await loadContractAddress(
-                    'AttestorManager',
-                    network,
-                    version
-                );
-                await hardhat.run('verify:verify', {
-                    address: address,
-                });
-            },
-        },
-        {
             name: 'DLCManager',
             deployer: deployer.address,
             upgradeable: true,
-            requirements: ['AttestorManager'],
+            requirements: [],
             deploy: async (requirementAddresses) => {
-                const attestorManagerAddress =
-                    requirementAddresses['AttestorManager'];
-                if (!attestorManagerAddress)
-                    throw new Error('AttestorManager deployment not found.');
-
                 await beforeDeployment(
                     'DLCManager',
-                    `_adminAddress: ${dlcAdminSafe}, _attestorManager: ${attestorManagerAddress}`,
+                    `_adminAddress: ${dlcAdminSafe}`,
                     network
                 );
-
                 const DLCManager =
                     await hardhat.ethers.getContractFactory('DLCManager');
                 const dlcManager = await hardhat.upgrades.deployProxy(
                     DLCManager,
-                    [dlcAdminSafe, attestorManagerAddress]
+                    [dlcAdminSafe]
                 );
                 await dlcManager.deployed();
 

@@ -98,7 +98,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
     event CreateDLC(
         bytes32 uuid,
-        string[] attestorList,
         uint256 valueLocked,
         address protocolContract,
         address creator,
@@ -150,7 +149,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked
-    ) external override whenNotPaused returns (bytes32, string[] memory) {
+    ) external override whenNotPaused returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
         string[] memory _attestorList = new string[](3);
 
@@ -160,7 +159,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
-            attestorList: _attestorList,
             protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
@@ -174,7 +172,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
         emit CreateDLC(
             _uuid,
-            _attestorList,
             _valueLocked,
             msg.sender,
             tx.origin,
@@ -184,7 +181,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         dlcIDsByUUID[_uuid] = _index;
         _index++;
 
-        return (_uuid, _attestorList);
+        return (_uuid);
     }
 
     function setStatusFunded(

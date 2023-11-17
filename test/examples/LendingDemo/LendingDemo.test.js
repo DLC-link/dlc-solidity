@@ -27,7 +27,6 @@ async function setupFundedLoan(
 
 describe('LendingContract', () => {
     let mockV3Aggregator;
-    let mockAttestorManager;
     let dlcManager;
     let usdc;
     let lendingContract;
@@ -48,12 +47,6 @@ describe('LendingContract', () => {
             await ethers.getContractFactory('MockV3Aggregator');
         mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
         await mockV3Aggregator.deployTransaction.wait();
-
-        const MockAttestorManager = await ethers.getContractFactory(
-            'MockAttestorManager'
-        );
-        mockAttestorManager = await MockAttestorManager.deploy();
-        await mockAttestorManager.deployTransaction.wait();
 
         const DLCManager = await ethers.getContractFactory('MockDLCManager');
         dlcManager = await DLCManager.deploy();

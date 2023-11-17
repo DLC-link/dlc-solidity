@@ -22,7 +22,6 @@ enum LoanStatus {
 struct Loan {
     uint256 id;
     bytes32 dlcUUID;
-    string[] attestorList;
     LoanStatus status;
     uint256 vaultLoan; // the borrowed amount
     uint256 vaultCollateral; // btc deposit in sats
@@ -104,12 +103,11 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
         uint256 liquidationRatio,
         uint256 liquidationFee,
         uint256 index,
-        string[] attestorList,
         address owner
     );
 
     function setupLoan(uint256 btcDeposit) external returns (uint256) {
-        (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
+        bytes32 _uuid = _dlcManager.createDLC(
             _protocolWalletAddress,
             btcDeposit
         );
@@ -117,7 +115,6 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
         loans[index] = Loan({
             id: index,
             dlcUUID: _uuid,
-            attestorList: attestorList,
             status: LoanStatus.Ready,
             vaultLoan: 0,
             vaultCollateral: btcDeposit,
@@ -136,7 +133,6 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
             liquidationRatio,
             liquidationFee,
             index,
-            attestorList,
             msg.sender
         );
 

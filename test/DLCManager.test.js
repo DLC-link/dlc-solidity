@@ -18,17 +18,11 @@ async function whitelistProtocolContractAndAddress(
 }
 
 describe('DLCManager', () => {
-    let dlcManager, mockAttestorManager, mockProtocol;
+    let dlcManager, mockProtocol;
     let accounts, deployer, protocol, protocolWallet, user;
 
     const valueLocked = 100000000; // 1 BTC
     const btxTxId = '0x1234567890';
-    const attestorCount = 3;
-    const attestorList = [
-        'localhost',
-        'dlc.link/oracle',
-        'someAttestorDomain.com',
-    ];
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -39,18 +33,10 @@ describe('DLCManager', () => {
         randomAccount = accounts[4];
         anotherAccount = accounts[5];
 
-        // AttestorManager
-        const MockAttestorManager = await ethers.getContractFactory(
-            'MockAttestorManager'
-        );
-        mockAttestorManager = await MockAttestorManager.deploy();
-        await mockAttestorManager.deployed();
-
         // DLCManager
         const DLCManager = await ethers.getContractFactory('DLCManager');
         dlcManager = await hardhat.upgrades.deployProxy(DLCManager, [
             deployer.address,
-            mockAttestorManager.address,
         ]);
         await dlcManager.deployed();
 
@@ -64,9 +50,6 @@ describe('DLCManager', () => {
     });
 
     describe('test contracts are deployed correctly', async () => {
-        it('deploys AttestorManager correctly', async () => {
-            expect(mockAttestorManager.address).to.not.equal(0);
-        });
         it('deploys DLCManager correctly', async () => {
             expect(dlcManager.address).to.not.equal(0);
         });
@@ -136,7 +119,6 @@ describe('DLCManager', () => {
 
             expect(decodedEvent.name).to.equal('CreateDLC');
             expect(decodedEvent.args.uuid).to.not.equal(undefined);
-            expect(decodedEvent.args.attestorList).to.deep.equal(attestorList);
             expect(decodedEvent.args.creator).to.equal(user.address);
             expect(decodedEvent.args.protocolWallet).to.equal(
                 protocolWallet.address

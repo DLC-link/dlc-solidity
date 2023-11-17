@@ -25,7 +25,6 @@ enum VaultStatus {
 struct Vault {
     uint256 id;
     bytes32 dlcUUID;
-    string[] attestorList;
     VaultStatus status;
     uint256 vaultCollateral; // btc deposit in sats
     uint256 nftId;
@@ -100,17 +99,14 @@ contract DlcRouter is DLCLinkCompatible, AccessControl {
         bytes32 dlcUUID,
         uint256 btcDeposit,
         uint256 index,
-        string[] attestorList,
         address owner
     );
 
-    function setupVault(
-        uint256 btcDeposit
-    ) external returns (uint256) {
+    function setupVault(uint256 btcDeposit) external returns (uint256) {
         require(btcDeposit > 0, "DlcRouter: btcDeposit must be greater than 0");
 
         // Calling the dlc-manager contract & getting a uuid
-        (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
+        bytes32 _uuid = _dlcManager.createDLC(
             _protocolWalletAddress,
             btcDeposit
         );
@@ -118,7 +114,6 @@ contract DlcRouter is DLCLinkCompatible, AccessControl {
         vaults[index] = Vault({
             id: index,
             dlcUUID: _uuid,
-            attestorList: attestorList,
             status: VaultStatus.Ready,
             vaultCollateral: btcDeposit,
             nftId: 0,
@@ -130,7 +125,7 @@ contract DlcRouter is DLCLinkCompatible, AccessControl {
 
         vaultIDsByUUID[_uuid] = index;
 
-        emit SetupVault(_uuid, btcDeposit, index, attestorList, msg.sender);
+        emit SetupVault(_uuid, btcDeposit, index, msg.sender);
 
         emit StatusUpdate(index, _uuid, VaultStatus.Ready);
 

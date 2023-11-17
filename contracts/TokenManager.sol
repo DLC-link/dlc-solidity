@@ -133,12 +133,7 @@ contract TokenManager is
     //                          EVENTS                            //
     ////////////////////////////////////////////////////////////////
 
-    event SetupVault(
-        bytes32 dlcUUID,
-        uint256 btcDeposit,
-        string[] attestorList,
-        address owner
-    );
+    event SetupVault(bytes32 dlcUUID, uint256 btcDeposit, address owner);
 
     event CloseVault(bytes32 dlcUUID, uint256 outcome, address owner);
 
@@ -195,14 +190,11 @@ contract TokenManager is
         if (btcDeposit > maximumDeposit)
             revert DepositTooLarge(btcDeposit, maximumDeposit);
 
-        (bytes32 _uuid, string[] memory attestorList) = dlcManager.createDLC(
-            routerWalletAddress,
-            btcDeposit
-        );
+        bytes32 _uuid = dlcManager.createDLC(routerWalletAddress, btcDeposit);
 
         userVaults[msg.sender].push(_uuid);
 
-        emit SetupVault(_uuid, btcDeposit, attestorList, msg.sender);
+        emit SetupVault(_uuid, btcDeposit, msg.sender);
 
         return _uuid;
     }

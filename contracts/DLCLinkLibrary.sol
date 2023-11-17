@@ -17,7 +17,6 @@ library DLCLink {
 
     struct DLC {
         bytes32 uuid;
-        string[] attestorList;
         address protocolWallet;
         address protocolContract;
         uint256 timestamp;
