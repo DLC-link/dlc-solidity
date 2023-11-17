@@ -171,33 +171,17 @@ contract DLCManager is
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    // Default value for _attestorCount is 3
-    function createDLC(
-        address _protocolWallet,
-        uint256 _valueLocked
-    )
-        external
-        override
-        onlyWhiteListedContracts
-        whenNotPaused
-        returns (bytes32, string[] memory)
-    {
-        return this.createDLC(_protocolWallet, _valueLocked, 3);
-    }
-
     /**
      * @notice  Triggers the creation of an Announcement in the Attestor Layer.
      * @dev     Call this function from a whitelisted protocol-contract.
      * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
      * @param   _valueLocked  Value to be locked in the DLC, in Satoshis.
-     * @param   _attestorCount  Desired number of Attestors for this DLC.
      * @return  bytes32  A generated UUID.
      * @return  string[]  The selected attestor list URLs.
      */
     function createDLC(
         address _protocolWallet,
-        uint256 _valueLocked,
-        uint8 _attestorCount
+        uint256 _valueLocked
     )
         external
         override
@@ -207,9 +191,7 @@ contract DLCManager is
         returns (bytes32, string[] memory)
     {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
-        string[] memory _attestorList = _attestorManager.getRandomAttestors(
-            _attestorCount
-        );
+        string[] memory _attestorList = _attestorManager.getAllAttestors();
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,

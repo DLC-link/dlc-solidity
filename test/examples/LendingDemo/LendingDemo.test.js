@@ -12,13 +12,12 @@ async function setupFundedLoan(
     user,
     loanParams = {
         btcDeposit: 100000000,
-        attestorCount: 3,
         // emergencyRefundTime: 5,
     }
 ) {
     const tx = await lendingContract
         .connect(user)
-        .setupLoan(loanParams.btcDeposit, loanParams.attestorCount);
+        .setupLoan(loanParams.btcDeposit);
     const txF = await tx.wait();
     const tx3 = await dlcManager
         .connect(protocol)
@@ -100,7 +99,7 @@ describe('LendingContract', () => {
         });
 
         it('reverts if loan is not funded', async () => {
-            const tx = await lendingContract.connect(user).setupLoan(0, 0);
+            const tx = await lendingContract.connect(user).setupLoan(0);
             const txF = await tx.wait();
             await expect(
                 lendingContract.connect(user).borrow(0, 10)
@@ -264,7 +263,6 @@ describe('LendingContract', () => {
                 user,
                 {
                     btcDeposit: amount,
-                    attestorCount: 3,
                     // emergencyRefundTime: 5,
                 }
             );
@@ -295,7 +293,6 @@ describe('LendingContract', () => {
                 user,
                 {
                     btcDeposit: collateralAmount,
-                    attestorCount: 3,
                     // emergencyRefundTime: 5,
                 }
             );
@@ -332,7 +329,6 @@ describe('LendingContract', () => {
                 user,
                 {
                     btcDeposit: collateralAmount,
-                    attestorCount: 3,
                     // emergencyRefundTime: 5,
                 }
             );

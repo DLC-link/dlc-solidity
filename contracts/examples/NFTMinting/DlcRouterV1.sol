@@ -105,16 +105,14 @@ contract DlcRouter is DLCLinkCompatible, AccessControl {
     );
 
     function setupVault(
-        uint256 btcDeposit,
-        uint8 attestorCount
+        uint256 btcDeposit
     ) external returns (uint256) {
         require(btcDeposit > 0, "DlcRouter: btcDeposit must be greater than 0");
 
         // Calling the dlc-manager contract & getting a uuid
         (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
             _protocolWalletAddress,
-            btcDeposit,
-            attestorCount
+            btcDeposit
         );
 
         vaults[index] = Vault({

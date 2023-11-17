@@ -87,17 +87,13 @@ describe('DLCManager', () => {
         });
         it('reverts correctly when paused', async () => {
             await expect(
-                mockProtocol
-                    .connect(user)
-                    .requestCreateDLC(valueLocked, attestorCount)
+                mockProtocol.connect(user).requestCreateDLC(valueLocked)
             ).to.be.revertedWith('Pausable: paused');
         });
         it('allows functions when unpaused', async () => {
             await dlcManager.unpauseContract();
             await expect(
-                mockProtocol
-                    .connect(user)
-                    .requestCreateDLC(valueLocked, attestorCount)
+                mockProtocol.connect(user).requestCreateDLC(valueLocked)
             ).to.not.be.revertedWith('Pausable: paused');
         });
     });
@@ -105,9 +101,7 @@ describe('DLCManager', () => {
     describe('createDLC', async () => {
         it('reverts if called from a non-whitelisted contract', async () => {
             await expect(
-                mockProtocol
-                    .connect(user)
-                    .requestCreateDLC(valueLocked, attestorCount)
+                mockProtocol.connect(user).requestCreateDLC(valueLocked)
             ).to.be.revertedWithCustomError(
                 dlcManager,
                 'ContractNotWhitelisted'
@@ -120,9 +114,7 @@ describe('DLCManager', () => {
                 mockProtocol.address
             );
             await expect(
-                mockProtocol
-                    .connect(user)
-                    .requestCreateDLC(valueLocked, attestorCount)
+                mockProtocol.connect(user).requestCreateDLC(valueLocked)
             ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
         });
 
@@ -135,7 +127,7 @@ describe('DLCManager', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
 
             const receipt = await tx.wait();
             const event = receipt.events[0];
@@ -163,11 +155,11 @@ describe('DLCManager', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
             const receipt = await tx.wait();
             const tx2 = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
             const receipt2 = await tx2.wait();
 
             const decodedEvent = dlcManager.interface.parseLog(
@@ -193,7 +185,7 @@ describe('DLCManager', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -220,7 +212,7 @@ describe('DLCManager', () => {
         it('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -271,7 +263,7 @@ describe('DLCManager', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -291,7 +283,7 @@ describe('DLCManager', () => {
         it('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -338,7 +330,7 @@ describe('DLCManager', () => {
 
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -374,7 +366,7 @@ describe('DLCManager', () => {
         it('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
                 .connect(user)
-                .requestCreateDLC(valueLocked, attestorCount);
+                .requestCreateDLC(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);

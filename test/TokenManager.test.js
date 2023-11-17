@@ -25,7 +25,6 @@ describe('TokenManager', function () {
     let deployer, routerWallet, user, someRandomAccount;
 
     let deposit = 100000000; // 1 BTC
-    let attestorCount = 1;
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -178,35 +177,33 @@ describe('TokenManager', function () {
     describe('setupVault', async () => {
         it('reverts when called by non-whitelisted address', async () => {
             await expect(
-                tokenManager.connect(user).setupVault(deposit, attestorCount)
+                tokenManager.connect(user).setupVault(deposit)
             ).to.be.revertedWithCustomError(tokenManager, 'NotWhitelisted');
         });
         it('is only callable when contract is unpaused', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             await tokenManager.connect(deployer).pauseContract();
             await expect(
-                tokenManager.connect(user).setupVault(deposit, attestorCount)
+                tokenManager.connect(user).setupVault(deposit)
             ).to.be.revertedWith('Pausable: paused');
         });
         it('reverts when deposit is too small', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             let _deposit = 10;
             await expect(
-                tokenManager.connect(user).setupVault(_deposit, attestorCount)
+                tokenManager.connect(user).setupVault(_deposit)
             ).to.be.revertedWithCustomError(tokenManager, 'DepositTooSmall');
         });
         it('reverts when deposit is too large', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             let _deposit = 1000000001;
             await expect(
-                tokenManager.connect(user).setupVault(_deposit, attestorCount)
+                tokenManager.connect(user).setupVault(_deposit)
             ).to.be.revertedWithCustomError(tokenManager, 'DepositTooLarge');
         });
         it('emits an event with the vault details', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager
-                .connect(user)
-                .setupVault(deposit, attestorCount);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (ev) => ev.event === 'SetupVault'
@@ -220,9 +217,7 @@ describe('TokenManager', function () {
         });
         it('stores the _uuid in the userVaults map', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager
-                .connect(user)
-                .setupVault(deposit, attestorCount);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
             expect(await tokenManager.userVaults(user.address, 0)).to.equal(
                 mockUUID
@@ -230,9 +225,7 @@ describe('TokenManager', function () {
         });
         it('stores the vault details on the manager contract', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager
-                .connect(user)
-                .setupVault(deposit, attestorCount);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
             // console.log(
             //     await tokenManager.getAllVaultUUIDsForAddress(user.address)
@@ -270,9 +263,7 @@ describe('TokenManager', function () {
         });
         it('mint dlcBTC tokens to the user', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager
-                .connect(user)
-                .setupVault(deposit, attestorCount);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
             const tx2 = await mockDLCManager
                 .connect(routerWallet)
@@ -287,9 +278,7 @@ describe('TokenManager', function () {
     describe('closeVault', async () => {
         beforeEach(async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager
-                .connect(user)
-                .setupVault(deposit, attestorCount);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
             const tx2 = await mockDLCManager
                 .connect(routerWallet)

@@ -43,6 +43,14 @@ contract MockAttestorManager {
         return _attestors[attestor];
     }
 
+    function getAllAttestors() public pure returns (string[] memory) {
+        string[] memory attestors = new string[](3);
+        attestors[0] = "localhost";
+        attestors[1] = "dlc.link/oracle";
+        attestors[2] = "someAttestorDomain.com";
+        return attestors;
+    }
+
     // Function to get a specific number of random Attestors.
     function getRandomAttestors(
         uint256 /*number*/

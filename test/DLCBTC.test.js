@@ -110,9 +110,7 @@ describe('DLCBTC', function () {
 
         it('TokenManager can mint tokens', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager
-                .connect(user)
-                .setupVault(deposit, attestorCount);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
             const tx2 = await mockDLCManager
                 .connect(routerWallet)
@@ -123,9 +121,7 @@ describe('DLCBTC', function () {
 
         it('TokenManager can burn tokens', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager
-                .connect(user)
-                .setupVault(deposit, attestorCount);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
             const tx2 = await mockDLCManager
                 .connect(routerWallet)

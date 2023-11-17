@@ -159,16 +159,8 @@ contract TokenManagerV2Test is
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    // NOTE: we could set up an overload with a preset number of attestors
-    // function setupVault(
-    //     uint256 btcDeposit
-    // ) external whenNotPaused returns (bytes32) {
-    //     return this.setupVault(btcDeposit, 1);
-    // }
-
     function setupVault(
-        uint256 btcDeposit,
-        uint8 attestorCount
+        uint256 btcDeposit
     ) external whenNotPaused onlyWhitelisted returns (bytes32) {
         if (btcDeposit < minimumDeposit)
             revert DepositTooSmall(btcDeposit, minimumDeposit);
@@ -177,8 +169,7 @@ contract TokenManagerV2Test is
 
         (bytes32 _uuid, string[] memory attestorList) = dlcManager.createDLC(
             routerWalletAddress,
-            btcDeposit,
-            attestorCount
+            btcDeposit
         );
 
         userVaults[msg.sender].push(_uuid);

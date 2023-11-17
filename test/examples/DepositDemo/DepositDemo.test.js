@@ -21,7 +21,6 @@ describe('DepositDemo', function () {
     const someBtcTxId =
         '0x1234567890123456789012345678901234567890123456789012345678901234';
     let btcDeposit = 10000;
-    let attestorCount = 3;
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -59,9 +58,7 @@ describe('DepositDemo', function () {
 
     describe('setupDeposit', async () => {
         it('emits an event with the deposit details', async () => {
-            const tx = await depositDemo
-                .connect(user)
-                .setupDeposit(btcDeposit, attestorCount);
+            const tx = await depositDemo.connect(user).setupDeposit(btcDeposit);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (ev) => ev.event === 'SetupDeposit'
@@ -79,9 +76,7 @@ describe('DepositDemo', function () {
             ]);
         });
         it('emits a StatusUpdate event', async () => {
-            const tx = await depositDemo
-                .connect(user)
-                .setupDeposit(btcDeposit, attestorCount);
+            const tx = await depositDemo.connect(user).setupDeposit(btcDeposit);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (ev) => ev.event === 'StatusUpdate'
@@ -93,9 +88,7 @@ describe('DepositDemo', function () {
             ]);
         });
         xit('sets up a new deposit object', async () => {
-            const tx = await depositDemo
-                .connect(user)
-                .setupDeposit(btcDeposit, attestorCount);
+            const tx = await depositDemo.connect(user).setupDeposit(btcDeposit);
             const receipt = await tx.wait();
             const deposit = await depositDemo.getDeposit(0);
         });
@@ -112,9 +105,7 @@ describe('DepositDemo', function () {
             );
         });
         beforeEach(async () => {
-            const tx = await depositDemo
-                .connect(user)
-                .setupDeposit(btcDeposit, attestorCount);
+            const tx = await depositDemo.connect(user).setupDeposit(btcDeposit);
             const receipt = await tx.wait();
             await dlcManager
                 .connect(protocol)
@@ -143,7 +134,7 @@ describe('DepositDemo', function () {
         beforeEach(async () => {
             const tx = await depositDemo
                 .connect(user)
-                .setupDeposit(btcDeposit, 3);
+                .setupDeposit(btcDeposit);
             const receipt = await tx.wait();
             const ssftx = await dlcManager
                 .connect(protocol)

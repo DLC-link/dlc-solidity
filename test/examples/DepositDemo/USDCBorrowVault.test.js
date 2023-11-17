@@ -75,9 +75,7 @@ describe('USDCBorrowVault', function () {
             ethers.utils.parseUnits(usdcReserve, 'ether')
         );
 
-        const tx = await depositDemo
-            .connect(user)
-            .setupDeposit(btcDeposit, attestorCount);
+        const tx = await depositDemo.connect(user).setupDeposit(btcDeposit);
         const receipt = await tx.wait();
         await dlcManager
             .connect(protocol)

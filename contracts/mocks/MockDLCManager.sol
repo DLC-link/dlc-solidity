@@ -147,18 +147,9 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    // Default value for _attestorCount is 3
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked
-    ) external override whenNotPaused returns (bytes32, string[] memory) {
-        return this.createDLC(_protocolWallet, _valueLocked, 3);
-    }
-
-    function createDLC(
-        address _protocolWallet,
-        uint256 _valueLocked,
-        uint8 /*_attestorCount*/
     ) external override whenNotPaused returns (bytes32, string[] memory) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
         string[] memory _attestorList = new string[](3);

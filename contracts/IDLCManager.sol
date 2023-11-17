@@ -9,12 +9,6 @@ interface IDLCManager {
         uint256 _valueLocked
     ) external returns (bytes32, string[] memory);
 
-    function createDLC(
-        address _protocolWallet,
-        uint256 _valueLocked,
-        uint8 _attestorCount
-    ) external returns (bytes32, string[] memory);
-
     function setStatusFunded(bytes32 _uuid, string calldata _btcTxId) external;
 
     function closeDLC(bytes32 _uuid, uint256 _outcome) external;

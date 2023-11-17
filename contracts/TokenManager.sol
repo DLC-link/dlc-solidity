@@ -185,12 +185,10 @@ contract TokenManager is
      * @notice  Creates a new vault for the user
      * @dev     It calls the DLCManager contract to create a new DLC
      * @param   btcDeposit  amount to be locked (in sats)
-     * @param   attestorCount  number of attestors to be used in the DLC
      * @return  bytes32  uuid of the new vault/DLC
      */
     function setupVault(
-        uint256 btcDeposit,
-        uint8 attestorCount
+        uint256 btcDeposit
     ) external whenNotPaused onlyWhitelisted returns (bytes32) {
         if (btcDeposit < minimumDeposit)
             revert DepositTooSmall(btcDeposit, minimumDeposit);
@@ -199,8 +197,7 @@ contract TokenManager is
 
         (bytes32 _uuid, string[] memory attestorList) = dlcManager.createDLC(
             routerWalletAddress,
-            btcDeposit,
-            attestorCount
+            btcDeposit
         );
 
         userVaults[msg.sender].push(_uuid);

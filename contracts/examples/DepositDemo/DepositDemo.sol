@@ -83,14 +83,10 @@ contract DepositDemo is DLCLinkCompatible, AccessControl {
         address owner
     );
 
-    function setupDeposit(
-        uint256 btcDeposit,
-        uint8 attestorCount
-    ) external returns (uint256) {
+    function setupDeposit(uint256 btcDeposit) external returns (uint256) {
         (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
             _protocolWalletAddress,
-            btcDeposit,
-            attestorCount
+            btcDeposit
         );
 
         deposits[index] = Deposit({
