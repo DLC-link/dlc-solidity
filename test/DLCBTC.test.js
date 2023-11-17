@@ -7,18 +7,12 @@ function getRoleInBytes(role) {
 }
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
-const mockAttestorList = [
-    'https://attestor1.com',
-    'https://attestor2.com',
-    'https://attestor3.com',
-];
 
 describe('DLCBTC', function () {
     let tokenManager, mockDLCManager, dlcBtc;
     let deployer, routerWallet, user, someRandomAccount;
 
     let deposit = 100000000; // 1 BTC
-    let attestorCount = 1;
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();

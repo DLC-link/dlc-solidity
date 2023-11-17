@@ -14,7 +14,6 @@ describe('USDCBorrowVault', function () {
         '0x1234567890123456789012345678901234567890123456789012345678901234';
     let btcDeposit = 1000000; //sats
     let usdcReserve = '100000'; //usdc
-    let attestorCount = 3;
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();

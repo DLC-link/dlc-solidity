@@ -11,17 +11,13 @@ const lendingCloseLoan = require('./demos/05_lending-close-loan');
 const lendingSetWallet = require('./demos/06_lending-set-wallet');
 const sendEth = require('./demos/08_send-eth');
 const sendNFT = require('./demos/09_send-nft');
-// const deployV1 = require('./51_deploy-V1');
 const createV1 = require('./01-create-dlc');
 const closeV1 = require('./02-close-dlc');
 const setupVault = require('./demos/15_V1-setup-vault');
 const setStatusFunded = require('./03-set-status-funded');
+const registerProtocol = require('./04-register-protocol');
 
 const contractAdmin = require('./50_contract-admin');
-
-const addAttestor = require('./10-add-attestor');
-const removeAttestor = require('./11-remove-attestor');
-const registerProtocol = require('./04-register-protocol');
 
 // const safeContractProposal = require('./helpers/safe-api-service');
 
@@ -52,20 +48,6 @@ async function main() {
         )
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(addRoleToManager);
-
-    program
-        .command('add-attestor')
-        .description('[admin] add attestor')
-        .argument('<address>', 'address of attestor')
-        .argument('[version]', 'version of AttestorManager contract', 'v1')
-        .action(addAttestor);
-
-    program
-        .command('remove-attestor')
-        .description('[admin] remove attestor')
-        .argument('<address>', 'address of attestor')
-        .argument('[version]', 'version of AttestorManager contract', 'v1')
-        .action(removeAttestor);
 
     program
         .command('register-protocol')

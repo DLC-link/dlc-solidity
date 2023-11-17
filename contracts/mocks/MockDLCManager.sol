@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "../DLCLinkCompatible.sol";
 import "../IDLCManager.sol";
-// import "./AttestorManager.sol";
 import "../DLCLinkLibrary.sol";
 
 contract MockDLCManager is AccessControl, Pausable, IDLCManager {
@@ -29,7 +28,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     // bytes32 public constant WHITELISTED_WALLET =
     //     0xb9ec2c8072d6792e79a05f449c2577c76c4206da58e44ef66dde03fbe8d28112; // keccak256("WHITELISTED_WALLET")
 
-    // AttestorManager private _attestorManager;
     uint256 private _index = 0;
     mapping(uint256 => DLCLink.DLC) public dlcs;
     mapping(bytes32 => uint256) public dlcIDsByUUID;
@@ -89,7 +87,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         // Grant the contract deployer the default admin role
         // _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         // _setupRole(DLC_ADMIN_ROLE, _adminAddress);
-        // _attestorManager = AttestorManager(_attestorManagerAddress);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -151,11 +148,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         uint256 _valueLocked
     ) external override whenNotPaused returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
-        string[] memory _attestorList = new string[](3);
-
-        _attestorList[0] = "https://attestor1.com";
-        _attestorList[1] = "https://attestor2.com";
-        _attestorList[2] = "https://attestor3.com";
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
@@ -275,10 +267,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     ) external view returns (DLCLink.DLC memory) {
         return dlcs[index];
     }
-
-    // function getAllAttestors() public view returns (string[] memory) {
-    //     return _attestorManager.getAllAttestors();
-    // }
 
     function getFundedTxIds() public view returns (string[] memory) {
         string[] memory _fundedTxIds = new string[](_index);

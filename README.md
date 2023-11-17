@@ -52,9 +52,7 @@ With the announcement hash, you are now able to set up the DLC between the two p
 ```solidity
 // createDLC: Creates the DLC in the DLC Manager contract, as well as in the Oracle network.
 //
-bytes32 dlcUUID = _dlcManager.createDLC(address _protocolWallet,
-        uint256 _valueLocked,
-        uint8 _attestorCount);
+bytes32 dlcUUID = _dlcManager.createDLC(address _protocolWallet, uint256 _valueLocked);
 ```
 
 ## Overrides
