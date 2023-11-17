@@ -23,16 +23,11 @@ contract MockProtocol is DLCLinkCompatible {
         _protocolWallet = protocolWallet;
     }
 
-    function requestCreateDLC(
-        uint256 _valueLocked
-    ) external returns (bytes32, string[] memory) {
-        (bytes32 uuid, string[] memory attestorList) = _dlcManager.createDLC(
-            _protocolWallet,
-            _valueLocked
-        );
+    function requestCreateDLC(uint256 _valueLocked) external returns (bytes32) {
+        bytes32 uuid = _dlcManager.createDLC(_protocolWallet, _valueLocked);
         // console.log('[MockProtocol] requestCreateDLC called');
         // console.logBytes32(uuid);
-        return (uuid, attestorList);
+        return (uuid);
     }
 
     function requestCloseDLC(bytes32 _uuid, uint16 _outcome) external {

@@ -7,7 +7,7 @@ interface IDLCManager {
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked
-    ) external returns (bytes32, string[] memory);
+    ) external returns (bytes32);
 
     function setStatusFunded(bytes32 _uuid, string calldata _btcTxId) external;
 

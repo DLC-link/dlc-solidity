@@ -20,7 +20,6 @@ enum DepositStatus {
 struct Deposit {
     uint256 id;
     bytes32 dlcUUID;
-    string[] attestorList;
     DepositStatus status;
     uint256 depositAmount; // btc deposit in sats
     address owner; // the account owning this loan
@@ -79,12 +78,11 @@ contract DepositDemo is DLCLinkCompatible, AccessControl {
         bytes32 dlcUUID,
         uint256 btcDeposit,
         uint256 index,
-        string[] attestorList,
         address owner
     );
 
     function setupDeposit(uint256 btcDeposit) external returns (uint256) {
-        (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
+        bytes32 _uuid = _dlcManager.createDLC(
             _protocolWalletAddress,
             btcDeposit
         );
@@ -92,7 +90,6 @@ contract DepositDemo is DLCLinkCompatible, AccessControl {
         deposits[index] = Deposit({
             id: index,
             dlcUUID: _uuid,
-            attestorList: attestorList,
             status: DepositStatus.Ready,
             depositAmount: btcDeposit,
             owner: msg.sender,
@@ -102,7 +99,7 @@ contract DepositDemo is DLCLinkCompatible, AccessControl {
 
         depositIDsByUUID[_uuid] = index;
 
-        emit SetupDeposit(_uuid, btcDeposit, index, attestorList, msg.sender);
+        emit SetupDeposit(_uuid, btcDeposit, index, msg.sender);
 
         emit StatusUpdate(index, _uuid, DepositStatus.Ready);
 

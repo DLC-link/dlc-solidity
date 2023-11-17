@@ -12,7 +12,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./DLCLinkCompatible.sol";
 import "./IDLCManager.sol";
-import "./AttestorManager.sol";
 import "./DLCLinkLibrary.sol";
 
 /**
@@ -45,7 +44,6 @@ contract DLCManager is
     bytes32 public constant WHITELISTED_WALLET =
         0xb9ec2c8072d6792e79a05f449c2577c76c4206da58e44ef66dde03fbe8d28112; // keccak256("WHITELISTED_WALLET")
 
-    AttestorManager private _attestorManager;
     uint256 private _index;
     mapping(uint256 => DLCLink.DLC) public dlcs;
     mapping(bytes32 => uint256) public dlcIDsByUUID;
@@ -100,14 +98,10 @@ contract DLCManager is
         _;
     }
 
-    function initialize(
-        address _adminAddress,
-        address _attestorManagerAddress
-    ) public initializer {
+    function initialize(address _adminAddress) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, _adminAddress);
         _grantRole(DLC_ADMIN_ROLE, _adminAddress);
         _index = 0;
-        _attestorManager = AttestorManager(_attestorManagerAddress);
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -121,7 +115,6 @@ contract DLCManager is
 
     event CreateDLC(
         bytes32 uuid,
-        string[] attestorList,
         uint256 valueLocked,
         address protocolContract,
         address creator,
@@ -175,9 +168,8 @@ contract DLCManager is
      * @notice  Triggers the creation of an Announcement in the Attestor Layer.
      * @dev     Call this function from a whitelisted protocol-contract.
      * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
-     * @param   _valueLocked  Value to be locked in the DLC, in Satoshis.
+     * @param   _valueLocked  Value to be locked in the DLC , in Satoshis.
      * @return  bytes32  A generated UUID.
-     * @return  string[]  The selected attestor list URLs.
      */
     function createDLC(
         address _protocolWallet,
@@ -188,14 +180,12 @@ contract DLCManager is
         onlyWhiteListedContracts
         onlyWhitelistedWallet(_protocolWallet)
         whenNotPaused
-        returns (bytes32, string[] memory)
+        returns (bytes32)
     {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
-        string[] memory _attestorList = _attestorManager.getAllAttestors();
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
-            attestorList: _attestorList,
             protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
@@ -209,7 +199,6 @@ contract DLCManager is
 
         emit CreateDLC(
             _uuid,
-            _attestorList,
             _valueLocked,
             msg.sender,
             tx.origin,
@@ -220,7 +209,7 @@ contract DLCManager is
         dlcIDsByUUID[_uuid] = _index;
         _index++;
 
-        return (_uuid, _attestorList);
+        return _uuid;
     }
 
     /**
@@ -333,10 +322,6 @@ contract DLCManager is
         uint256 index
     ) external view returns (DLCLink.DLC memory) {
         return dlcs[index];
-    }
-
-    function getAllAttestors() public view returns (string[] memory) {
-        return _attestorManager.getAllAttestors();
     }
 
     function getFundedTxIds() public view returns (string[] memory) {

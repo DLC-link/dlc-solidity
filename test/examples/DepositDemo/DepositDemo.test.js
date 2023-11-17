@@ -67,11 +67,6 @@ describe('DepositDemo', function () {
                 mockUUID,
                 BigNumber.from(btcDeposit),
                 BigNumber.from(0),
-                [
-                    'https://attestor1.com',
-                    'https://attestor2.com',
-                    'https://attestor3.com',
-                ],
                 user.address,
             ]);
         });
@@ -132,9 +127,7 @@ describe('DepositDemo', function () {
             ).to.be.revertedWith('Unauthorized');
         });
         beforeEach(async () => {
-            const tx = await depositDemo
-                .connect(user)
-                .setupDeposit(btcDeposit);
+            const tx = await depositDemo.connect(user).setupDeposit(btcDeposit);
             const receipt = await tx.wait();
             const ssftx = await dlcManager
                 .connect(protocol)

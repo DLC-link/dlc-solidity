@@ -7,11 +7,6 @@ function getRoleInBytes(role) {
 }
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
-const mockAttestorList = [
-    'https://attestor1.com',
-    'https://attestor2.com',
-    'https://attestor3.com',
-];
 
 const Status = {
     READY: 0,
@@ -211,7 +206,6 @@ describe('TokenManager', function () {
             expect(event.args).to.eql([
                 mockUUID,
                 BigNumber.from(deposit),
-                mockAttestorList,
                 user.address,
             ]);
         });
@@ -232,7 +226,6 @@ describe('TokenManager', function () {
             // );
             const vault = await tokenManager.getVault(mockUUID);
             expect(vault.uuid).to.equal(mockUUID);
-            expect(vault.attestorList).to.eql(mockAttestorList);
             expect(vault.protocolWallet).to.equal(routerWallet.address);
             expect(vault.protocolContract).to.equal(tokenManager.address);
             expect(vault.valueLocked).to.equal(BigNumber.from(deposit));
