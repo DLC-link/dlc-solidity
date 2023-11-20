@@ -18,7 +18,8 @@
         "@openzeppelin/contracts": "^4.8.0",
         "commander": "^10.0.0",
         "dotenv": "^16.0.3",
-        "prompts": "^2.4.2"
+        "prompts": "^2.4.2",
+        "solmate": "^6.2.0"
     },
     "devDependencies": {
         "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",

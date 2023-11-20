@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.17;
+pragma solidity 0.8.17;
 
 import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
@@ -29,6 +29,7 @@ struct Loan {
     uint256 liquidationRatio; // the collateral/loan ratio below which liquidation can happen, with two decimals precision (140% = u14000)
     uint256 liquidationFee; // additional fee taken during liquidation, two decimals precision (10% = u1000)
     address owner; // the account owning this loan
+    string btcTxId;
 }
 
 contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
@@ -44,6 +45,9 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
     mapping(uint256 => Loan) public loans;
     mapping(bytes32 => uint256) public loanIDsByUUID;
     mapping(address => uint256) public loansPerAddress;
+
+    uint256 public liquidationRatio = 14000; // 140.00%
+    uint256 public liquidationFee = 1000; // 10.00%
 
     constructor(
         address _dlcManagerAddress,
@@ -79,6 +83,14 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
         _protocolWalletAddress = _protocolWallet;
     }
 
+    function setLiquidationRatio(uint256 _ratio) external onlyAdmin {
+        liquidationRatio = _ratio;
+    }
+
+    function setLiquidationFee(uint256 _fee) external onlyAdmin {
+        liquidationFee = _fee;
+    }
+
     event SetupLoan(
         bytes32 dlcUUID,
         uint256 btcDeposit,
@@ -91,8 +103,6 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
 
     function setupLoan(
         uint256 btcDeposit,
-        uint256 liquidationRatio,
-        uint256 liquidationFee,
         uint8 attestorCount
     ) external returns (uint256) {
         (bytes32 _uuid, string[] memory attestorList) = _dlcManager.createDLC(
@@ -109,7 +119,8 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
             vaultCollateral: btcDeposit,
             liquidationRatio: liquidationRatio,
             liquidationFee: liquidationFee,
-            owner: msg.sender
+            owner: msg.sender,
+            btcTxId: ''
         });
 
         loanIDsByUUID[_uuid] = index;
@@ -204,14 +215,18 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
         _dlcManager.closeDLC(_loan.dlcUUID, 0);
     }
 
-    function postCloseDLCHandler(bytes32 _uuid) external onlyDLCManager {
-        Loan memory _loan = loans[loanIDsByUUID[_uuid]];
+    function postCloseDLCHandler(
+        bytes32 _uuid,
+        string calldata _btxTxId
+    ) external onlyDLCManager {
+        Loan storage _loan = loans[loanIDsByUUID[_uuid]];
         require(_loan.dlcUUID != 0, 'No such loan');
         require(
             _loan.status == LoanStatus.PreRepaid ||
                 _loan.status == LoanStatus.PreLiquidated,
             'Invalid Loan Status'
         );
+        _loan.btcTxId = _btxTxId;
         _updateStatus(
             _loan.id,
             _loan.status == LoanStatus.PreRepaid
@@ -236,9 +251,7 @@ contract LendingContractV1 is DLCLinkCompatibleV1, AccessControl {
     );
 
     function attemptLiquidate(uint256 _loanID) public {
-        (int256 _price, uint256 _timestamp) = _getLatestPrice(
-            _btcPriceFeedAddress
-        );
+        (int256 _price, ) = _getLatestPrice(_btcPriceFeedAddress);
         Loan memory _loan = loans[_loanID];
         bool _needsLiquidation = checkLiquidation(_loan.id, _price);
         if (!_needsLiquidation) {

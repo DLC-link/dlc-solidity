@@ -9,6 +9,6 @@ module.exports = async function sendEth(addressTo, amount) {
         to: addressTo,
         value: hardhat.ethers.utils.parseEther(amount.toString()),
     });
-    await tx.wait();
-    console.log(tx);
+    const receipt = await tx.wait();
+    console.log(receipt);
 };

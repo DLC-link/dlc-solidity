@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.17;
+pragma solidity 0.8.17;
 
 import '../DLCManagerV1.sol';
 import '../DLCLinkCompatibleV1.sol';
@@ -46,7 +46,10 @@ contract MockProtocol is DLCLinkCompatibleV1 {
         // console.logBytes32(uuid);
     }
 
-    function postCloseDLCHandler(bytes32 uuid) external view override {
+    function postCloseDLCHandler(
+        bytes32 uuid,
+        string calldata btxTxId
+    ) external view override {
         // console.log('[MockProtocol] postCloseDLCHandler called');
         // console.logBytes32(uuid);
     }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.17;
+pragma solidity 0.8.17;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
 
@@ -47,7 +47,7 @@ contract MockAttestorManager {
     function getRandomAttestors(
         uint256 number
     ) public pure returns (string[] memory) {
-        string[] memory attestors = new string[](number);
+        string[] memory attestors = new string[](3);
         attestors[0] = 'localhost';
         attestors[1] = 'dlc.link/oracle';
         attestors[2] = 'someAttestorDomain.com';

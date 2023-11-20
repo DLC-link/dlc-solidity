@@ -29,8 +29,9 @@ module.exports = async function mintStablecoin(addressTo, amount, privateKey) {
         .connect(wallet)
         .mint(
             addressTo,
-            hardhat.ethers.utils.parseUnits(amount.toString(), 'ether')
+            hardhat.ethers.utils.parseUnits(amount.toString(), 'ether'),
+            { gasLimit: 1000000 }
         );
-    await tx.wait();
-    console.log(tx);
+    const receipt = await tx.wait();
+    console.log(receipt);
 };
