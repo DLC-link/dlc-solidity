@@ -22,7 +22,7 @@ describe('DLCManager', () => {
     let accounts, deployer, protocol, protocolWallet, user;
 
     const valueLocked = 100000000; // 1 BTC
-    const btxTxId = '0x1234567890';
+    const btcTxId = '0x1234567890';
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -176,7 +176,7 @@ describe('DLCManager', () => {
 
         it('reverts if called from a non-whitelisted wallet', async () => {
             await expect(
-                dlcManager.connect(randomAccount).setStatusFunded(uuid, btxTxId)
+                dlcManager.connect(randomAccount).setStatusFunded(uuid, btcTxId)
             ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
         });
 
@@ -187,7 +187,7 @@ describe('DLCManager', () => {
             );
 
             await expect(
-                dlcManager.connect(randomAccount).setStatusFunded(uuid, btxTxId)
+                dlcManager.connect(randomAccount).setStatusFunded(uuid, btcTxId)
             ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
         });
 
@@ -202,20 +202,20 @@ describe('DLCManager', () => {
 
             const tx2 = await dlcManager
                 .connect(protocolWallet)
-                .setStatusFunded(newUuid, btxTxId);
+                .setStatusFunded(newUuid, btcTxId);
             await tx2.wait();
 
             await expect(
                 dlcManager
                     .connect(protocolWallet)
-                    .setStatusFunded(newUuid, btxTxId)
+                    .setStatusFunded(newUuid, btcTxId)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotReady');
         });
 
         it('emits a StatusFunded event with the correct data', async () => {
             const tx = await dlcManager
                 .connect(protocolWallet)
-                .setStatusFunded(uuid, btxTxId);
+                .setStatusFunded(uuid, btcTxId);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'SetStatusFunded'
@@ -223,12 +223,9 @@ describe('DLCManager', () => {
 
             expect(event.event).to.equal('SetStatusFunded');
             expect(event.args.uuid).to.equal(uuid);
-            expect(event.args.creator).to.equal(user.address);
+            expect(event.args.btcTxId).to.equal(btcTxId);
             expect(event.args.protocolWallet).to.equal(protocolWallet.address);
             expect(event.args.sender).to.equal(protocolWallet.address);
-            // expect(event.args.eventSource).to.equal(
-            //     'dlclink:set-status-funded:v2'
-            // );
         });
     });
 
@@ -253,7 +250,7 @@ describe('DLCManager', () => {
 
             await dlcManager
                 .connect(protocolWallet)
-                .setStatusFunded(uuid, btxTxId);
+                .setStatusFunded(uuid, btcTxId);
         });
 
         it('reverts if not called by the creator contract', async () => {
@@ -288,14 +285,10 @@ describe('DLCManager', () => {
             expect(decodedEvent.name).to.equal('CloseDLC');
             expect(decodedEvent.args.uuid).to.equal(uuid);
             expect(decodedEvent.args.outcome).to.equal(outcome);
-            expect(decodedEvent.args.creator).to.equal(user.address);
             expect(decodedEvent.args.protocolWallet).to.equal(
                 protocolWallet.address
             );
             expect(decodedEvent.args.sender).to.equal(mockProtocol.address);
-            // expect(decodedEvent.args.eventSource).to.equal(
-            //     'dlclink:close-dlc:v2'
-            // );
         });
     });
 
@@ -320,7 +313,7 @@ describe('DLCManager', () => {
 
             const tx3 = await dlcManager
                 .connect(protocolWallet)
-                .setStatusFunded(uuid, btxTxId);
+                .setStatusFunded(uuid, btcTxId);
             await tx3.wait();
             const tx4 = await mockProtocol
                 .connect(protocol)
@@ -330,7 +323,7 @@ describe('DLCManager', () => {
 
         it('reverts if called from a non-whitelisted wallet', async () => {
             await expect(
-                dlcManager.connect(randomAccount).postCloseDLC(uuid, btxTxId)
+                dlcManager.connect(randomAccount).postCloseDLC(uuid, btcTxId)
             ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
         });
 
@@ -341,7 +334,7 @@ describe('DLCManager', () => {
             );
 
             await expect(
-                dlcManager.connect(randomAccount).postCloseDLC(uuid, outcome)
+                dlcManager.connect(randomAccount).postCloseDLC(uuid, btcTxId)
             ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
         });
 
@@ -357,14 +350,14 @@ describe('DLCManager', () => {
             await expect(
                 dlcManager
                     .connect(protocolWallet)
-                    .postCloseDLC(newUuid, outcome)
+                    .postCloseDLC(newUuid, btcTxId)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotClosing');
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {
             const tx = await dlcManager
                 .connect(protocolWallet)
-                .postCloseDLC(uuid, outcome);
+                .postCloseDLC(uuid, btcTxId);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'PostCloseDLC'
@@ -373,7 +366,7 @@ describe('DLCManager', () => {
             expect(event.event).to.equal('PostCloseDLC');
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.outcome).to.equal(outcome);
-            expect(event.args.creator).to.equal(user.address);
+            expect(event.args.btcTxId).to.equal(btcTxId);
             expect(event.args.protocolWallet).to.equal(protocolWallet.address);
             expect(event.args.sender).to.equal(protocolWallet.address);
         });

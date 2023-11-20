@@ -124,7 +124,7 @@ contract DLCManager is
 
     event SetStatusFunded(
         bytes32 uuid,
-        address creator,
+        string btcTxId,
         address protocolWallet,
         address sender
     );
@@ -132,7 +132,6 @@ contract DLCManager is
     event CloseDLC(
         bytes32 uuid,
         uint256 outcome,
-        address creator,
         address protocolWallet,
         address sender
     );
@@ -140,10 +139,9 @@ contract DLCManager is
     event PostCloseDLC(
         bytes32 uuid,
         uint256 outcome,
-        address creator,
+        string btcTxId,
         address protocolWallet,
-        address sender,
-        string btcTxId
+        address sender
     );
 
     ////////////////////////////////////////////////////////////////
@@ -236,12 +234,7 @@ contract DLCManager is
             _btcTxId
         );
 
-        emit SetStatusFunded(
-            _uuid,
-            dlc.creator,
-            dlc.protocolWallet,
-            msg.sender
-        );
+        emit SetStatusFunded(_uuid, _btcTxId, dlc.protocolWallet, msg.sender);
     }
 
     /**
@@ -265,13 +258,7 @@ contract DLCManager is
         dlc.outcome = _outcome;
         dlc.status = _newStatus;
 
-        emit CloseDLC(
-            _uuid,
-            _outcome,
-            dlc.creator,
-            dlc.protocolWallet,
-            msg.sender
-        );
+        emit CloseDLC(_uuid, _outcome, dlc.protocolWallet, msg.sender);
     }
 
     /**
@@ -301,10 +288,9 @@ contract DLCManager is
         emit PostCloseDLC(
             _uuid,
             dlc.outcome,
-            dlc.creator,
+            _btcTxId,
             dlc.protocolWallet,
-            msg.sender,
-            _btcTxId
+            msg.sender
         );
     }
 
