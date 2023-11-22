@@ -23,7 +23,7 @@ module.exports = async function grantRoleOnManager(
     );
 
     const accounts = await hardhat.ethers.getSigners();
-    const admin = accounts[3] || accounts[0];
+    const admin = accounts[0];
 
     if (
         hardhat.network.name === 'localhost' ||

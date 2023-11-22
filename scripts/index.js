@@ -98,9 +98,9 @@ async function main() {
         .command('setup-loan')
         .description('[demo] setup a loan')
         .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
-        .argument('[liquidationRatio]', 'liquidation ratio', 14000)
-        .argument('[liquidationFee]', 'liquidation fee', 1000)
-        .argument('[emergencyRefundTime]', 'emergency refund time', 5)
+        // .argument('[liquidationRatio]', 'liquidation ratio', 14000)
+        // .argument('[liquidationFee]', 'liquidation fee', 1000)
+        // .argument('[emergencyRefundTime]', 'emergency refund time', 5)
         .action(lendingSetupLoan);
 
     program
