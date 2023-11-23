@@ -133,10 +133,19 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         address /*sender*/,
         uint256 /*nonce*/
     ) private view returns (bytes32) {
-        return
-            bytes32(
-                0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967
-            );
+        if (_index == 0) {
+            return
+                bytes32(
+                    0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967
+                );
+        }
+        if (_index == 1) {
+            return
+                bytes32(
+                    0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968
+                );
+        }
+        return bytes32(0);
     }
 
     ////////////////////////////////////////////////////////////////

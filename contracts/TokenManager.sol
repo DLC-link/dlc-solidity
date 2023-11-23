@@ -260,6 +260,17 @@ contract TokenManager is
         return userVaults[_address];
     }
 
+    function getAllVaultsForAddress(
+        address _address
+    ) public view returns (DLCLink.DLC[] memory) {
+        bytes32[] memory uuids = getAllVaultUUIDsForAddress(_address);
+        DLCLink.DLC[] memory vaults = new DLCLink.DLC[](uuids.length);
+        for (uint256 i = 0; i < uuids.length; i++) {
+            vaults[i] = getVault(uuids[i]);
+        }
+        return vaults;
+    }
+
     function previewFeeAdjustedAmount(
         uint256 _amount
     ) external view returns (uint256) {

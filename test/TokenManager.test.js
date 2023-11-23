@@ -7,6 +7,8 @@ function getRoleInBytes(role) {
 }
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
+const mockUUID1 =
+    '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
 
 const Status = {
     READY: 0,
@@ -317,6 +319,39 @@ describe('TokenManager', function () {
                     .connect(user)
                     .postCloseDLCHandler(mockUUID, 'someTx')
             ).to.be.revertedWith('Pausable: paused');
+        });
+    });
+
+    describe('View Functions', async () => {
+        beforeEach(async () => {
+            await tokenManager.connect(deployer).whitelistAddress(user.address);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
+            await tx.wait();
+            const tx2 = await mockDLCManager
+                .connect(routerWallet)
+                .setStatusFunded(mockUUID, 'someTx');
+            await tx2.wait();
+
+            const tx3 = await tokenManager.connect(user).setupVault(deposit);
+            await tx3.wait();
+            const tx4 = await mockDLCManager
+                .connect(routerWallet)
+                .setStatusFunded(mockUUID1, 'someOtherTx');
+            await tx4.wait();
+        });
+
+        xdescribe('getVault', async () => {});
+        xdescribe('getAllVaultUUIDsForAddress', async () => {});
+        describe('getAllVaultsForAddress', async () => {
+            it('should return all vaults for an address', async () => {
+                const vaults = await tokenManager.getAllVaultsForAddress(
+                    user.address
+                );
+                console.log(vaults);
+                expect(vaults.length).to.equal(2);
+                expect(vaults[0].uuid).to.equal(mockUUID);
+                expect(vaults[1].uuid).to.equal(mockUUID1);
+            });
         });
     });
 });
