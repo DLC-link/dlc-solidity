@@ -17,6 +17,9 @@ const setupVault = require('./demos/15_V1-setup-vault');
 const setStatusFunded = require('./03-set-status-funded');
 const registerProtocol = require('./04-register-protocol');
 
+const whitelistAccount = require('./10_whitelist-account');
+const unwhitelistAccount = require('./11_unwhitelist-account');
+
 const contractAdmin = require('./50_contract-admin');
 
 // const safeContractProposal = require('./helpers/safe-api-service');
@@ -56,6 +59,20 @@ async function main() {
         .argument('<walletAddress>', 'address of protocol wallet')
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(registerProtocol);
+
+    program
+        .command('whitelist-account')
+        .description('[token-man] whitelist an account')
+        .argument('<addressToWhitelist>', 'address to whitelist')
+        .argument('[version]', 'version of TokenManager contract', 'v1')
+        .action(whitelistAccount);
+
+    program
+        .command('unwhitelist-account')
+        .description('[token-man] unwhitelist an account')
+        .argument('<addressToUnWhitelist>', 'address to unwhitelist')
+        .argument('[version]', 'version of TokenManager contract', 'v1')
+        .action(unwhitelistAccount);
 
     program
         .command('create-dlc')

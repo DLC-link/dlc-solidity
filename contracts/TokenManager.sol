@@ -158,8 +158,14 @@ contract TokenManager is
         return (_amount * (10000 - mintFeeRate)) / 10000;
     }
 
+    /**
+     * @notice  Outcome is the number signed by the Attestors
+     * @dev     0 means all back to depositor, 10000 all to counterparty
+     * @dev     Currently we don't take any fees on outcome but the option is there
+     * @return  uint256  outcome
+     */
     function _calculateOutcome() internal view returns (uint256) {
-        return 10000 - outcomeFee;
+        return 0 + outcomeFee;
     }
 
     function _mintTokens(address _to, uint256 _amount) internal {
@@ -260,12 +266,20 @@ contract TokenManager is
         return _getFeeAdjustedAmount(_amount);
     }
 
+    function previewCalculateOutcome() external view returns (uint256) {
+        return _calculateOutcome();
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
     function whitelistAddress(address _address) external onlyDLCAdmin {
         _whitelistedAddresses[_address] = true;
+    }
+
+    function unwhitelistAddress(address _address) external onlyDLCAdmin {
+        _whitelistedAddresses[_address] = false;
     }
 
     function setRouterWallet(address _routerWallet) external onlyDLCAdmin {

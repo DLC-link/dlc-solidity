@@ -16,7 +16,7 @@ const Status = {
     CLOSED: 3,
 };
 
-describe('TokenManager', function () {
+describe('TokenManager Proxy', function () {
     let tokenManager, tokenManagerV2, mockDLCManager, dlcBtc;
     let deployer, routerWallet, user, someRandomAccount;
 

@@ -221,9 +221,6 @@ describe('TokenManager', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            // console.log(
-            //     await tokenManager.getAllVaultUUIDsForAddress(user.address)
-            // );
             const vault = await tokenManager.getVault(mockUUID);
             expect(vault.uuid).to.equal(mockUUID);
             expect(vault.protocolWallet).to.equal(routerWallet.address);
@@ -234,7 +231,6 @@ describe('TokenManager', function () {
             expect(vault.status).to.equal(0);
             expect(vault.fundingTxId).to.equal('');
             expect(vault.closingTxId).to.equal('');
-            console.log(vault.timestamp);
         });
         xit('emits the correct event', async () => {});
     });
@@ -309,7 +305,7 @@ describe('TokenManager', function () {
             await tx.wait();
             const vault = await tokenManager.getVault(mockUUID);
             expect(vault.status).to.equal(Status.CLOSING);
-            expect(vault.outcome).to.equal(BigNumber.from(10000));
+            expect(vault.outcome).to.equal(BigNumber.from(0));
         });
     });
 

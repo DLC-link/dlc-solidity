@@ -9,6 +9,7 @@ module.exports = async function registerProtocol(
     protocolWalletAddress,
     version
 ) {
+    // TODO: this should be safeifyed
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
 

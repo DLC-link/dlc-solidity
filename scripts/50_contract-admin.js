@@ -6,6 +6,11 @@ const chalk = require('chalk');
 const dlcAdminSafes = require('./helpers/dlc-admin-safes');
 const getContractConfigs = require('./99_contract-configs');
 const { promptUser, loadContractAddress } = require('./helpers/utils');
+const {
+    saveDeploymentInfo,
+    deploymentInfo,
+    loadDeploymentInfo,
+} = require('./helpers/deployment-handlers_versioned');
 
 module.exports = async function contractAdmin(_version) {
     const network = hardhat.network.name;
@@ -167,31 +172,46 @@ module.exports = async function contractAdmin(_version) {
                         value: config.name,
                     })),
             });
+            await hardhat.run('compile');
             const contractName = contractSelectPrompt.contracts;
-            const contractConfig = contractConfigs.find(
-                (config) => config.name === contractName
-            );
             const proxyAddress = await loadContractAddress(
-                contractConfig.name,
+                contractName,
                 network,
                 version
             );
-            const newImplementation = await hardhat.ethers.getContractFactory(
-                contractConfig.name
-            );
-            const address = await hardhat.upgrades.prepareUpgrade(
-                proxyAddress,
-                newImplementation
-            );
-            console.log('New implementation address', address);
+            const newImplementation =
+                await hardhat.ethers.getContractFactory(contractName);
+            const newImplementationAddress =
+                await hardhat.upgrades.prepareUpgrade(
+                    proxyAddress,
+                    newImplementation
+                );
+            console.log('New implementation address', newImplementationAddress);
 
             try {
                 await hardhat.upgrades.upgradeProxy(
                     proxyAddress,
                     newImplementation
                 );
+                console.log('Upgraded contract', contractName);
+                console.log('Updating DeploymentInfo...');
+                try {
+                    const contractObject = await hardhat.ethers.getContractAt(
+                        contractName,
+                        proxyAddress
+                    );
+                    await saveDeploymentInfo(
+                        deploymentInfo(hardhat, contractObject, contractName),
+                        version
+                    );
+                } catch (error) {
+                    console.error(error);
+                }
             } catch (error) {
                 console.log(chalk.bgYellow('Try upgrading from the SAFE'));
+                console.log(
+                    'Dont forget to update the deployment info afterwards'
+                );
                 console.error(error);
             }
 
