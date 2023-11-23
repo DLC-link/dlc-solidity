@@ -1,11 +1,10 @@
 {
   "solidity.defaultCompiler": "remote",
   "solidity.compileUsingRemoteVersion": "v0.8.17+commit.8df45f5f",
-  "solidity.packageDefaultDependenciesContractsDirectory": "",
   "solidity.packageDefaultDependenciesDirectory": "node_modules",
   "editor.formatOnSave": true,
   "diffEditor.ignoreTrimWhitespace": false,
-  "files.autoSave": "onWindowChange",
+  "files.autoSave": "onFocusChange",
   "files.insertFinalNewline": true,
   "editor.tabSize": 4
 }

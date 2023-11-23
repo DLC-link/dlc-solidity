@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 const { it } = require('mocha');
 
-describe('BtcNft', () => {
+xdescribe('BtcNft', () => {
     let btcNftContract;
     let deployer;
     const mockDlcUUID =

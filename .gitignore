@@ -2,6 +2,8 @@
 # Created by https://www.toptal.com/developers/gitignore/api/soliditytruffle,solidity,node
 # Edit at https://www.toptal.com/developers/gitignore?templates=soliditytruffle,solidity,node
 
+.openzeppelin
+
 ### Node ###
 # Logs
 logs

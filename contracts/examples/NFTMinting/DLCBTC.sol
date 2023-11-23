@@ -7,8 +7,8 @@ import '@openzeppelin/contracts/security/Pausable.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
 // NOTE: Not to be used in production (public mint function)
-contract DLCBTC is ERC20, ERC20Burnable, Pausable, Ownable {
-    constructor() ERC20('DLCBTC', 'DLCBTC') {}
+contract DLCBTCExample is ERC20, ERC20Burnable, Pausable, Ownable {
+    constructor() ERC20('DLCBTCExample', 'DLCBTCExample') {}
 
     // Only for display purposes
     function decimals() public view virtual override returns (uint8) {
