@@ -141,6 +141,10 @@ contract TokenManager is
 
     event Burn(address from, uint256 amount);
 
+    event SetStatusFunded(bytes32 dlcUUID, string btcTxId, address owner);
+
+    event PostCloseDLCHandler(bytes32 dlcUUID, string btcTxId, address owner);
+
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
     ////////////////////////////////////////////////////////////////
@@ -212,11 +216,12 @@ contract TokenManager is
      */
     function setStatusFunded(
         bytes32 uuid,
-        string calldata /*btcTxId*/
+        string calldata btcTxId
     ) external override whenNotPaused onlyDLCManagerContract {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
 
         _mintTokens(dlc.creator, _getFeeAdjustedAmount(dlc.valueLocked));
+        emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
     /**
@@ -244,7 +249,10 @@ contract TokenManager is
     function postCloseDLCHandler(
         bytes32 uuid,
         string calldata btcTxId
-    ) external override whenNotPaused onlyDLCManagerContract {}
+    ) external override whenNotPaused onlyDLCManagerContract {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        emit PostCloseDLCHandler(uuid, btcTxId, dlc.creator);
+    }
 
     ////////////////////////////////////////////////////////////////
     //                      VIEW FUNCTIONS                        //
@@ -273,11 +281,11 @@ contract TokenManager is
 
     function previewFeeAdjustedAmount(
         uint256 _amount
-    ) external view returns (uint256) {
+    ) public view returns (uint256) {
         return _getFeeAdjustedAmount(_amount);
     }
 
-    function previewCalculateOutcome() external view returns (uint256) {
+    function previewCalculateOutcome() public view returns (uint256) {
         return _calculateOutcome();
     }
 

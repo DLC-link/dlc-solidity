@@ -347,7 +347,6 @@ describe('TokenManager', function () {
                 const vaults = await tokenManager.getAllVaultsForAddress(
                     user.address
                 );
-                console.log(vaults);
                 expect(vaults.length).to.equal(2);
                 expect(vaults[0].uuid).to.equal(mockUUID);
                 expect(vaults[1].uuid).to.equal(mockUUID1);

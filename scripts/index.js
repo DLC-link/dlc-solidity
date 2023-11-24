@@ -17,8 +17,10 @@ const setupVault = require('./demos/15_V1-setup-vault');
 const setStatusFunded = require('./03-set-status-funded');
 const registerProtocol = require('./04-register-protocol');
 
+// TokenManager
 const whitelistAccount = require('./10_whitelist-account');
 const unwhitelistAccount = require('./11_unwhitelist-account');
+const tokenManagerSetupVault = require('./12_setup-vault');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -73,6 +75,13 @@ async function main() {
         .argument('<addressToUnWhitelist>', 'address to unwhitelist')
         .argument('[version]', 'version of TokenManager contract', 'v1')
         .action(unwhitelistAccount);
+
+    program
+        .command('setup-vault')
+        .description('[token-man] setup a vault')
+        .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 1000000)
+        .argument('[version]', 'version of TokenManager contract', 'v1')
+        .action(tokenManagerSetupVault);
 
     program
         .command('create-dlc')
