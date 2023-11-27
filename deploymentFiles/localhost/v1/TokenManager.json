@@ -1,11 +1,11 @@
 {
-  "network": "X1test",
-  "updatedAt": "2023-11-27T18:01:02.364Z",
+  "network": "localhost",
+  "updatedAt": "2023-11-27T17:57:00.439Z",
   "gitSHA": "760c270",
   "contract": {
     "name": "TokenManager",
-    "address": "0x01E9Eb6FBF149E48Ac57d7f2514F9B6727E10b03",
-    "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
+    "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    "signerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "abi": [
       "constructor()",
       "error DepositTooLarge(uint256 deposit, uint256 maximumDeposit)",

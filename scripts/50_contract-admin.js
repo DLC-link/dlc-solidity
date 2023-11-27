@@ -218,6 +218,32 @@ module.exports = async function contractAdmin(_version) {
             break;
         }
         case 'transfer-dlcbtc': {
+            const dlcBTCAddress = await loadContractAddress(
+                'DLCBTC',
+                network,
+                version
+            );
+            const dlcBTC = await hardhat.ethers.getContractAt(
+                'DLCBTC',
+                dlcBTCAddress
+            );
+            const currentOwner = await dlcBTC.owner();
+            console.log(chalk.bgYellow('Current DLCBTC owner:', currentOwner));
+            const oldTokenManager = await hardhat.ethers.getContractAt(
+                'TokenManager',
+                currentOwner
+            );
+            const newAdmin = await prompts({
+                type: 'text',
+                name: 'value',
+                message: 'Enter new ProxyAdmin address',
+            });
+            if (!newAdmin.value) return;
+
+            console.log('Transferring ownership of DLCBTC...', newAdmin.value);
+            await oldTokenManager
+                .connect(deployer)
+                .transferTokenContractOwnership(newAdmin.value);
             break;
         }
         case 'transfer-admin': {
@@ -241,8 +267,13 @@ module.exports = async function contractAdmin(_version) {
             });
             if (!newAdmin.value) return;
             console.log('Transferring ownership of ProxyAdmin...');
-            await hardhat.upgrades.admin.transferProxyAdminOwnership(newAdmin);
-            console.log('Transferred ownership of ProxyAdmin to:', newAdmin);
+            await hardhat.upgrades.admin.transferProxyAdminOwnership(
+                newAdmin.value
+            );
+            console.log(
+                'Transferred ownership of ProxyAdmin to:',
+                newAdmin.value
+            );
             break;
         }
         default:
