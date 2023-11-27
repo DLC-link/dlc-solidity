@@ -180,7 +180,6 @@ contract DLCManager is
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolWallet: _protocolWallet,
-            // ????
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
             refundDelay: _refundDelay,

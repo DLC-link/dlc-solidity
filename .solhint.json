@@ -12,7 +12,6 @@
         "modifier-name-mixedcase": "error",
         "private-vars-leading-underscore": "error",
         "var-name-mixedcase": "error",
-        "imports-on-top": "error",
-        "no-console": "warn"
+        "imports-on-top": "error"
     }
 }
