@@ -164,29 +164,26 @@ contract DLCManager is
 
     /**
      * @notice  Triggers the creation of an Announcement in the Attestor Layer.
-     * @dev     Call this function from a whitelisted protocol-contract.
+     * @dev     Call one public version of this function from a whitelisted protocol-contract.
      * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
      * @param   _valueLocked  Value to be locked in the DLC , in Satoshis.
+     * @param   _refundDelay  Delay in seconds + 1 day before the creator can claim a refund.
      * @return  bytes32  A generated UUID.
      */
-    function createDLC(
+    function _createDLC(
         address _protocolWallet,
-        uint256 _valueLocked
-    )
-        external
-        override
-        onlyWhiteListedContracts
-        onlyWhitelistedWallet(_protocolWallet)
-        whenNotPaused
-        returns (bytes32)
-    {
+        uint256 _valueLocked,
+        uint256 _refundDelay
+    ) internal returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolWallet: _protocolWallet,
+            // ????
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
+            refundDelay: _refundDelay,
             timestamp: block.timestamp,
             creator: tx.origin,
             outcome: 0,
@@ -208,6 +205,36 @@ contract DLCManager is
         _index++;
 
         return _uuid;
+    }
+
+    function createDLC(
+        address _protocolWallet,
+        uint256 _valueLocked
+    )
+        external
+        override
+        onlyWhiteListedContracts
+        onlyWhitelistedWallet(_protocolWallet)
+        whenNotPaused
+        returns (bytes32)
+    {
+        // 0 refundDelay means no refundDelay
+        return _createDLC(_protocolWallet, _valueLocked, 0);
+    }
+
+    function createDLC(
+        address _protocolWallet,
+        uint256 _valueLocked,
+        uint256 _refundDelay
+    )
+        external
+        override
+        onlyWhiteListedContracts
+        onlyWhitelistedWallet(_protocolWallet)
+        whenNotPaused
+        returns (bytes32)
+    {
+        return _createDLC(_protocolWallet, _valueLocked, _refundDelay);
     }
 
     /**

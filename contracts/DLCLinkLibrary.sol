@@ -21,6 +21,7 @@ library DLCLink {
         address protocolContract;
         uint256 timestamp;
         uint256 valueLocked;
+        uint256 refundDelay;
         address creator;
         uint256 outcome;
         DLCStatus status;

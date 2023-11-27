@@ -152,17 +152,20 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    function createDLC(
+    function _createDLC(
         address _protocolWallet,
-        uint256 _valueLocked
-    ) external override whenNotPaused returns (bytes32) {
+        uint256 _valueLocked,
+        uint256 _refundDelay
+    ) internal returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolWallet: _protocolWallet,
+            // ????
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
+            refundDelay: _refundDelay,
             timestamp: block.timestamp,
             creator: tx.origin,
             outcome: 0,
@@ -182,7 +185,25 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         dlcIDsByUUID[_uuid] = _index;
         _index++;
 
-        return (_uuid);
+        return _uuid;
+    }
+
+    // Public function with modifier checks
+    function createDLC(
+        address _protocolWallet,
+        uint256 _valueLocked
+    ) external override whenNotPaused returns (bytes32) {
+        // 0 refundDelay means no refundDelay
+        return _createDLC(_protocolWallet, _valueLocked, 0);
+    }
+
+    // Public function with modifier checks
+    function createDLC(
+        address _protocolWallet,
+        uint256 _valueLocked,
+        uint256 _refundDelay
+    ) external override returns (bytes32) {
+        return _createDLC(_protocolWallet, _valueLocked, _refundDelay);
     }
 
     function setStatusFunded(
@@ -194,7 +215,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
-        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.fundingTxId = _btcTxId;
         dlc.status = _newStatus;
@@ -218,7 +238,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
-        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.outcome = _outcome;
         dlc.status = _newStatus;
@@ -241,7 +260,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.CLOSING) revert DLCNotClosing();
-        if (dlc.status == _newStatus) revert DLCStateAlreadySet(_newStatus);
 
         dlc.closingTxId = _btcTxId;
         dlc.status = _newStatus;
@@ -268,7 +286,10 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     function getDLC(
         bytes32 _uuid
     ) external view override returns (DLCLink.DLC memory) {
-        return dlcs[dlcIDsByUUID[_uuid]];
+        DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[_uuid]];
+        if (_dlc.uuid == bytes32(0)) revert DLCNotFound();
+        if (_dlc.uuid != _uuid) revert DLCNotFound();
+        return _dlc;
     }
 
     function getDLCByIndex(
