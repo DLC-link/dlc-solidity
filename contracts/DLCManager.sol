@@ -167,11 +167,13 @@ contract DLCManager is
      * @dev     Call this function from a whitelisted protocol-contract.
      * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
      * @param   _valueLocked  Value to be locked in the DLC , in Satoshis.
+     * @param   _refundDelay  Delay in seconds before the creator can claim a refund. Set 0 to disable.
      * @return  bytes32  A generated UUID.
      */
     function createDLC(
         address _protocolWallet,
-        uint256 _valueLocked
+        uint256 _valueLocked,
+        uint256 _refundDelay
     )
         external
         override
@@ -187,6 +189,7 @@ contract DLCManager is
             protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
+            refundDelay: _refundDelay,
             timestamp: block.timestamp,
             creator: tx.origin,
             outcome: 0,

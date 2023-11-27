@@ -108,7 +108,8 @@ contract DlcRouter is DLCLinkCompatible, AccessControl {
         // Calling the dlc-manager contract & getting a uuid
         bytes32 _uuid = _dlcManager.createDLC(
             _protocolWalletAddress,
-            btcDeposit
+            btcDeposit,
+            0
         );
 
         vaults[index] = Vault({

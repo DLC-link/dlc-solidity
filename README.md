@@ -6,7 +6,7 @@ Join our Discord server for news and support!
 
 This repo contains the solidity smart contracts for the DLC.Link infrastructure.
 
-Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) and [dlc.link](https://dlc.link).
+Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) and [DLC.Link](https://dlc.link).
 
 ## Overview
 
@@ -47,12 +47,14 @@ DLCManager _dlcManager = DLCManager(publcDLCManagerContractAddress);
 
 When you register a DLC with this contract using the `createDLC` function, a DLC Announcement is created on the Bitcoin Attestor Layer (DLC Oracles).
 
+`refundDelay` is the amount of time in seconds to wait from the maturation of the DLC announcement until the DLC can be refunded on Bitcoin. Setting this value to 0 will essentially disable this functionality (setting it to a very long time into the future).
+
 With the announcement hash, you are now able to set up the DLC between the two participants on Bitcoin (users, user/protocol, etc.) This is done via a DLC-enabled BTC wallet. See the section on leveraging DLC-enabled BTC wallets here to learn more: https://docs.dlc.link/architecture/installation-and-setup/bitcoin-wallets
 
 ```solidity
 // createDLC: Creates the DLC in the DLC Manager contract, as well as in the Oracle network.
 //
-bytes32 dlcUUID = _dlcManager.createDLC(address _protocolWallet, uint256 _valueLocked);
+bytes32 dlcUUID = _dlcManager.createDLC(address _protocolWallet, uint256 _valueLocked, uint256 refundDelay);
 ```
 
 ## Overrides

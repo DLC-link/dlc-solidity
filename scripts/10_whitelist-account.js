@@ -21,6 +21,8 @@ module.exports = async function whitelistAccount(addressToWhitelist, version) {
         admin
     );
 
+    console.log('Whitelisting address: ', addressToWhitelist);
+
     if (
         hardhat.network.name === 'localhost' ||
         (await tokenManager.hasRole(
