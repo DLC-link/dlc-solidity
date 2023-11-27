@@ -301,7 +301,10 @@ contract DLCManager is
     function getDLC(
         bytes32 _uuid
     ) external view override returns (DLCLink.DLC memory) {
-        return dlcs[dlcIDsByUUID[_uuid]];
+        DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[_uuid]];
+        if (_dlc.uuid == bytes32(0)) revert DLCNotFound();
+        if (_dlc.uuid != _uuid) revert DLCNotFound();
+        return _dlc;
     }
 
     function getDLCByIndex(

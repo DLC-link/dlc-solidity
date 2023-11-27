@@ -24,7 +24,44 @@ const tokenManagerSetupVault = require('./12_setup-vault');
 
 const contractAdmin = require('./50_contract-admin');
 
-// const safeContractProposal = require('./helpers/safe-api-service');
+const fs = require('fs');
+const util = require('util');
+
+// Name of the file to save the log messages
+const logFileName = 'log.txt';
+
+// Save the reference to the original console.log function
+const originalConsoleLog = console.log;
+
+// Create a write stream to the log file
+const logStream = fs.createWriteStream(path.join(__dirname, logFileName), {
+    flags: 'a',
+});
+
+// Override the console.log function
+console.log = function (...args) {
+    // Save the log message to the file
+    const timestamp = new Date().toISOString();
+    const message = `[${timestamp}] ${util.format(...args)}`;
+
+    // Save the log message to the file
+    logStream.write(message + '\n');
+
+    // Call the original console.log function
+    originalConsoleLog(...args);
+};
+
+// Redirect console.error as well if needed
+const originalConsoleError = console.error;
+console.error = function (...args) {
+    const timestamp = new Date().toISOString();
+    const message = `[${timestamp}] [ERROR] ${util.format(...args)}`;
+
+    // Save the error message to the file
+    logStream.write(message + '\n');
+
+    originalConsoleError(...args);
+};
 
 async function main() {
     const program = new Command();
