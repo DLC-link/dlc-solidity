@@ -33,4 +33,8 @@ module.exports = async function registerProtocol(
         hardhat.ethers.utils.id('WHITELISTED_WALLET'),
         protocolWalletAddress
     );
+
+    console.log('Protocol registered');
+    console.log('Contract: ', protocolContractAddress);
+    console.log('Wallet: ', protocolWalletAddress);
 };
