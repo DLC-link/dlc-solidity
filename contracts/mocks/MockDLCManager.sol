@@ -152,17 +152,16 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    function _createDLC(
+    function createDLC(
         address _protocolWallet,
         uint256 _valueLocked,
         uint256 _refundDelay
-    ) internal returns (bytes32) {
+    ) external override returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolWallet: _protocolWallet,
-            // ????
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
             refundDelay: _refundDelay,
@@ -186,24 +185,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         _index++;
 
         return _uuid;
-    }
-
-    // Public function with modifier checks
-    function createDLC(
-        address _protocolWallet,
-        uint256 _valueLocked
-    ) external override whenNotPaused returns (bytes32) {
-        // 0 refundDelay means no refundDelay
-        return _createDLC(_protocolWallet, _valueLocked, 0);
-    }
-
-    // Public function with modifier checks
-    function createDLC(
-        address _protocolWallet,
-        uint256 _valueLocked,
-        uint256 _refundDelay
-    ) external override returns (bytes32) {
-        return _createDLC(_protocolWallet, _valueLocked, _refundDelay);
     }
 
     function setStatusFunded(

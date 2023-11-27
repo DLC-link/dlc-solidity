@@ -6,11 +6,6 @@ import "./DLCLinkLibrary.sol";
 interface IDLCManager {
     function createDLC(
         address _protocolWallet,
-        uint256 _valueLocked
-    ) external returns (bytes32);
-
-    function createDLC(
-        address _protocolWallet,
         uint256 _valueLocked,
         uint256 _refundDelay
     ) external returns (bytes32);

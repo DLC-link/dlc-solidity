@@ -200,7 +200,11 @@ contract TokenManager is
         if (btcDeposit > maximumDeposit)
             revert DepositTooLarge(btcDeposit, maximumDeposit);
 
-        bytes32 _uuid = dlcManager.createDLC(routerWalletAddress, btcDeposit);
+        bytes32 _uuid = dlcManager.createDLC(
+            routerWalletAddress,
+            btcDeposit,
+            0
+        );
 
         userVaults[msg.sender].push(_uuid);
 

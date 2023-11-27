@@ -109,7 +109,8 @@ contract LendingContract is DLCLinkCompatible, AccessControl {
     function setupLoan(uint256 btcDeposit) external returns (uint256) {
         bytes32 _uuid = _dlcManager.createDLC(
             _protocolWalletAddress,
-            btcDeposit
+            btcDeposit,
+            0
         );
 
         loans[index] = Loan({
