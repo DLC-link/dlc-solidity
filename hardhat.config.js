@@ -58,7 +58,7 @@ module.exports = {
             url: 'https://arb1.arbitrum.io/rpc',
             //accounts: [ARBITRUM_MAINNET_TEMPORARY_PRIVATE_KEY]
         },
-        X1test: {
+        x1test: {
             url: 'https://testrpc.x1.tech',
             accounts: [
                 process.env['KEY'],
