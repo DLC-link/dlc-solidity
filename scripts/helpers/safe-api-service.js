@@ -1,15 +1,12 @@
-const { Signer } = require('ethers');
 const hardhat = require('hardhat');
 const { ethers } = require('hardhat');
-const { loadDeploymentInfo } = require('./deployment-handlers_versioned');
 const dlcAdminSafes = require('./dlc-admin-safes');
 
 const Safe = require('@safe-global/protocol-kit').default;
 const EthersAdapter = require('@safe-global/protocol-kit').EthersAdapter;
-const SafeFactory = require('@safe-global/protocol-kit').SafeFactory;
 const SafeApiKit = require('@safe-global/api-kit').default;
 
-// This script would allow us to wrap txs in a safe contract proposal
+// This script allows us to wrap txs in a safe contract proposal
 // ready to be signed by the safe owners
 
 module.exports = async function safeContractProposal(txRequest, signer) {
@@ -25,6 +22,8 @@ module.exports = async function safeContractProposal(txRequest, signer) {
     const txServiceUrl = `https://safe-transaction-${network}.safe.global`;
     const safeService = new SafeApiKit({ txServiceUrl, ethAdapter });
 
+    let nonce = await safeService.getNextNonce(safeAddress);
+
     const safeSdk = await Safe.create({
         ethAdapter,
         safeAddress: safeAddress,
@@ -32,17 +31,18 @@ module.exports = async function safeContractProposal(txRequest, signer) {
 
     console.log('txRequest', txRequest);
 
-    // TODO: add nonce
     const safeTransactionData = {
         to: txRequest.to,
         data: txRequest.data,
         value: txRequest.value ? txRequest.value.toString() : '0',
+        nonce: nonce,
     };
 
     console.log('safeTransactionData', safeTransactionData);
 
     const safeTransaction = await safeSdk.createTransaction({
         safeTransactionData,
+        options: { nonce },
     });
 
     console.log('safeTransaction', safeTransaction);

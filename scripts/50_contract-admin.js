@@ -29,7 +29,7 @@ module.exports = async function contractAdmin(_version) {
     });
 
     let response = await promptUser(
-        `You are about to interact with network: ${network}.\nDeployer account: ${deployer.address}\nRouter-wallet account: ${routerWallet.address}\nContinue?`
+        `You are about to interact with network: ${network}.\nDeployer account: ${deployer.address}\nRouter-wallet account: ${routerWallet.address}\nDLCAdminSafe: ${dlcAdminSafe}\nContinue?`
     );
     if (!response) {
         return;

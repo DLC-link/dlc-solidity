@@ -3,6 +3,7 @@ const hardhat = require('hardhat');
 const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
+const safeContractProposal = require('./helpers/safe-api-service');
 
 module.exports = async function whitelistAccount(addressToWhitelist, version) {
     const accounts = await hardhat.ethers.getSigners();
@@ -40,7 +41,7 @@ module.exports = async function whitelistAccount(addressToWhitelist, version) {
     } else {
         const txRequest = await tokenManager
             .connect(admin)
-            .whitelistAddress(addressToWhitelist);
+            .populateTransaction.whitelistAddress(addressToWhitelist);
         await safeContractProposal(txRequest, admin);
         return;
     }

@@ -39,6 +39,9 @@ module.exports = async function grantRoleOnManager(
         console.log(tx);
         return;
     } else {
+        console.log(
+            'admin does not have DEFAULT_ADMIN_ROLE, submitting multisig request...'
+        );
         const txRequest = await dlcManager
             .connect(admin)
             .populateTransaction.grantRole(roleInBytes, grantRoleToAddress);

@@ -3,13 +3,13 @@ const hardhat = require('hardhat');
 const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
+const safeContractProposal = require('./helpers/safe-api-service');
 
 module.exports = async function registerProtocol(
     protocolContractAddress,
     protocolWalletAddress,
     version
 ) {
-    // TODO: this should be safeifyed
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
 
@@ -25,16 +25,44 @@ module.exports = async function registerProtocol(
         admin
     );
 
-    await dlcManager.grantRole(
-        hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
-        protocolContractAddress
-    );
-    await dlcManager.grantRole(
-        hardhat.ethers.utils.id('WHITELISTED_WALLET'),
-        protocolWalletAddress
-    );
+    if (
+        hardhat.network.name === 'localhost' ||
+        (await dlcManager.hasRole(
+            hardhat.ethers.utils.id('DEFAULT_ADMIN_ROLE'),
+            admin.address
+        ))
+    ) {
+        console.log('admin has DEFAULT_ADMIN_ROLE, registering protocol');
 
-    console.log('Protocol registered');
-    console.log('Contract: ', protocolContractAddress);
-    console.log('Wallet: ', protocolWalletAddress);
+        await dlcManager.grantRole(
+            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
+            protocolContractAddress
+        );
+        await dlcManager.grantRole(
+            hardhat.ethers.utils.id('WHITELISTED_WALLET'),
+            protocolWalletAddress
+        );
+        console.log('Protocol registered');
+        console.log('Contract: ', protocolContractAddress);
+        console.log('Wallet: ', protocolWalletAddress);
+    } else {
+        console.log(
+            'admin does not have DEFAULT_ADMIN_ROLE, submitting multisig request...'
+        );
+
+        const txRequest = await dlcManager
+            .connect(admin)
+            .populateTransaction.grantRole(
+                hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
+                protocolContractAddress
+            );
+        await safeContractProposal(txRequest, admin);
+        const txRequest2 = await dlcManager
+            .connect(admin)
+            .populateTransaction.grantRole(
+                hardhat.ethers.utils.id('WHITELISTED_WALLET'),
+                protocolWalletAddress
+            );
+        await safeContractProposal(txRequest2, admin);
+    }
 };
