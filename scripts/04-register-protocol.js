@@ -15,7 +15,7 @@ module.exports = async function registerProtocol(
 
     const dlcManagerDeployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'DlcManager',
+        'DLCManager',
         version
     );
 
@@ -27,10 +27,7 @@ module.exports = async function registerProtocol(
 
     if (
         hardhat.network.name === 'localhost' ||
-        (await dlcManager.hasRole(
-            hardhat.ethers.utils.id('DEFAULT_ADMIN_ROLE'),
-            admin.address
-        ))
+        admin.address == (await dlcManager.defaultAdmin())
     ) {
         console.log('admin has DEFAULT_ADMIN_ROLE, registering protocol');
 
