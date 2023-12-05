@@ -21,6 +21,7 @@ const registerProtocol = require('./04-register-protocol');
 const whitelistAccount = require('./10_whitelist-account');
 const unwhitelistAccount = require('./11_unwhitelist-account');
 const tokenManagerSetupVault = require('./12_setup-vault');
+const whitelistingEnabled = require('./13_set-whitelisting');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -119,6 +120,13 @@ async function main() {
         .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 1000000)
         .argument('[version]', 'version of TokenManager contract', 'v1')
         .action(tokenManagerSetupVault);
+
+    program
+        .command('set-whitelisting')
+        .description('[token-man] set whitelisting')
+        .argument('<whitelistingEnabled>', 'whitelisting enabled')
+        .argument('[version]', 'version of TokenManager contract', 'v1')
+        .action(whitelistingEnabled);
 
     program
         .command('create-dlc')
