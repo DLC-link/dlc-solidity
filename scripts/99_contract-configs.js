@@ -145,10 +145,22 @@ module.exports = function getContractConfigs(networkConfig) {
                         'DLCBTC',
                         DLCBTCAddress
                     );
-                    await dlcBtc.transferOwnership(tokenManager.address);
+                    const currentOwner = await dlcBtc.owner();
                     console.log(
-                        `Transferred ownership of DLCBTC to TokenManager at ${tokenManager.address}`
+                        chalk.bgYellow('Current DLCBTC owner:', currentOwner)
                     );
+                    const oldTokenManager = await hardhat.ethers.getContractAt(
+                        'TokenManager',
+                        currentOwner
+                    );
+
+                    console.log(
+                        'Transferring ownership of DLCBTC...',
+                        tokenManager.address
+                    );
+                    await oldTokenManager
+                        .connect(deployer)
+                        .transferTokenContractOwnership(tokenManager.address);
                 }
 
                 return tokenManager.address;

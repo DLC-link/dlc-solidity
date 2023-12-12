@@ -1,10 +1,10 @@
 {
   "network": "sepolia",
-  "updatedAt": "2023-11-30T12:00:52.510Z",
-  "gitSHA": "d1048e2",
+  "updatedAt": "2023-12-12T18:47:25.328Z",
+  "gitSHA": "cb290db",
   "contract": {
     "name": "TokenManager",
-    "address": "0x15052Ec30Db1c03282990741Ae80849dc29347e2",
+    "address": "0xcD738A4E57e3A3b3C2CB102a47ca46eA635a5c94",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
