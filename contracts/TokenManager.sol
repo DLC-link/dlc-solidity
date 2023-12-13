@@ -15,7 +15,6 @@ import "./IDLCManager.sol";
 import "./DLCLinkCompatible.sol";
 import "./DLCBTC.sol";
 import "./DLCLinkLibrary.sol";
-import "hardhat/console.sol";
 
 /**
  * @author  DLC.Link 2023
@@ -234,6 +233,11 @@ contract TokenManager is
         emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
+    /**
+     * @notice  Request the closing of the vault
+     * @dev     Sets the withdrawRequests mapping to the current timestamp
+     * @param   uuid  uuid of the vault/DLC
+     */
     function requestCloseVault(bytes32 uuid) external whenNotPaused {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         if (dlc.creator != msg.sender) revert NotOwner();
@@ -241,7 +245,8 @@ contract TokenManager is
     }
 
     /**
-     * @notice  Burns the tokens and requests the closing of the vault
+     * @notice  Burns the tokens and finishes the closing of the vault
+     * @dev     withdrawDelay has to have passed
      * @dev     User must have enough dlcBTC tokens to close the DLC fully
      * @param   uuid  uuid of the vault/DLC
      */
