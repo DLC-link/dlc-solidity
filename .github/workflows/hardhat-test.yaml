@@ -22,4 +22,4 @@ jobs:
             - name: Test
               uses: ambersun1234/hardhat-test-action@v1
               with:
-                  network: localhost
+                  network: hardhat
