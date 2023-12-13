@@ -256,7 +256,7 @@ contract TokenManager is
 
         if (withdrawRequests[uuid] == 0) revert NoWithdrawRequestMade();
 
-        if (withdrawRequests[uuid] + withdrawDelay > block.timestamp)
+        if (!this.isDelayPassed(uuid))
             revert WithdrawDelayNotMet(
                 withdrawDelay,
                 block.timestamp - withdrawRequests[uuid]
