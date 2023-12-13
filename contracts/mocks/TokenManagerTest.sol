@@ -44,10 +44,12 @@ contract TokenManagerV2Test is
     uint256 public maximumDeposit; // in sats
     uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
     uint256 public outcomeFee; // in basis points (10000 = 100%) -- BTC
+    uint256 public withdrawDelay; // in seconds
     bool public whitelistingEnabled;
 
     mapping(address => bytes32[]) public userVaults;
     mapping(address => bool) private _whitelistedAddresses;
+    mapping(bytes32 => uint256) public withdrawRequests;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -61,6 +63,7 @@ contract TokenManagerV2Test is
     error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
     error DepositTooLarge(uint256 deposit, uint256 maximumDeposit);
     error InsufficientTokenBalance(uint256 balance, uint256 amount);
+    error WithdrawDelayNotMet(uint256 withdrawDelay, uint256 timeSinceRequest);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -107,6 +110,7 @@ contract TokenManagerV2Test is
         mintFeeRate = 0; // 0% dlcBTC fee for now
         outcomeFee = 0; // 0% BTC bias for now
         whitelistingEnabled = true;
+        withdrawDelay = 1 days;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -120,24 +124,41 @@ contract TokenManagerV2Test is
 
     event SetupVault(bytes32 dlcUUID, uint256 btcDeposit, address owner);
 
+    event CloseVault(bytes32 dlcUUID, uint256 outcome, address owner);
+
     event Mint(address to, uint256 amount);
 
     event Burn(address from, uint256 amount);
+
+    event SetStatusFunded(bytes32 dlcUUID, string btcTxId, address owner);
+
+    event PostCloseDLCHandler(bytes32 dlcUUID, string btcTxId, address owner);
 
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
     ////////////////////////////////////////////////////////////////
 
-    // _amount is in sats
-    // mintFeeRate is in basis points, e.g. 100 = 1% fee
+    /**
+     * @notice  Calculates the amount of dlcBTC to mint to the user
+     * @dev     There are no plans to take ERC20 fees on mint, so the fee rate is 0
+     * @dev     mintFeeRate is in basis points, e.g. 100 = 1% fee
+     * @param   _amount  amount in sats
+     * @return  uint256  amount reduced by the fee rate
+     */
     function _getFeeAdjustedAmount(
         uint256 _amount
     ) internal view returns (uint256) {
         return (_amount * (10000 - mintFeeRate)) / 10000;
     }
 
+    /**
+     * @notice  Outcome is the number signed by the Attestors
+     * @dev     0 means all back to depositor, 10000 all to counterparty
+     * @dev     Currently we don't take any fees on outcome but the option is there
+     * @return  uint256  outcome
+     */
     function _calculateOutcome() internal view returns (uint256) {
-        return 10000 - outcomeFee;
+        return 0 + outcomeFee;
     }
 
     function _mintTokens(address _to, uint256 _amount) internal {
@@ -154,6 +175,12 @@ contract TokenManagerV2Test is
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
+    /**
+     * @notice  Creates a new vault for the user
+     * @dev     It calls the DLCManager contract to create a new DLC
+     * @param   btcDeposit  amount to be locked (in sats)
+     * @return  bytes32  uuid of the new vault/DLC
+     */
     function setupVault(
         uint256 btcDeposit
     ) external whenNotPaused onlyWhitelisted returns (bytes32) {
@@ -175,18 +202,41 @@ contract TokenManagerV2Test is
         return _uuid;
     }
 
+    /**
+     * @notice  Callback function called by the DLCManager contract when a DLC is funded
+     * @dev     It initiates the mint to the user
+     * @param   uuid  uuid of the vault/DLC
+     */
     function setStatusFunded(
         bytes32 uuid,
-        string calldata /*btcTxId*/
+        string calldata btcTxId
     ) external override whenNotPaused onlyDLCManagerContract {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
 
         _mintTokens(dlc.creator, _getFeeAdjustedAmount(dlc.valueLocked));
+        emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
+    function requestCloseVault(bytes32 uuid) external whenNotPaused {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        if (dlc.creator != msg.sender) revert NotOwner();
+        withdrawRequests[uuid] = block.timestamp;
+    }
+
+    /**
+     * @notice  Burns the tokens and requests the closing of the vault
+     * @dev     User must have enough dlcBTC tokens to close the DLC fully
+     * @param   uuid  uuid of the vault/DLC
+     */
     function closeVault(bytes32 uuid) external whenNotPaused {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         if (dlc.creator != msg.sender) revert NotOwner();
+
+        if (withdrawRequests[uuid] + withdrawDelay > block.timestamp)
+            revert WithdrawDelayNotMet(
+                withdrawDelay,
+                block.timestamp - withdrawRequests[uuid]
+            );
 
         if (dlc.valueLocked > dlcBTC.balanceOf(dlc.creator))
             revert InsufficientTokenBalance(
@@ -195,14 +245,19 @@ contract TokenManagerV2Test is
             );
 
         _burnTokens(dlc.creator, dlc.valueLocked);
+        uint256 outcome = _calculateOutcome();
 
-        dlcManager.closeDLC(uuid, _calculateOutcome());
+        dlcManager.closeDLC(uuid, outcome);
+        emit CloseVault(uuid, outcome, msg.sender);
     }
 
     function postCloseDLCHandler(
         bytes32 uuid,
         string calldata btcTxId
-    ) external override whenNotPaused onlyDLCManagerContract {}
+    ) external override whenNotPaused onlyDLCManagerContract {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        emit PostCloseDLCHandler(uuid, btcTxId, dlc.creator);
+    }
 
     ////////////////////////////////////////////////////////////////
     //                      VIEW FUNCTIONS                        //
@@ -218,13 +273,39 @@ contract TokenManagerV2Test is
         return userVaults[_address];
     }
 
+    function getAllVaultsForAddress(
+        address _address
+    ) public view returns (DLCLink.DLC[] memory) {
+        bytes32[] memory uuids = getAllVaultUUIDsForAddress(_address);
+        DLCLink.DLC[] memory vaults = new DLCLink.DLC[](uuids.length);
+        for (uint256 i = 0; i < uuids.length; i++) {
+            vaults[i] = getVault(uuids[i]);
+        }
+        return vaults;
+    }
+
     function previewFeeAdjustedAmount(
         uint256 _amount
-    ) external view returns (uint256) {
+    ) public view returns (uint256) {
         return _getFeeAdjustedAmount(_amount);
     }
 
-    function newTestFunction() external pure returns (uint256) {
+    function previewCalculateOutcome() public view returns (uint256) {
+        return _calculateOutcome();
+    }
+
+    function isWithdrawable(bytes32 uuid) public view returns (bool) {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        return
+            this.isDelayPassed(uuid) &&
+            dlc.valueLocked <= dlcBTC.balanceOf(dlc.creator);
+    }
+
+    function isDelayPassed(bytes32 uuid) public view returns (bool) {
+        return withdrawRequests[uuid] + withdrawDelay <= block.timestamp;
+    }
+
+    function newTestFunction() public pure returns (uint) {
         return 1;
     }
 
@@ -234,6 +315,10 @@ contract TokenManagerV2Test is
 
     function whitelistAddress(address _address) external onlyDLCAdmin {
         _whitelistedAddresses[_address] = true;
+    }
+
+    function unwhitelistAddress(address _address) external onlyDLCAdmin {
+        _whitelistedAddresses[_address] = false;
     }
 
     function setRouterWallet(address _routerWallet) external onlyDLCAdmin {
@@ -254,6 +339,10 @@ contract TokenManagerV2Test is
 
     function setOutcomeFee(uint256 _outcomeFee) external onlyDLCAdmin {
         outcomeFee = _outcomeFee;
+    }
+
+    function setWithdrawDelay(uint256 _withdrawDelay) external onlyDLCAdmin {
+        withdrawDelay = _withdrawDelay;
     }
 
     function setWhitelistingEnabled(

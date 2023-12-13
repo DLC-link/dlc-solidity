@@ -266,6 +266,44 @@ describe('TokenManager', function () {
         });
     });
 
+    describe('requestCloseVault', async () => {
+        beforeEach(async () => {
+            await tokenManager.connect(deployer).whitelistAddress(user.address);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
+            await tx.wait();
+            const tx2 = await mockDLCManager
+
+                .connect(routerWallet)
+                .setStatusFunded(mockUUID, 'someTx');
+            await tx2.wait();
+        });
+        it('is only callable when contract is unpaused', async () => {
+            await tokenManager.connect(deployer).pauseContract();
+            await expect(
+                tokenManager.connect(user).requestCloseVault(mockUUID)
+            ).to.be.revertedWith('Pausable: paused');
+        });
+        it('reverts when called unauthorized', async () => {
+            await expect(
+                tokenManager
+                    .connect(someRandomAccount)
+                    .requestCloseVault(mockUUID)
+            ).to.be.revertedWithCustomError(tokenManager, 'NotOwner');
+        });
+        it('sets the withdrawRequest timestamp', async () => {
+            await tokenManager.connect(user).requestCloseVault(mockUUID);
+            const blockTimestamp = (
+                await ethers.provider.getBlock(
+                    await ethers.provider.getBlockNumber()
+                )
+            ).timestamp;
+            console.log(blockTimestamp);
+            expect(await tokenManager.withdrawRequests(mockUUID)).to.equal(
+                blockTimestamp
+            );
+        });
+    });
+
     describe('closeVault', async () => {
         beforeEach(async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
@@ -287,7 +325,27 @@ describe('TokenManager', function () {
                 tokenManager.connect(someRandomAccount).closeVault(mockUUID)
             ).to.be.revertedWithCustomError(tokenManager, 'NotOwner');
         });
+        it('reverts if no withdraw request has been made', async () => {
+            await expect(
+                tokenManager.connect(user).closeVault(mockUUID)
+            ).to.be.revertedWithCustomError(
+                tokenManager,
+                'NoWithdrawRequestMade'
+            );
+        });
+        it('reverts if withdrawdelay has not passed', async () => {
+            await tokenManager.connect(deployer).setWithdrawDelay(86400);
+            await tokenManager.connect(user).requestCloseVault(mockUUID);
+            await expect(
+                tokenManager.connect(user).closeVault(mockUUID)
+            ).to.be.revertedWithCustomError(
+                tokenManager,
+                'WithdrawDelayNotMet'
+            );
+        });
         it('reverts if user does not have enough dlcBTC tokens', async () => {
+            await tokenManager.connect(deployer).setWithdrawDelay(0);
+            await tokenManager.connect(user).requestCloseVault(mockUUID);
             await dlcBtc
                 .connect(user)
                 .transfer(someRandomAccount.address, 5000);
@@ -299,10 +357,14 @@ describe('TokenManager', function () {
             );
         });
         it('burns the users dlcBTC tokens', async () => {
+            await tokenManager.connect(deployer).setWithdrawDelay(0);
+            await tokenManager.connect(user).requestCloseVault(mockUUID);
             await tokenManager.connect(user).closeVault(mockUUID);
             expect(await dlcBtc.balanceOf(user.address)).to.equal(0);
         });
         it('calls the DLCManager to close the DLC with full repayment', async () => {
+            await tokenManager.connect(deployer).setWithdrawDelay(0);
+            await tokenManager.connect(user).requestCloseVault(mockUUID);
             const tx = await tokenManager.connect(user).closeVault(mockUUID);
             await tx.wait();
             const vault = await tokenManager.getVault(mockUUID);

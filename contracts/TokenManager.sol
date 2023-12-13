@@ -15,6 +15,7 @@ import "./IDLCManager.sol";
 import "./DLCLinkCompatible.sol";
 import "./DLCBTC.sol";
 import "./DLCLinkLibrary.sol";
+import "hardhat/console.sol";
 
 /**
  * @author  DLC.Link 2023
@@ -59,10 +60,12 @@ contract TokenManager is
     uint256 public maximumDeposit; // in sats
     uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
     uint256 public outcomeFee; // in basis points (10000 = 100%) -- BTC
+    uint256 public withdrawDelay; // in seconds
     bool public whitelistingEnabled;
 
     mapping(address => bytes32[]) public userVaults;
     mapping(address => bool) private _whitelistedAddresses;
+    mapping(bytes32 => uint256) public withdrawRequests;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -76,6 +79,8 @@ contract TokenManager is
     error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
     error DepositTooLarge(uint256 deposit, uint256 maximumDeposit);
     error InsufficientTokenBalance(uint256 balance, uint256 amount);
+    error WithdrawDelayNotMet(uint256 withdrawDelay, uint256 timeSinceRequest);
+    error NoWithdrawRequestMade();
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -122,6 +127,7 @@ contract TokenManager is
         mintFeeRate = 0; // 0% dlcBTC fee for now
         outcomeFee = 0; // 0% BTC bias for now
         whitelistingEnabled = true;
+        withdrawDelay = 1; // in seconds
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -228,6 +234,12 @@ contract TokenManager is
         emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
+    function requestCloseVault(bytes32 uuid) external whenNotPaused {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        if (dlc.creator != msg.sender) revert NotOwner();
+        withdrawRequests[uuid] = block.timestamp;
+    }
+
     /**
      * @notice  Burns the tokens and requests the closing of the vault
      * @dev     User must have enough dlcBTC tokens to close the DLC fully
@@ -236,6 +248,14 @@ contract TokenManager is
     function closeVault(bytes32 uuid) external whenNotPaused {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         if (dlc.creator != msg.sender) revert NotOwner();
+
+        if (withdrawRequests[uuid] == 0) revert NoWithdrawRequestMade();
+
+        if (withdrawRequests[uuid] + withdrawDelay > block.timestamp)
+            revert WithdrawDelayNotMet(
+                withdrawDelay,
+                block.timestamp - withdrawRequests[uuid]
+            );
 
         if (dlc.valueLocked > dlcBTC.balanceOf(dlc.creator))
             revert InsufficientTokenBalance(
@@ -293,6 +313,17 @@ contract TokenManager is
         return _calculateOutcome();
     }
 
+    function isWithdrawable(bytes32 uuid) public view returns (bool) {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        return
+            this.isDelayPassed(uuid) &&
+            dlc.valueLocked <= dlcBTC.balanceOf(dlc.creator);
+    }
+
+    function isDelayPassed(bytes32 uuid) public view returns (bool) {
+        return withdrawRequests[uuid] + withdrawDelay <= block.timestamp;
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -323,6 +354,10 @@ contract TokenManager is
 
     function setOutcomeFee(uint256 _outcomeFee) external onlyDLCAdmin {
         outcomeFee = _outcomeFee;
+    }
+
+    function setWithdrawDelay(uint256 _withdrawDelay) external onlyDLCAdmin {
+        withdrawDelay = _withdrawDelay;
     }
 
     function setWhitelistingEnabled(

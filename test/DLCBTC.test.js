@@ -115,6 +115,7 @@ describe('DLCBTC', function () {
 
         it('TokenManager can burn tokens', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
+            await tokenManager.connect(deployer).setWithdrawDelay(0);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
             const tx2 = await mockDLCManager
@@ -123,6 +124,7 @@ describe('DLCBTC', function () {
             await tx2.wait();
 
             expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
+            await tokenManager.connect(user).requestCloseVault(mockUUID);
             const tx3 = await tokenManager.connect(user).closeVault(mockUUID);
             await tx3.wait();
 
