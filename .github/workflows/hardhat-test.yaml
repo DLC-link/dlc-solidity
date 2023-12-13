@@ -22,4 +22,4 @@ jobs:
             - name: 'Install the dependencies'
               run: 'npm install'
             - name: 'Run the tests'
-              run: 'npm run test'
+              run: 'HARDHAT_NETWORK=hardhat npm run test'
