@@ -13,13 +13,13 @@ on:
 jobs:
     test:
         runs-on: ubuntu-latest
-        name: Hardhat unit test
+        name: Hardhat unit tests
         steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - name: Environment
+            - name: Checkout code
+              uses: actions/checkout@v3
+            - name: Install Node.js
               uses: actions/setup-node@v3
-            - name: Test
-              uses: ambersun1234/hardhat-test-action@v1
-              with:
-                  network: hardhat
+            - name: 'Install the dependencies'
+              run: 'npm install'
+            - name: 'Run the tests'
+              run: 'npm run test'
