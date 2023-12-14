@@ -168,12 +168,16 @@ contract DLCManager is
      * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
      * @param   _valueLocked  Value to be locked in the DLC , in Satoshis.
      * @param   _refundDelay  Delay in seconds before the creator can claim a refund. Set 0 to disable.
+     * @param   _btcFeeRecipient  Bitcoin address that will receive the DLC fees.
+     * @param   _btcFeeBasisPoints  Basis points of the valueLocked that will be sent to the _btcFeeRecipient.
      * @return  bytes32  A generated UUID.
      */
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked,
-        uint256 _refundDelay
+        uint256 _refundDelay,
+        string calldata _btcFeeRecipient,
+        uint256 _btcFeeBasisPoints
     )
         external
         override
@@ -195,7 +199,9 @@ contract DLCManager is
             outcome: 0,
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
-            closingTxId: ""
+            closingTxId: "",
+            btcFeeRecipient: _btcFeeRecipient,
+            btcFeeBasisPoints: _btcFeeBasisPoints
         });
 
         emit CreateDLC(

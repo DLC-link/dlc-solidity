@@ -27,5 +27,7 @@ library DLCLink {
         DLCStatus status;
         string fundingTxId;
         string closingTxId;
+        string btcFeeRecipient;
+        uint256 btcFeeBasisPoints;
     }
 }

@@ -22,6 +22,8 @@ describe('TokenManager', function () {
     let deployer, routerWallet, user, someRandomAccount;
 
     let deposit = 100000000; // 1 BTC
+    let btcFeeRecipient = '0x000001';
+    let btcFee = 100;
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -48,6 +50,7 @@ describe('TokenManager', function () {
             mockDLCManager.address,
             dlcBtc.address,
             routerWallet.address,
+            btcFeeRecipient,
         ]);
 
         await dlcBtc.transferOwnership(tokenManager.address);

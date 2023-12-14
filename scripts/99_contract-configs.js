@@ -38,6 +38,8 @@ async function afterDeployment(contractName, contractObject, version) {
 module.exports = function getContractConfigs(networkConfig) {
     const network = hardhat.network.name;
     const { version, deployer, routerWallet, dlcAdminSafe } = networkConfig;
+    const btcFeeRecipient = 'bcrt1qvgkz8m4m73kly4xhm28pcnv46n6u045lfq9ta3';
+
     return [
         {
             name: 'DLCManager',
@@ -116,7 +118,7 @@ module.exports = function getContractConfigs(networkConfig) {
 
                 await beforeDeployment(
                     'TokenManager',
-                    `_adminAddress: ${dlcAdminSafe}, _dlcManager: ${DLCManagerAddress}, _dlcBtc: ${DLCBTCAddress}, _routerWallet: ${routerWallet.address}`,
+                    `_adminAddress: ${dlcAdminSafe}, _dlcManager: ${DLCManagerAddress}, _dlcBtc: ${DLCBTCAddress}, _routerWallet: ${routerWallet.address}, _btcFeeRecipient: ${btcFeeRecipient}`,
                     network
                 );
 
@@ -131,6 +133,7 @@ module.exports = function getContractConfigs(networkConfig) {
                         DLCManagerAddress,
                         DLCBTCAddress,
                         routerWallet.address,
+                        btcFeeRecipient,
                     ]
                 );
                 await tokenManager.deployed();

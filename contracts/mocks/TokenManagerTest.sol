@@ -40,10 +40,12 @@ contract TokenManagerV2Test is
     DLCBTC public dlcBTC; // dlcBTC contract
     IDLCManager public dlcManager; // DLCManager contract
     address public routerWalletAddress; // router-wallet address
+    string public btcFeeRecipient; // BTC address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
     uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
     uint256 public outcomeFee; // in basis points (10000 = 100%) -- BTC
+    uint256 public btcMintFeeRate; // in basis points (100 = 1%) -- BTC
     bool public whitelistingEnabled;
 
     mapping(address => bytes32[]) public userVaults;
@@ -165,6 +167,8 @@ contract TokenManagerV2Test is
         bytes32 _uuid = dlcManager.createDLC(
             routerWalletAddress,
             btcDeposit,
+            0,
+            "",
             0
         );
 
