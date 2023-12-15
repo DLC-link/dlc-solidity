@@ -356,4 +356,28 @@ describe('TokenManager', function () {
             });
         });
     });
+
+    describe('BurnAllTokens dev function', async () => {
+        it('burns all tokens', async () => {
+            await tokenManager.connect(deployer).whitelistAddress(user.address);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
+            await tx.wait();
+            const tx2 = await mockDLCManager
+                .connect(routerWallet)
+                .setStatusFunded(mockUUID, 'someTx');
+            await tx2.wait();
+
+            const tx3 = await tokenManager.connect(user).setupVault(deposit);
+            await tx3.wait();
+            const tx4 = await mockDLCManager
+                .connect(routerWallet)
+                .setStatusFunded(mockUUID1, 'someOtherTx');
+            await tx4.wait();
+
+            expect(await dlcBtc.totalSupply()).to.equal(deposit * 2);
+
+            await tokenManager.connect(deployer).burnAllUserTokens();
+            expect(await dlcBtc.totalSupply()).to.equal(0);
+        });
+    });
 });
