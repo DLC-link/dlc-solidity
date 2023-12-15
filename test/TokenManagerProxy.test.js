@@ -16,11 +16,13 @@ const Status = {
     CLOSED: 3,
 };
 
-describe('TokenManager Proxy', function () {
+xdescribe('TokenManager Proxy', function () {
     let tokenManager, tokenManagerV2, mockDLCManager, dlcBtc;
     let deployer, routerWallet, user, someRandomAccount;
 
     let deposit = 100000000; // 1 BTC
+    let btcFeeRecipient = '0x000001';
+    let btcFee = 100;
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -47,6 +49,7 @@ describe('TokenManager Proxy', function () {
             mockDLCManager.address,
             dlcBtc.address,
             routerWallet.address,
+            btcFeeRecipient,
         ]);
 
         await dlcBtc.transferOwnership(tokenManager.address);

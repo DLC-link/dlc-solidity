@@ -55,14 +55,19 @@ contract TokenManager is
     DLCBTC public dlcBTC; // dlcBTC contract
     IDLCManager public dlcManager; // DLCManager contract
     address public routerWalletAddress; // router-wallet address
+    string public btcFeeRecipient; // BTC address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
     uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
     uint256 public outcomeFee; // in basis points (10000 = 100%) -- BTC
+    uint256 public btcMintFeeRate; // in basis points (100 = 1%) -- BTC
     bool public whitelistingEnabled;
 
     mapping(address => bytes32[]) public userVaults;
     mapping(address => bool) private _whitelistedAddresses;
+
+    // NOTE: TODO: Remove this for production
+    bytes32[] public allVaults;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -107,7 +112,8 @@ contract TokenManager is
         address _adminAddress,
         address _dlcManagerAddress,
         DLCBTC _tokenContract,
-        address _routerWalletAddress
+        address _routerWalletAddress,
+        string memory _btcFeeRecipient
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, _adminAddress);
         _grantRole(DLC_ADMIN_ROLE, _adminAddress);
@@ -122,6 +128,8 @@ contract TokenManager is
         mintFeeRate = 0; // 0% dlcBTC fee for now
         outcomeFee = 0; // 0% BTC bias for now
         whitelistingEnabled = true;
+        btcMintFeeRate = 100; // 1% BTC fee for now
+        btcFeeRecipient = _btcFeeRecipient;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -203,10 +211,15 @@ contract TokenManager is
         bytes32 _uuid = dlcManager.createDLC(
             routerWalletAddress,
             btcDeposit,
-            0
+            0,
+            btcFeeRecipient,
+            btcMintFeeRate
         );
 
         userVaults[msg.sender].push(_uuid);
+
+        // NOTE: TODO: Remove this for production
+        allVaults.push(_uuid);
 
         emit SetupVault(_uuid, btcDeposit, msg.sender);
 
@@ -325,6 +338,16 @@ contract TokenManager is
         outcomeFee = _outcomeFee;
     }
 
+    function setBtcMintFeeRate(uint256 _btcMintFeeRate) external onlyDLCAdmin {
+        btcMintFeeRate = _btcMintFeeRate;
+    }
+
+    function setBtcFeeRecipient(
+        string calldata _btcFeeRecipient
+    ) external onlyDLCAdmin {
+        btcFeeRecipient = _btcFeeRecipient;
+    }
+
     function setWhitelistingEnabled(
         bool _whitelistingEnabled
     ) external onlyDLCAdmin {
@@ -350,5 +373,18 @@ contract TokenManager is
 
     function unpauseContract() external onlyPauser {
         _unpause();
+    }
+
+    // NOTE: TODO: These are dev functions to burn all tokens in the token contract
+    // Not to be deployed in production
+    function burnAllUserTokens() external onlyDLCAdmin {
+        for (uint256 i = 0; i < allVaults.length; i++) {
+            DLCLink.DLC memory dlc = dlcManager.getDLC(allVaults[i]);
+            _burnTokens(dlc.creator, dlc.valueLocked);
+        }
+    }
+
+    function burnUserTokens(address userAddress) external onlyDLCAdmin {
+        _burnTokens(userAddress, dlcBTC.balanceOf(userAddress));
     }
 }

@@ -109,6 +109,8 @@ contract DlcRouter is DLCLinkCompatible, AccessControl {
         bytes32 _uuid = _dlcManager.createDLC(
             _protocolWalletAddress,
             btcDeposit,
+            0,
+            "0x",
             0
         );
 
