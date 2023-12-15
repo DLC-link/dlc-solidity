@@ -140,30 +140,35 @@ module.exports = function getContractConfigs(networkConfig) {
 
                 await afterDeployment('TokenManager', tokenManager, version);
 
+                const dlcBtc = await hardhat.ethers.getContractAt(
+                    'DLCBTC',
+                    DLCBTCAddress
+                );
+                const currentOwner = await dlcBtc.owner();
+                console.log(
+                    chalk.bgYellow('Current DLCBTC owner:', currentOwner)
+                );
+
                 const shouldTransferOwnership = await promptUser(
                     `Would you like to transfer ownership of DLCBTC contract to ${tokenManager.address}?`
                 );
                 if (shouldTransferOwnership) {
-                    const dlcBtc = await hardhat.ethers.getContractAt(
-                        'DLCBTC',
-                        DLCBTCAddress
-                    );
-                    const currentOwner = await dlcBtc.owner();
-                    console.log(
-                        chalk.bgYellow('Current DLCBTC owner:', currentOwner)
-                    );
                     const oldTokenManager = await hardhat.ethers.getContractAt(
                         'TokenManager',
                         currentOwner
                     );
 
                     console.log(
-                        'Transferring ownership of DLCBTC...',
+                        'Transferring ownership of DLCBTC to...',
                         tokenManager.address
                     );
                     await oldTokenManager
                         .connect(deployer)
                         .transferTokenContractOwnership(tokenManager.address);
+                    console.log(
+                        'Transferred ownership of DLCBTC to:',
+                        tokenManager.address
+                    );
                 }
 
                 return tokenManager.address;

@@ -375,12 +375,16 @@ contract TokenManager is
         _unpause();
     }
 
-    // NOTE: TODO: This is a dev function to burn all tokens in the token contract
+    // NOTE: TODO: These are dev functions to burn all tokens in the token contract
     // Not to be deployed in production
     function burnAllUserTokens() external onlyDLCAdmin {
         for (uint256 i = 0; i < allVaults.length; i++) {
             DLCLink.DLC memory dlc = dlcManager.getDLC(allVaults[i]);
             _burnTokens(dlc.creator, dlc.valueLocked);
         }
+    }
+
+    function burnUserTokens(address userAddress) external onlyDLCAdmin {
+        _burnTokens(userAddress, dlcBTC.balanceOf(userAddress));
     }
 }

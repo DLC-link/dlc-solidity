@@ -23,6 +23,9 @@ const unwhitelistAccount = require('./11_unwhitelist-account');
 const tokenManagerSetupVault = require('./12_setup-vault');
 const whitelistingEnabled = require('./13_set-whitelisting');
 
+const burnUserTokens = require('./97_burn-user-tokens');
+const burnAllUserTokens = require('./98_burn-all-user-tokens');
+
 const contractAdmin = require('./50_contract-admin');
 
 const fs = require('fs');
@@ -206,6 +209,17 @@ async function main() {
             process.env.ADMIN_ADDRESS
         )
         .action(addRoleToBtcNft);
+
+    program
+        .command('burn-user-tokens')
+        .description('[token-man] burn user tokens')
+        .argument('<address>', 'address to burn tokens for')
+        .action(burnUserTokens);
+
+    program
+        .command('burn-all-user-tokens')
+        .description('[token-man] burn all user tokens')
+        .action(burnAllUserTokens);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
