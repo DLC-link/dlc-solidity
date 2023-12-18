@@ -223,7 +223,7 @@ describe('TokenManager', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const vault = await tokenManager.getVault(mockUUID);
+            const vault = (await tokenManager.getVault(mockUUID)).dlc;
             expect(vault.uuid).to.equal(mockUUID);
             expect(vault.protocolWallet).to.equal(routerWallet.address);
             expect(vault.protocolContract).to.equal(tokenManager.address);
@@ -367,7 +367,7 @@ describe('TokenManager', function () {
             await tokenManager.connect(user).requestCloseVault(mockUUID);
             const tx = await tokenManager.connect(user).closeVault(mockUUID);
             await tx.wait();
-            const vault = await tokenManager.getVault(mockUUID);
+            const vault = (await tokenManager.getVault(mockUUID)).dlc;
             expect(vault.status).to.equal(Status.CLOSING);
             expect(vault.outcome).to.equal(BigNumber.from(0));
         });
@@ -402,7 +402,14 @@ describe('TokenManager', function () {
             await tx4.wait();
         });
 
-        xdescribe('getVault', async () => {});
+        describe('getVault', async () => {
+            it('should return a vault object with the extra fields', async () => {
+                const vault = await tokenManager.getVault(mockUUID);
+                expect(vault.dlc.uuid).to.equal(mockUUID);
+                expect(vault.withdrawRequest).to.equal(0);
+                expect(vault.isDelayPassed).to.equal(false);
+            });
+        });
         xdescribe('getAllVaultUUIDsForAddress', async () => {});
         describe('getAllVaultsForAddress', async () => {
             it('should return all vaults for an address', async () => {
@@ -410,8 +417,8 @@ describe('TokenManager', function () {
                     user.address
                 );
                 expect(vaults.length).to.equal(2);
-                expect(vaults[0].uuid).to.equal(mockUUID);
-                expect(vaults[1].uuid).to.equal(mockUUID1);
+                expect(vaults[0].dlc.uuid).to.equal(mockUUID);
+                expect(vaults[1].dlc.uuid).to.equal(mockUUID1);
             });
         });
     });

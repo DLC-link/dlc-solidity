@@ -236,7 +236,7 @@ module.exports = async function contractAdmin(_version) {
             const newAdmin = await prompts({
                 type: 'text',
                 name: 'value',
-                message: 'Enter new ProxyAdmin address',
+                message: 'Enter new Owner address',
             });
             if (!newAdmin.value) return;
 

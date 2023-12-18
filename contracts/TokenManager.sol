@@ -40,6 +40,12 @@ contract TokenManager is
     using SafeERC20 for DLCBTC;
     using DLCLink for DLCLink.DLC;
 
+    struct Vault {
+        DLCLink.DLC dlc;
+        uint256 withdrawRequest;
+        bool isDelayPassed;
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      STATE VARIABLES                       //
     ////////////////////////////////////////////////////////////////
@@ -287,8 +293,13 @@ contract TokenManager is
     //                      VIEW FUNCTIONS                        //
     ////////////////////////////////////////////////////////////////
 
-    function getVault(bytes32 _uuid) public view returns (DLCLink.DLC memory) {
-        return dlcManager.getDLC(_uuid);
+    function getVault(bytes32 _uuid) public view returns (Vault memory) {
+        return
+            Vault({
+                dlc: dlcManager.getDLC(_uuid),
+                withdrawRequest: withdrawRequests[_uuid],
+                isDelayPassed: this.isDelayPassed(_uuid)
+            });
     }
 
     function getAllVaultUUIDsForAddress(
@@ -299,9 +310,9 @@ contract TokenManager is
 
     function getAllVaultsForAddress(
         address _address
-    ) public view returns (DLCLink.DLC[] memory) {
+    ) public view returns (Vault[] memory) {
         bytes32[] memory uuids = getAllVaultUUIDsForAddress(_address);
-        DLCLink.DLC[] memory vaults = new DLCLink.DLC[](uuids.length);
+        Vault[] memory vaults = new Vault[](uuids.length);
         for (uint256 i = 0; i < uuids.length; i++) {
             vaults[i] = getVault(uuids[i]);
         }
@@ -326,7 +337,9 @@ contract TokenManager is
     }
 
     function isDelayPassed(bytes32 uuid) public view returns (bool) {
-        return withdrawRequests[uuid] + withdrawDelay <= block.timestamp;
+        uint256 request = withdrawRequests[uuid];
+        if (request == 0) return false;
+        return request + withdrawDelay <= block.timestamp;
     }
 
     ////////////////////////////////////////////////////////////////
