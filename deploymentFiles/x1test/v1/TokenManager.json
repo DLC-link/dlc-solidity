@@ -1,10 +1,10 @@
 {
   "network": "x1test",
-  "updatedAt": "2023-12-15T11:34:49.468Z",
-  "gitSHA": "da0d7a6",
+  "updatedAt": "2023-12-19T12:51:31.909Z",
+  "gitSHA": "b3fd2f5",
   "contract": {
     "name": "TokenManager",
-    "address": "0xb2fc6CC7E7848042619ED2a30cf471Bd47A03785",
+    "address": "0xAa146b7aAE5468dd1b6FAA7aB5f0B22A037d907f",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
