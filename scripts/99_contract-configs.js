@@ -7,6 +7,7 @@ const {
 const { promptUser, loadContractAddress } = require('./helpers/utils');
 const getChainLinkBTCPriceFeedAddress = require('./helpers/chainlink-pricefeed-addresses');
 const grantRoleOnManager = require('./00-grant-role-on-manager');
+const registerProtocol = require('./04-register-protocol');
 
 // This is a pure function that just logs
 async function beforeDeployment(contractName, constructorArguments, network) {
@@ -168,6 +169,17 @@ module.exports = function getContractConfigs(networkConfig) {
                     console.log(
                         'Transferred ownership of DLCBTC to:',
                         tokenManager.address
+                    );
+                }
+
+                const shouldRegisterProtocol = await promptUser(
+                    `Would you like to register TokenManager @ ${tokenManager.address} on DLCManager @ ${DLCManagerAddress} with router-wallet @ ${routerWallet.address}?`
+                );
+                if (shouldRegisterProtocol) {
+                    await registerProtocol(
+                        tokenManager.address,
+                        routerWallet.address,
+                        version
                     );
                 }
 
