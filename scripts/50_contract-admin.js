@@ -11,6 +11,7 @@ const {
     deploymentInfo,
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
+const safeContractProposal = require('./helpers/safe-api-service');
 
 module.exports = async function contractAdmin(_version) {
     const network = hardhat.network.name;
@@ -236,14 +237,29 @@ module.exports = async function contractAdmin(_version) {
             const newAdmin = await prompts({
                 type: 'text',
                 name: 'value',
-                message: 'Enter new ProxyAdmin address',
+                message: 'Enter new DLCBTC owner address',
             });
             if (!newAdmin.value) return;
 
-            console.log('Transferring ownership of DLCBTC...', newAdmin.value);
+            if (
+                network === 'localhost' ||
+                (await oldTokenManager.hasRole(
+                    hardhat.ethers.utils.id('DLC_ADMIN_ROLE'),
+                    deployer.address
+                ))
+            ) {
+                console.log('deployer has DLC_ADMIN_ROLE, continuing...');
+                console.log('Transferring ownership of DLCBTC...', newAdmin.value);
             await oldTokenManager
                 .connect(deployer)
                 .transferTokenContractOwnership(newAdmin.value);
+            } else {
+                const txRequest = await oldTokenManager
+                    .connect(deployer)
+                    .populateTransaction.
+                    transferTokenContractOwnership(newAdmin.value);
+                await safeContractProposal(txRequest, deployer);
+            }
             break;
         }
         case 'transfer-admin': {
