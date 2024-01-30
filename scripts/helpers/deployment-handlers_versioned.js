@@ -1,8 +1,11 @@
 const fs = require('fs/promises');
+const { execSync } = require('child_process');
 
 function deploymentInfo(hardhat, contract, contractName) {
     const deployInfo = {
         network: hardhat.network.name,
+        updatedAt: new Date().toISOString(),
+        gitSHA: execSync('git rev-parse --short HEAD').toString().trim(),
         contract: {
             name: contractName,
             address: contract.address,
@@ -20,7 +23,12 @@ async function saveDeploymentInfo(info, version, filename = undefined) {
     }
     console.log(`Writing deployment info to ${filename}`);
     const content = JSON.stringify(info, null, 2) + '\n';
-    await fs.writeFile(filename, content, { encoding: 'utf-8' });
+    try {
+        await fs.writeFile(filename, content, { encoding: 'utf-8' });
+    } catch (e) {
+        console.error(`Error writing deployment info to ${filename}: ${e}`);
+        return false;
+    }
     return true;
 }
 

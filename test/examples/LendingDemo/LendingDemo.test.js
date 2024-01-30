@@ -1,26 +1,8 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const web3 = require('web3');
 
-async function whitelistProtocolContract(
-    lendingContract,
-    protocol,
-    dlcManager,
-    deployer
-) {
-    await dlcManager
-        .connect(deployer)
-        .grantRole(
-            web3.utils.soliditySha3('WHITELISTED_CONTRACT'),
-            lendingContract.address
-        );
-    await dlcManager
-        .connect(deployer)
-        .grantRole(
-            web3.utils.soliditySha3('WHITELISTED_WALLET'),
-            protocol.address
-        );
-}
+const someBtxTxId =
+    '0x1234567890123456789012345678901234567890123456789012345678901234';
 
 async function setupFundedLoan(
     dlcManager,
@@ -30,30 +12,21 @@ async function setupFundedLoan(
     user,
     loanParams = {
         btcDeposit: 100000000,
-        attestorCount: 3,
         // emergencyRefundTime: 5,
     }
 ) {
-    await whitelistProtocolContract(
-        lendingContract,
-        protocol,
-        dlcManager,
-        deployer
-    );
     const tx = await lendingContract
         .connect(user)
-        .setupLoan(loanParams.btcDeposit, loanParams.attestorCount);
+        .setupLoan(loanParams.btcDeposit);
     const txF = await tx.wait();
     const tx3 = await dlcManager
         .connect(protocol)
-        .setStatusFunded(txF.events[1].args.dlcUUID);
+        .setStatusFunded(txF.events[1].args.dlcUUID, someBtxTxId);
     const txF3 = await tx3.wait();
 }
 
-// TODO: Outdated since V1
 describe('LendingContract', () => {
     let mockV3Aggregator;
-    let mockAttestorManager;
     let dlcManager;
     let usdc;
     let lendingContract;
@@ -70,23 +43,13 @@ describe('LendingContract', () => {
         user = accounts[2];
         someRandomAccount = accounts[3];
 
-        const MockV3Aggregator = await ethers.getContractFactory(
-            'MockV3Aggregator'
-        );
+        const MockV3Aggregator =
+            await ethers.getContractFactory('MockV3Aggregator');
         mockV3Aggregator = await MockV3Aggregator.deploy(0, 0); // NOTE:
         await mockV3Aggregator.deployTransaction.wait();
 
-        const MockAttestorManager = await ethers.getContractFactory(
-            'MockAttestorManager'
-        );
-        mockAttestorManager = await MockAttestorManager.deploy();
-        await mockAttestorManager.deployTransaction.wait();
-
-        const DLCManager = await ethers.getContractFactory('MockDLCManagerV1');
-        dlcManager = await DLCManager.deploy(
-            deployer.address,
-            mockAttestorManager.address
-        );
+        const DLCManager = await ethers.getContractFactory('MockDLCManager');
+        dlcManager = await DLCManager.deploy();
         await dlcManager.deployTransaction.wait();
 
         const USDC = await ethers.getContractFactory('USDStableCoinForDLCs');
@@ -94,7 +57,7 @@ describe('LendingContract', () => {
         await usdc.deployed();
 
         const LendingContract = await ethers.getContractFactory(
-            'LendingContractV1',
+            'LendingContract',
             protocol
         );
         lendingContract = await LendingContract.deploy(
@@ -129,13 +92,7 @@ describe('LendingContract', () => {
         });
 
         it('reverts if loan is not funded', async () => {
-            await whitelistProtocolContract(
-                lendingContract,
-                protocol,
-                dlcManager,
-                deployer
-            );
-            const tx = await lendingContract.connect(user).setupLoan(0, 0);
+            const tx = await lendingContract.connect(user).setupLoan(0);
             const txF = await tx.wait();
             await expect(
                 lendingContract.connect(user).borrow(0, 10)
@@ -299,7 +256,6 @@ describe('LendingContract', () => {
                 user,
                 {
                     btcDeposit: amount,
-                    attestorCount: 3,
                     // emergencyRefundTime: 5,
                 }
             );
@@ -330,7 +286,6 @@ describe('LendingContract', () => {
                 user,
                 {
                     btcDeposit: collateralAmount,
-                    attestorCount: 3,
                     // emergencyRefundTime: 5,
                 }
             );
@@ -367,7 +322,6 @@ describe('LendingContract', () => {
                 user,
                 {
                     btcDeposit: collateralAmount,
-                    attestorCount: 3,
                     // emergencyRefundTime: 5,
                 }
             );

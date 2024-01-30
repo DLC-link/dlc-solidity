@@ -1,38 +1,39 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import '../DLCManagerV1.sol';
-import '../DLCLinkCompatibleV1.sol';
+import "../DLCManager.sol";
+import "../DLCLinkCompatible.sol";
 
-import 'hardhat/console.sol';
+// import "hardhat/console.sol";
 
-contract MockProtocol is DLCLinkCompatibleV1 {
-    DLCManagerV1 private _dlcManager;
+contract MockProtocol is DLCLinkCompatible {
+    DLCManager private _dlcManager;
     address private _protocolWallet;
 
     constructor(address _dlcManagerAddress, address protocolWallet) {
         require(
             _dlcManagerAddress != address(0),
-            'DLCManager address cannot be 0'
+            "DLCManager address cannot be 0"
         );
         require(
             protocolWallet != address(0),
-            'Protocol wallet address cannot be 0'
+            "Protocol wallet address cannot be 0"
         );
-        _dlcManager = DLCManagerV1(_dlcManagerAddress);
+        _dlcManager = DLCManager(_dlcManagerAddress);
         _protocolWallet = protocolWallet;
     }
 
-    function requestCreateDLC(
-        uint8 attestorCount
-    ) external returns (bytes32, string[] memory) {
-        (bytes32 uuid, string[] memory attestorList) = _dlcManager.createDLC(
+    function requestCreateDLC(uint256 _valueLocked) external returns (bytes32) {
+        bytes32 uuid = _dlcManager.createDLC(
             _protocolWallet,
-            attestorCount
+            _valueLocked,
+            0,
+            "",
+            0
         );
         // console.log('[MockProtocol] requestCreateDLC called');
         // console.logBytes32(uuid);
-        return (uuid, attestorList);
+        return (uuid);
     }
 
     function requestCloseDLC(bytes32 _uuid, uint16 _outcome) external {
@@ -41,7 +42,10 @@ contract MockProtocol is DLCLinkCompatibleV1 {
         _dlcManager.closeDLC(_uuid, _outcome);
     }
 
-    function setStatusFunded(bytes32 uuid) external view override {
+    function setStatusFunded(
+        bytes32 uuid,
+        string calldata btcTxId
+    ) external view override {
         // console.log('[MockProtocol] setStatusFunded called');
         // console.logBytes32(uuid);
     }
