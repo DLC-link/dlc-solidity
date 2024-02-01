@@ -22,6 +22,7 @@ const whitelistAccount = require('./10_whitelist-account');
 const unwhitelistAccount = require('./11_unwhitelist-account');
 const tokenManagerSetupVault = require('./12_setup-vault');
 const whitelistingEnabled = require('./13_set-whitelisting');
+const setBtcFeeRecipient = require('./14_set-btc-fee-recipient');
 
 const burnUserTokens = require('./97_burn-user-tokens');
 const burnAllUserTokens = require('./98_burn-all-user-tokens');
@@ -130,6 +131,13 @@ async function main() {
         .argument('<whitelistingEnabled>', 'whitelisting enabled')
         .argument('[version]', 'version of TokenManager contract', 'v1')
         .action(whitelistingEnabled);
+
+    program
+        .command('set-btc-fee-recipient')
+        .description('[token-man] set BTC fee recipient')
+        .argument('<btcFeeRecipient>', 'BTC fee recipient')
+        .argument('[version]', 'version of TokenManager contract', 'v1')
+        .action(setBtcFeeRecipient);
 
     program
         .command('create-dlc')
