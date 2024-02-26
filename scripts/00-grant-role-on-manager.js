@@ -14,7 +14,7 @@ module.exports = async function grantRoleOnManager(
     const roleInBytes = hardhat.ethers.utils.id(role);
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'DlcManager',
+        'DLCManager',
         version
     );
     const dlcManager = new hardhat.ethers.Contract(
@@ -25,13 +25,13 @@ module.exports = async function grantRoleOnManager(
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
 
+    console.log('granting role', role, 'to', grantRoleToAddress, '...');
+
     if (
         hardhat.network.name === 'localhost' ||
-        (await dlcManager.hasRole(
-            hardhat.ethers.utils.id('DEFAULT_ADMIN_ROLE'),
-            admin.address
-        ))
+        admin.address == (await dlcManager.defaultAdmin())
     ) {
+        console.log('admin has DEFAULT_ADMIN_ROLE, granting role...');
         const tx = await dlcManager
             .connect(admin)
             .grantRole(roleInBytes, grantRoleToAddress);
