@@ -67,11 +67,30 @@ module.exports = {
                 process.env['KEY_FOR_SAFE'],
             ],
         },
+        bobtest: {
+            url: 'https://testnet.rpc.gobob.xyz',
+            accounts: [
+                process.env['KEY'],
+                process.env['KEY2'],
+                process.env['KEY3'],
+                process.env['KEY_FOR_SAFE'],
+            ],
+        },
     },
     etherscan: {
         // Your API key for Etherscan
         // Obtain one at https://etherscan.io/
         apiKey: process.env['ETHERSCAN_API_KEY'],
+        customChains: [
+            {
+                network: 'bobtest',
+                chainId: 111,
+                urls: {
+                    apiURL: 'https://testnet-explorer.gobob.xyz/api',
+                    browserURL: 'https://testnet-explorer.gobob.xyz',
+                },
+            },
+        ],
     },
     gasReporter: {
         currency: 'USD',
