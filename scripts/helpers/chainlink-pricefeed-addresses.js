@@ -17,6 +17,7 @@ module.exports = async function getChainLinkBTCPriceFeedAddress(network) {
         case 'goerli':
             return '0xA39434A63A52E749F02807ae27335515BA4b07F7';
         case 'localhost':
+        case 'bobtest':
             return await deployAndGetMockAggregatorAddress();
         default:
             throw new Error('Invalid network');
