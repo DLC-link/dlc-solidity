@@ -143,7 +143,7 @@ contract TokenManager is
 
     event SetupVault(bytes32 dlcUUID, uint256 btcDeposit, address owner);
 
-    event CloseVault(bytes32 dlcUUID, uint256 outcome, address owner);
+    event CloseVault(bytes32 dlcUUID, address owner);
 
     event Mint(address to, uint256 amount);
 
@@ -211,7 +211,6 @@ contract TokenManager is
         bytes32 _uuid = dlcManager.createDLC(
             routerWalletAddress,
             btcDeposit,
-            0,
             btcFeeRecipient,
             btcMintFeeRate
         );
@@ -257,10 +256,10 @@ contract TokenManager is
             );
 
         _burnTokens(dlc.creator, dlc.valueLocked);
-        uint256 outcome = _calculateOutcome();
+        // uint256 outcome = _calculateOutcome();
 
-        dlcManager.closeDLC(uuid, outcome);
-        emit CloseVault(uuid, outcome, msg.sender);
+        dlcManager.closeDLC(uuid);
+        emit CloseVault(uuid, msg.sender);
     }
 
     function postCloseDLCHandler(

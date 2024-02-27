@@ -7,14 +7,13 @@ interface IDLCManager {
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked,
-        uint256 _refundDelay,
         string calldata _btcFeeRecipient,
         uint256 _btcFeeBasisPoints
     ) external returns (bytes32);
 
     function setStatusFunded(bytes32 _uuid, string calldata _btcTxId) external;
 
-    function closeDLC(bytes32 _uuid, uint256 _outcome) external;
+    function closeDLC(bytes32 _uuid) external;
 
     function postCloseDLC(bytes32 _uuid, string calldata _btcTxId) external;
 

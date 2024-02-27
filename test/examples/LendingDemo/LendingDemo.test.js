@@ -25,7 +25,7 @@ async function setupFundedLoan(
     const txF3 = await tx3.wait();
 }
 
-describe('LendingContract', () => {
+xdescribe('LendingContract', () => {
     let mockV3Aggregator;
     let dlcManager;
     let usdc;

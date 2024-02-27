@@ -255,7 +255,7 @@ describe('DLCManager', () => {
 
         it('reverts if not called by the creator contract', async () => {
             await expect(
-                dlcManager.connect(randomAccount).closeDLC(uuid, outcome)
+                dlcManager.connect(randomAccount).closeDLC(uuid)
             ).to.be.revertedWithCustomError(dlcManager, 'NotCreatorContract');
         });
 
@@ -269,14 +269,12 @@ describe('DLCManager', () => {
             const newUuid = decodedEvent.args.uuid;
 
             await expect(
-                mockProtocol.connect(protocol).requestCloseDLC(newUuid, outcome)
+                mockProtocol.connect(protocol).requestCloseDLC(newUuid)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFunded');
         });
 
         it('emits a CloseDLC event with the correct data', async () => {
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCloseDLC(uuid, outcome);
+            const tx = await mockProtocol.connect(user).requestCloseDLC(uuid);
             const receipt = await tx.wait();
             const event = receipt.events[0];
 
@@ -284,7 +282,6 @@ describe('DLCManager', () => {
 
             expect(decodedEvent.name).to.equal('CloseDLC');
             expect(decodedEvent.args.uuid).to.equal(uuid);
-            expect(decodedEvent.args.outcome).to.equal(outcome);
             expect(decodedEvent.args.protocolWallet).to.equal(
                 protocolWallet.address
             );
@@ -294,7 +291,6 @@ describe('DLCManager', () => {
 
     describe('postCloseDLC', async () => {
         let uuid;
-        let outcome = 10000;
 
         beforeEach(async () => {
             await whitelistProtocolContractAndAddress(
@@ -317,7 +313,7 @@ describe('DLCManager', () => {
             await tx3.wait();
             const tx4 = await mockProtocol
                 .connect(protocol)
-                .requestCloseDLC(uuid, outcome);
+                .requestCloseDLC(uuid);
             await tx4.wait();
         });
 
@@ -365,7 +361,6 @@ describe('DLCManager', () => {
 
             expect(event.event).to.equal('PostCloseDLC');
             expect(event.args.uuid).to.equal(uuid);
-            expect(event.args.outcome).to.equal(outcome);
             expect(event.args.btcTxId).to.equal(btcTxId);
             expect(event.args.protocolWallet).to.equal(protocolWallet.address);
             expect(event.args.sender).to.equal(protocolWallet.address);

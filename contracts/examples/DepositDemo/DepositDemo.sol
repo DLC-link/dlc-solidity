@@ -85,7 +85,6 @@ contract DepositDemo is DLCLinkCompatible, AccessControl {
         bytes32 _uuid = _dlcManager.createDLC(
             _protocolWalletAddress,
             btcDeposit,
-            0,
             "0x",
             0
         );
@@ -164,9 +163,8 @@ contract DepositDemo is DLCLinkCompatible, AccessControl {
         _updateStatus(_depositID, DepositStatus.PreClosed);
 
         // uint16 outcome = uint16(calculatePayout(_depositID, _tokens))
-        uint16 outcome = 10000;
 
-        _dlcManager.closeDLC(_deposit.dlcUUID, outcome);
+        _dlcManager.closeDLC(_deposit.dlcUUID);
     }
 
     function postCloseDLCHandler(

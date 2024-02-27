@@ -27,7 +27,6 @@ contract MockProtocol is DLCLinkCompatible {
         bytes32 uuid = _dlcManager.createDLC(
             _protocolWallet,
             _valueLocked,
-            0,
             "",
             0
         );
@@ -36,10 +35,10 @@ contract MockProtocol is DLCLinkCompatible {
         return (uuid);
     }
 
-    function requestCloseDLC(bytes32 _uuid, uint16 _outcome) external {
+    function requestCloseDLC(bytes32 _uuid) external {
         // console.log('[MockProtocol] requestCloseDLC called');
         // console.logBytes32(uuid);
-        _dlcManager.closeDLC(_uuid, _outcome);
+        _dlcManager.closeDLC(_uuid);
     }
 
     function setStatusFunded(

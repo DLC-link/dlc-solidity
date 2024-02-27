@@ -110,7 +110,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
     event CloseDLC(
         bytes32 uuid,
-        uint256 outcome,
         address creator,
         address protocolWallet,
         address sender
@@ -118,7 +117,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
     event PostCloseDLC(
         bytes32 uuid,
-        uint256 outcome,
         address creator,
         address protocolWallet,
         address sender,
@@ -155,7 +153,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked,
-        uint256 _refundDelay,
         string calldata /*_btcFeeRecipient*/,
         uint256 /*_btcFeeBasisPoints*/
     ) external override returns (bytes32) {
@@ -166,10 +163,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
-            refundDelay: _refundDelay,
             timestamp: block.timestamp,
             creator: tx.origin,
-            outcome: 0,
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
@@ -217,19 +212,17 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         );
     }
 
-    function closeDLC(bytes32 _uuid, uint256 _outcome) external whenNotPaused {
+    function closeDLC(bytes32 _uuid) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSING;
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
-        dlc.outcome = _outcome;
         dlc.status = _newStatus;
 
         emit CloseDLC(
             _uuid,
-            _outcome,
             dlc.creator,
             dlc.protocolWallet,
             msg.sender
@@ -256,7 +249,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
         emit PostCloseDLC(
             _uuid,
-            dlc.outcome,
             dlc.creator,
             dlc.protocolWallet,
             msg.sender,

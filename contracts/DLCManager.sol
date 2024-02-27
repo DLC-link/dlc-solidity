@@ -131,14 +131,12 @@ contract DLCManager is
 
     event CloseDLC(
         bytes32 uuid,
-        uint256 outcome,
         address protocolWallet,
         address sender
     );
 
     event PostCloseDLC(
         bytes32 uuid,
-        uint256 outcome,
         string btcTxId,
         address protocolWallet,
         address sender
@@ -167,7 +165,6 @@ contract DLCManager is
      * @dev     Call this function from a whitelisted protocol-contract.
      * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
      * @param   _valueLocked  Value to be locked in the DLC , in Satoshis.
-     * @param   _refundDelay  Delay in seconds before the creator can claim a refund. Set 0 to disable.
      * @param   _btcFeeRecipient  Bitcoin address that will receive the DLC fees.
      * @param   _btcFeeBasisPoints  Basis points of the valueLocked that will be sent to the _btcFeeRecipient.
      * @return  bytes32  A generated UUID.
@@ -175,7 +172,6 @@ contract DLCManager is
     function createDLC(
         address _protocolWallet,
         uint256 _valueLocked,
-        uint256 _refundDelay,
         string calldata _btcFeeRecipient,
         uint256 _btcFeeBasisPoints
     )
@@ -193,10 +189,8 @@ contract DLCManager is
             protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
-            refundDelay: _refundDelay,
             timestamp: block.timestamp,
             creator: tx.origin,
-            outcome: 0,
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
@@ -252,11 +246,9 @@ contract DLCManager is
      * There are several ways to design the outcome values, depending on the use case.
      * See the DLC.Link documentation for more details.
      * @param   _uuid  UUID of the DLC.
-     * @param   _outcome  Outcome of the DLC, generally a number between 0-10000. (10000 = 100%)
      */
     function closeDLC(
-        bytes32 _uuid,
-        uint256 _outcome
+        bytes32 _uuid
     ) external onlyCreatorContract(_uuid) whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSING;
@@ -264,10 +256,9 @@ contract DLCManager is
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
-        dlc.outcome = _outcome;
         dlc.status = _newStatus;
 
-        emit CloseDLC(_uuid, _outcome, dlc.protocolWallet, msg.sender);
+        emit CloseDLC(_uuid, dlc.protocolWallet, msg.sender);
     }
 
     /**
@@ -296,7 +287,6 @@ contract DLCManager is
 
         emit PostCloseDLC(
             _uuid,
-            dlc.outcome,
             _btcTxId,
             dlc.protocolWallet,
             msg.sender

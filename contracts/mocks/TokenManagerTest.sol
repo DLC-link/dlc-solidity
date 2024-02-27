@@ -167,7 +167,6 @@ contract TokenManagerV2Test is
         bytes32 _uuid = dlcManager.createDLC(
             routerWalletAddress,
             btcDeposit,
-            0,
             "",
             0
         );
@@ -200,7 +199,7 @@ contract TokenManagerV2Test is
 
         _burnTokens(dlc.creator, dlc.valueLocked);
 
-        dlcManager.closeDLC(uuid, _calculateOutcome());
+        dlcManager.closeDLC(uuid);
     }
 
     function postCloseDLCHandler(

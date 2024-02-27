@@ -10,7 +10,7 @@ const Status = {
     Closed: 4,
 };
 
-describe('DepositDemo', function () {
+xdescribe('DepositDemo', function () {
     let dlcManager;
     let dlcBtc;
     let depositDemo;

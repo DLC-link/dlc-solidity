@@ -232,7 +232,6 @@ describe('TokenManager', function () {
             expect(vault.protocolContract).to.equal(tokenManager.address);
             expect(vault.valueLocked).to.equal(BigNumber.from(deposit));
             expect(vault.creator).to.equal(user.address);
-            expect(vault.outcome).to.equal(BigNumber.from(0));
             expect(vault.status).to.equal(0);
             expect(vault.fundingTxId).to.equal('');
             expect(vault.closingTxId).to.equal('');
@@ -310,7 +309,6 @@ describe('TokenManager', function () {
             await tx.wait();
             const vault = await tokenManager.getVault(mockUUID);
             expect(vault.status).to.equal(Status.CLOSING);
-            expect(vault.outcome).to.equal(BigNumber.from(0));
         });
     });
 
