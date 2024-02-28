@@ -19,7 +19,7 @@ const Status = {
 
 describe('TokenManager', function () {
     let tokenManager, mockDLCManager, dlcBtc;
-    let deployer, routerWallet, user, someRandomAccount;
+    let deployer, user, someRandomAccount;
 
     let deposit = 100000000; // 1 BTC
     let btcFeeRecipient = '0x000001';
@@ -28,7 +28,6 @@ describe('TokenManager', function () {
     beforeEach(async () => {
         accounts = await ethers.getSigners();
         deployer = accounts[0];
-        routerWallet = accounts[1];
         user = accounts[2];
         someRandomAccount = accounts[3];
 
@@ -49,7 +48,6 @@ describe('TokenManager', function () {
             deployer.address,
             mockDLCManager.address,
             dlcBtc.address,
-            routerWallet.address,
             btcFeeRecipient,
         ]);
 
@@ -65,23 +63,23 @@ describe('TokenManager', function () {
     });
 
     describe('admin functions', async () => {
-        describe('setRouterWallet', async () => {
-            it('reverts on unauthorized calls', async () => {
-                await expect(
-                    tokenManager
-                        .connect(someRandomAccount)
-                        .setRouterWallet(someRandomAccount.address)
-                ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
-            });
-            it('should set router wallet', async () => {
-                await tokenManager
-                    .connect(deployer)
-                    .setRouterWallet(someRandomAccount.address);
-                expect(await tokenManager.routerWalletAddress()).to.equal(
-                    someRandomAccount.address
-                );
-            });
-        });
+        // describe('setRouterWallet', async () => {
+        //     it('reverts on unauthorized calls', async () => {
+        //         await expect(
+        //             tokenManager
+        //                 .connect(someRandomAccount)
+        //                 .setRouterWallet(someRandomAccount.address)
+        //         ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
+        //     });
+        //     it('should set router wallet', async () => {
+        //         await tokenManager
+        //             .connect(deployer)
+        //             .setRouterWallet(someRandomAccount.address);
+        //         expect(await tokenManager.routerWalletAddress()).to.equal(
+        //             someRandomAccount.address
+        //         );
+        //     });
+        // });
 
         describe('setMinimumDeposit', async () => {
             it('reverts on unauthorized calls', async () => {
@@ -228,7 +226,6 @@ describe('TokenManager', function () {
             await tx.wait();
             const vault = await tokenManager.getVault(mockUUID);
             expect(vault.uuid).to.equal(mockUUID);
-            expect(vault.protocolWallet).to.equal(routerWallet.address);
             expect(vault.protocolContract).to.equal(tokenManager.address);
             expect(vault.valueLocked).to.equal(BigNumber.from(deposit));
             expect(vault.creator).to.equal(user.address);
@@ -258,9 +255,10 @@ describe('TokenManager', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const tx2 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID, 'someTx');
+            const tx2 = await mockDLCManager.setStatusFunded(
+                mockUUID,
+                'someTx'
+            );
             await tx2.wait();
             expect(await dlcBtc.balanceOf(user.address)).to.equal(
                 BigNumber.from(deposit)
@@ -273,9 +271,10 @@ describe('TokenManager', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const tx2 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID, 'someTx');
+            const tx2 = await mockDLCManager.setStatusFunded(
+                mockUUID,
+                'someTx'
+            );
             await tx2.wait();
         });
         it('is only callable when contract is unpaused', async () => {
@@ -328,16 +327,18 @@ describe('TokenManager', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const tx2 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID, 'someTx');
+            const tx2 = await mockDLCManager.setStatusFunded(
+                mockUUID,
+                'someTx'
+            );
             await tx2.wait();
 
             const tx3 = await tokenManager.connect(user).setupVault(deposit);
             await tx3.wait();
-            const tx4 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID1, 'someOtherTx');
+            const tx4 = await mockDLCManager.setStatusFunded(
+                mockUUID1,
+                'someOtherTx'
+            );
             await tx4.wait();
         });
 
@@ -360,16 +361,18 @@ describe('TokenManager', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const tx2 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID, 'someTx');
+            const tx2 = await mockDLCManager.setStatusFunded(
+                mockUUID,
+                'someTx'
+            );
             await tx2.wait();
 
             const tx3 = await tokenManager.connect(user).setupVault(deposit);
             await tx3.wait();
-            const tx4 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID1, 'someOtherTx');
+            const tx4 = await mockDLCManager.setStatusFunded(
+                mockUUID1,
+                'someOtherTx'
+            );
             await tx4.wait();
 
             expect(await dlcBtc.totalSupply()).to.equal(deposit * 2);

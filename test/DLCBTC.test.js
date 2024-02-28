@@ -10,7 +10,7 @@ const mockUUID =
 
 describe('DLCBTC', function () {
     let tokenManager, mockDLCManager, dlcBtc;
-    let deployer, routerWallet, user, someRandomAccount;
+    let deployer, user, someRandomAccount;
 
     let deposit = 100000000; // 1 BTC
     let btcFeeRecipient = '0x000001';
@@ -19,7 +19,6 @@ describe('DLCBTC', function () {
     beforeEach(async () => {
         accounts = await ethers.getSigners();
         deployer = accounts[0];
-        routerWallet = accounts[1];
         user = accounts[2];
         someRandomAccount = accounts[3];
 
@@ -40,7 +39,6 @@ describe('DLCBTC', function () {
             deployer.address,
             mockDLCManager.address,
             dlcBtc.address,
-            routerWallet.address,
             btcFeeRecipient,
         ]);
     });
@@ -109,9 +107,10 @@ describe('DLCBTC', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const tx2 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID, 'someTx');
+            const tx2 = await mockDLCManager.setStatusFunded(
+                mockUUID,
+                'someTx'
+            );
             await tx2.wait();
             expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
         });
@@ -120,9 +119,10 @@ describe('DLCBTC', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const tx2 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID, 'someTx');
+            const tx2 = await mockDLCManager.setStatusFunded(
+                mockUUID,
+                'someTx'
+            );
             await tx2.wait();
 
             expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);

@@ -2,24 +2,16 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const hardhat = require('hardhat');
 
-async function whitelistProtocolContractAndAddress(
-    dlcManager,
-    mockProtocol,
-    protocolWallet
-) {
+async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
     await dlcManager.grantRole(
         ethers.utils.id('WHITELISTED_CONTRACT'),
         mockProtocol.address
-    );
-    await dlcManager.grantRole(
-        ethers.utils.id('WHITELISTED_WALLET'),
-        protocolWallet.address
     );
 }
 
 describe('DLCManager', () => {
     let dlcManager, mockProtocol;
-    let accounts, deployer, protocol, protocolWallet, user;
+    let accounts, deployer, protocol, user;
 
     const valueLocked = 100000000; // 1 BTC
     const btcTxId = '0x1234567890';
@@ -28,7 +20,6 @@ describe('DLCManager', () => {
         accounts = await ethers.getSigners();
         deployer = accounts[0];
         protocol = accounts[1];
-        protocolWallet = accounts[2];
         user = accounts[3];
         randomAccount = accounts[4];
         anotherAccount = accounts[5];
@@ -43,8 +34,7 @@ describe('DLCManager', () => {
         // MockProtocol
         const MockProtocol = await ethers.getContractFactory('MockProtocol');
         mockProtocol = await MockProtocol.connect(protocol).deploy(
-            dlcManager.address,
-            protocolWallet.address
+            dlcManager.address
         );
         await mockProtocol.deployed();
     });
@@ -60,11 +50,7 @@ describe('DLCManager', () => {
 
     describe('contract is pausable', async () => {
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             await dlcManager.pauseContract();
         });
@@ -91,22 +77,8 @@ describe('DLCManager', () => {
             );
         });
 
-        it('reverts if called with a non-whitelisted protocolWallet address', async () => {
-            await dlcManager.grantRole(
-                ethers.utils.id('WHITELISTED_CONTRACT'),
-                mockProtocol.address
-            );
-            await expect(
-                mockProtocol.connect(user).requestCreateDLC(valueLocked)
-            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
-        });
-
         it('emits a CreateDLC event with the correct data', async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -120,20 +92,10 @@ describe('DLCManager', () => {
             expect(decodedEvent.name).to.equal('CreateDLC');
             expect(decodedEvent.args.uuid).to.not.equal(undefined);
             expect(decodedEvent.args.creator).to.equal(user.address);
-            expect(decodedEvent.args.protocolWallet).to.equal(
-                protocolWallet.address
-            );
-            // expect(decodedEvent.args.eventSource).to.equal(
-            //     'dlclink:create-dlc:v2'
-            // );
         });
 
         it('called multiple times generates unique UUIDs', async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -159,11 +121,7 @@ describe('DLCManager', () => {
     describe('setStatusFunded', async () => {
         let uuid;
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -174,22 +132,22 @@ describe('DLCManager', () => {
             uuid = decodedEvent.args.uuid;
         });
 
-        it('reverts if called from a non-whitelisted wallet', async () => {
-            await expect(
-                dlcManager.connect(randomAccount).setStatusFunded(uuid, btcTxId)
-            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
-        });
+        // it('reverts if called from a non-whitelisted wallet', async () => {
+        //     await expect(
+        //         dlcManager.connect(randomAccount).setStatusFunded(uuid, btcTxId)
+        //     ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
+        // });
 
-        it('reverts if not called from the associated wallet', async () => {
-            await dlcManager.grantRole(
-                ethers.utils.id('WHITELISTED_WALLET'),
-                randomAccount.address
-            );
+        // it('reverts if not called from the associated wallet', async () => {
+        //     await dlcManager.grantRole(
+        //         ethers.utils.id('WHITELISTED_WALLET'),
+        //         randomAccount.address
+        //     );
 
-            await expect(
-                dlcManager.connect(randomAccount).setStatusFunded(uuid, btcTxId)
-            ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
-        });
+        //     await expect(
+        //         dlcManager.connect(randomAccount).setStatusFunded(uuid, btcTxId)
+        //     ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
+        // });
 
         it('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
@@ -200,22 +158,16 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             const newUuid = decodedEvent.args.uuid;
 
-            const tx2 = await dlcManager
-                .connect(protocolWallet)
-                .setStatusFunded(newUuid, btcTxId);
+            const tx2 = await dlcManager.setStatusFunded(newUuid, btcTxId);
             await tx2.wait();
 
             await expect(
-                dlcManager
-                    .connect(protocolWallet)
-                    .setStatusFunded(newUuid, btcTxId)
+                dlcManager.setStatusFunded(newUuid, btcTxId)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotReady');
         });
 
         it('emits a StatusFunded event with the correct data', async () => {
-            const tx = await dlcManager
-                .connect(protocolWallet)
-                .setStatusFunded(uuid, btcTxId);
+            const tx = await dlcManager.setStatusFunded(uuid, btcTxId);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'SetStatusFunded'
@@ -224,8 +176,6 @@ describe('DLCManager', () => {
             expect(event.event).to.equal('SetStatusFunded');
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.btcTxId).to.equal(btcTxId);
-            expect(event.args.protocolWallet).to.equal(protocolWallet.address);
-            expect(event.args.sender).to.equal(protocolWallet.address);
         });
     });
 
@@ -234,11 +184,7 @@ describe('DLCManager', () => {
         let outcome = 10000;
 
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -248,9 +194,7 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
 
-            await dlcManager
-                .connect(protocolWallet)
-                .setStatusFunded(uuid, btcTxId);
+            await dlcManager.setStatusFunded(uuid, btcTxId);
         });
 
         it('reverts if not called by the creator contract', async () => {
@@ -282,9 +226,6 @@ describe('DLCManager', () => {
 
             expect(decodedEvent.name).to.equal('CloseDLC');
             expect(decodedEvent.args.uuid).to.equal(uuid);
-            expect(decodedEvent.args.protocolWallet).to.equal(
-                protocolWallet.address
-            );
             expect(decodedEvent.args.sender).to.equal(mockProtocol.address);
         });
     });
@@ -293,11 +234,7 @@ describe('DLCManager', () => {
         let uuid;
 
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -307,9 +244,7 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
 
-            const tx3 = await dlcManager
-                .connect(protocolWallet)
-                .setStatusFunded(uuid, btcTxId);
+            const tx3 = await dlcManager.setStatusFunded(uuid, btcTxId);
             await tx3.wait();
             const tx4 = await mockProtocol
                 .connect(protocol)
@@ -317,22 +252,22 @@ describe('DLCManager', () => {
             await tx4.wait();
         });
 
-        it('reverts if called from a non-whitelisted wallet', async () => {
-            await expect(
-                dlcManager.connect(randomAccount).postCloseDLC(uuid, btcTxId)
-            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
-        });
+        // it('reverts if called from a non-whitelisted wallet', async () => {
+        //     await expect(
+        //         dlcManager.connect(randomAccount).postCloseDLC(uuid, btcTxId)
+        //     ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
+        // });
 
-        it('reverts if not called from the associated wallet', async () => {
-            await dlcManager.grantRole(
-                ethers.utils.id('WHITELISTED_WALLET'),
-                randomAccount.address
-            );
+        // it('reverts if not called from the associated wallet', async () => {
+        //     await dlcManager.grantRole(
+        //         ethers.utils.id('WHITELISTED_WALLET'),
+        //         randomAccount.address
+        //     );
 
-            await expect(
-                dlcManager.connect(randomAccount).postCloseDLC(uuid, btcTxId)
-            ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
-        });
+        //     await expect(
+        //         dlcManager.connect(randomAccount).postCloseDLC(uuid, btcTxId)
+        //     ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
+        // });
 
         it('reverts if DLC is not in the right state', async () => {
             const tx = await mockProtocol
@@ -344,16 +279,12 @@ describe('DLCManager', () => {
             const newUuid = decodedEvent.args.uuid;
 
             await expect(
-                dlcManager
-                    .connect(protocolWallet)
-                    .postCloseDLC(newUuid, btcTxId)
+                dlcManager.postCloseDLC(newUuid, btcTxId)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotClosing');
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {
-            const tx = await dlcManager
-                .connect(protocolWallet)
-                .postCloseDLC(uuid, btcTxId);
+            const tx = await dlcManager.postCloseDLC(uuid, btcTxId);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'PostCloseDLC'
@@ -362,8 +293,6 @@ describe('DLCManager', () => {
             expect(event.event).to.equal('PostCloseDLC');
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.btcTxId).to.equal(btcTxId);
-            expect(event.args.protocolWallet).to.equal(protocolWallet.address);
-            expect(event.args.sender).to.equal(protocolWallet.address);
         });
     });
 });

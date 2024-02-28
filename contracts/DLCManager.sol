@@ -10,6 +10,7 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "./DLCLinkCompatible.sol";
 import "./IDLCManager.sol";
 import "./DLCLinkLibrary.sol";
@@ -41,12 +42,14 @@ contract DLCManager is
         0x2bf88000669ee6f7a648a231f4adbc117f5a8e34f980c08420b9b9a9f2640aa1; // keccak256("DLC_ADMIN_ROLE")
     bytes32 public constant WHITELISTED_CONTRACT =
         0xec26500344858148ae6c4dd068dc3bae426095ee44cdb32b94288d883648f619; // keccak256("WHITELISTED_CONTRACT")
-    bytes32 public constant WHITELISTED_WALLET =
-        0xb9ec2c8072d6792e79a05f449c2577c76c4206da58e44ef66dde03fbe8d28112; // keccak256("WHITELISTED_WALLET")
 
     uint256 private _index;
     mapping(uint256 => DLCLink.DLC) public dlcs;
     mapping(bytes32 => uint256) public dlcIDsByUUID;
+
+    uint16 private _threshold;
+    mapping(address => bool) private _signers;
+    mapping(bytes32 => uint256) private _signatureCounts;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -54,14 +57,16 @@ contract DLCManager is
 
     error NotDLCAdmin();
     error ContractNotWhitelisted();
-    error WalletNotWhitelisted();
-    error UnathorizedWallet();
     error NotCreatorContract();
     error WrongDLCState();
     error DLCNotFound();
     error DLCNotReady();
     error DLCNotFunded();
     error DLCNotClosing();
+
+    error NotEnoughSignatures();
+    error DuplicateSignature();
+    error SignatureNotFromSigner();
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -78,23 +83,25 @@ contract DLCManager is
         _;
     }
 
-    modifier onlyWhitelistedWallet(address _wallet) {
-        if (!hasRole(WHITELISTED_WALLET, _wallet))
-            revert WalletNotWhitelisted();
-        _;
-    }
-
-    modifier onlyWhitelistedAndConnectedWallet(bytes32 _uuid) {
-        if (!hasRole(WHITELISTED_WALLET, msg.sender))
-            revert WalletNotWhitelisted();
-        if (dlcs[dlcIDsByUUID[_uuid]].protocolWallet != msg.sender)
-            revert UnathorizedWallet();
-        _;
-    }
-
     modifier onlyCreatorContract(bytes32 _uuid) {
         if (dlcs[dlcIDsByUUID[_uuid]].protocolContract != msg.sender)
             revert NotCreatorContract();
+        _;
+    }
+
+    modifier attestorMultisig(bytes32 _hash, bytes[] memory _signatures) {
+        if (_signatures.length < _threshold) revert NotEnoughSignatures();
+        bytes32 signedMessage = ECDSAUpgradeable.toEthSignedMessageHash(_hash);
+
+        for (uint256 i = 0; i < _signatures.length; i++) {
+            address recovered = ECDSAUpgradeable.recover(signedMessage, _signatures[i]);
+            if (!_signers[recovered]) revert SignatureNotFromSigner();
+
+            // Prevent a signer from signing the same message multiple times
+            bytes32 signedHash = keccak256(abi.encodePacked(signedMessage, recovered));
+            if (_signatureCounts[signedHash] != 0) revert DuplicateSignature();
+            _signatureCounts[signedHash] = 1;
+        }
         _;
     }
 
@@ -118,27 +125,23 @@ contract DLCManager is
         uint256 valueLocked,
         address protocolContract,
         address creator,
-        address protocolWallet,
         uint256 timestamp
     );
 
     event SetStatusFunded(
         bytes32 uuid,
         string btcTxId,
-        address protocolWallet,
         address sender
     );
 
     event CloseDLC(
         bytes32 uuid,
-        address protocolWallet,
         address sender
     );
 
     event PostCloseDLC(
         bytes32 uuid,
         string btcTxId,
-        address protocolWallet,
         address sender
     );
 
@@ -163,14 +166,12 @@ contract DLCManager is
     /**
      * @notice  Triggers the creation of an Announcement in the Attestor Layer.
      * @dev     Call this function from a whitelisted protocol-contract.
-     * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
      * @param   _valueLocked  Value to be locked in the DLC , in Satoshis.
      * @param   _btcFeeRecipient  Bitcoin address that will receive the DLC fees.
      * @param   _btcFeeBasisPoints  Basis points of the valueLocked that will be sent to the _btcFeeRecipient.
      * @return  bytes32  A generated UUID.
      */
     function createDLC(
-        address _protocolWallet,
         uint256 _valueLocked,
         string calldata _btcFeeRecipient,
         uint256 _btcFeeBasisPoints
@@ -178,7 +179,6 @@ contract DLCManager is
         external
         override
         onlyWhiteListedContracts
-        onlyWhitelistedWallet(_protocolWallet)
         whenNotPaused
         returns (bytes32)
     {
@@ -186,7 +186,6 @@ contract DLCManager is
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
-            protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
             timestamp: block.timestamp,
@@ -203,7 +202,6 @@ contract DLCManager is
             _valueLocked,
             msg.sender,
             tx.origin,
-            _protocolWallet,
             block.timestamp
         );
 
@@ -222,7 +220,7 @@ contract DLCManager is
     function setStatusFunded(
         bytes32 _uuid,
         string calldata _btcTxId
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
+    ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.FUNDED;
 
@@ -237,7 +235,7 @@ contract DLCManager is
             _btcTxId
         );
 
-        emit SetStatusFunded(_uuid, _btcTxId, dlc.protocolWallet, msg.sender);
+        emit SetStatusFunded(_uuid, _btcTxId, msg.sender);
     }
 
     /**
@@ -258,7 +256,7 @@ contract DLCManager is
 
         dlc.status = _newStatus;
 
-        emit CloseDLC(_uuid, dlc.protocolWallet, msg.sender);
+        emit CloseDLC(_uuid, msg.sender);
     }
 
     /**
@@ -270,7 +268,7 @@ contract DLCManager is
     function postCloseDLC(
         bytes32 _uuid,
         string calldata _btcTxId
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
+    ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSED;
 
@@ -288,7 +286,6 @@ contract DLCManager is
         emit PostCloseDLC(
             _uuid,
             _btcTxId,
-            dlc.protocolWallet,
             msg.sender
         );
     }

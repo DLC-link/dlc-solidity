@@ -5,7 +5,6 @@ import "./DLCLinkLibrary.sol";
 
 interface IDLCManager {
     function createDLC(
-        address _protocolWallet,
         uint256 _valueLocked,
         string calldata _btcFeeRecipient,
         uint256 _btcFeeBasisPoints

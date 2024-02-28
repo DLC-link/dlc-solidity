@@ -8,24 +8,17 @@ import "../DLCLinkCompatible.sol";
 
 contract MockProtocol is DLCLinkCompatible {
     DLCManager private _dlcManager;
-    address private _protocolWallet;
 
-    constructor(address _dlcManagerAddress, address protocolWallet) {
+    constructor(address _dlcManagerAddress) {
         require(
             _dlcManagerAddress != address(0),
             "DLCManager address cannot be 0"
         );
-        require(
-            protocolWallet != address(0),
-            "Protocol wallet address cannot be 0"
-        );
         _dlcManager = DLCManager(_dlcManagerAddress);
-        _protocolWallet = protocolWallet;
     }
 
     function requestCreateDLC(uint256 _valueLocked) external returns (bytes32) {
         bytes32 uuid = _dlcManager.createDLC(
-            _protocolWallet,
             _valueLocked,
             "",
             0

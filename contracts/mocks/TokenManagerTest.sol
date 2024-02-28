@@ -39,7 +39,6 @@ contract TokenManagerV2Test is
 
     DLCBTC public dlcBTC; // dlcBTC contract
     IDLCManager public dlcManager; // DLCManager contract
-    address public routerWalletAddress; // router-wallet address
     string public btcFeeRecipient; // BTC address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
@@ -93,8 +92,7 @@ contract TokenManagerV2Test is
     function initialize(
         address _adminAddress,
         address _dlcManagerAddress,
-        DLCBTC _tokenContract,
-        address _routerWalletAddress
+        DLCBTC _tokenContract
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, _adminAddress);
         _grantRole(DLC_ADMIN_ROLE, _adminAddress);
@@ -102,7 +100,6 @@ contract TokenManagerV2Test is
         _grantRole(PAUSER_ROLE, _adminAddress);
         dlcManager = IDLCManager(_dlcManagerAddress);
         dlcBTC = _tokenContract;
-        routerWalletAddress = _routerWalletAddress;
         // NOTE:
         minimumDeposit = 1000; // 0.00001 BTC
         maximumDeposit = 1000000000; // 10 BTC
@@ -165,7 +162,6 @@ contract TokenManagerV2Test is
             revert DepositTooLarge(btcDeposit, maximumDeposit);
 
         bytes32 _uuid = dlcManager.createDLC(
-            routerWalletAddress,
             btcDeposit,
             "",
             0
@@ -237,10 +233,6 @@ contract TokenManagerV2Test is
 
     function whitelistAddress(address _address) external onlyDLCAdmin {
         _whitelistedAddresses[_address] = true;
-    }
-
-    function setRouterWallet(address _routerWallet) external onlyDLCAdmin {
-        routerWalletAddress = _routerWallet;
     }
 
     function setMinimumDeposit(uint256 _minimumDeposit) external onlyDLCAdmin {
