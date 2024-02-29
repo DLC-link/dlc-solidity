@@ -68,28 +68,15 @@ async function main() {
     await thresholdSignature.deployed();
     console.log('ThresholdSignature deployed to:', thresholdSignature.address);
 
-    async function createSignatures(data, signers) {
-        // Hash the data
-        const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(data));
-        const message = ethers.utils.arrayify(hash);
-        const prefixedMessage = ethers.utils.solidityKeccak256(
-            ['string', 'bytes32'],
-            ['\x19Ethereum Signed Message:\n32', message]
-        );
-        // Create signatures
-        const signatures = [];
-        for (const signer of signers) {
-            const signature = await signer.signMessage(
-                ethers.utils.arrayify(prefixedMessage)
-            );
-            signatures.push(signature);
-        }
+    // //////////////////////////////////
 
-        return { signatures: signatures, hash: prefixedMessage };
-    }
+    const mockUUID =
+        '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
+    const wrongUUID =
+        '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
+    const mockBTCTxId =
+        '0x1234567890123456789012345678901234567890123456789012345678901234';
 
-    // Usage
-    const data = 'Hello, world!';
     const signers = [
         new ethers.Wallet(
             '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
@@ -99,44 +86,46 @@ async function main() {
             '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
             ethers.provider
         ),
-        // Add more signers as needed
     ];
-    console.log('creating signatures...');
-    const { signatures, hash } = await createSignatures(data, signers);
 
-    console.log('signatures', signatures);
-    console.log('hash', hash);
+    const originalMessage = ethers.utils.solidityPack(
+        ['bytes32', 'string'],
+        [mockUUID, mockBTCTxId]
+    );
 
-    async function execute(contract, coordinator, hash, signatures) {
-        // Convert signatures from strings to bytes
-        const signatureBytes = signatures.map((sig) =>
-            ethers.utils.arrayify(sig)
+    const hashedOriginalMessage = ethers.utils.keccak256(originalMessage);
+    const arrayifiedOriginalMessage = ethers.utils.arrayify(
+        hashedOriginalMessage
+    );
+
+    const prefixedMessageHash = ethers.utils.solidityKeccak256(
+        ['string', 'bytes32'],
+        ['\x19Ethereum Signed Message:\n32', arrayifiedOriginalMessage]
+    );
+    // Create signatures
+
+    const signatures = [];
+    for (const signer of signers) {
+        const signature = await signer.signMessage(
+            ethers.utils.arrayify(prefixedMessageHash)
         );
-
-        // Call the execute function
-        const tx = await contract
-            .connect(coordinator)
-            .execute(hash, signatureBytes);
-
-        // Wait for the transaction to be mined
-        const receipt = await tx.wait();
-
-        return receipt;
+        console.log('signature', signature);
+        signatures.push(ethers.utils.arrayify(signature));
     }
+    console.log('originalMessage', originalMessage);
+    console.log('hashedOriginalMessage', hashedOriginalMessage);
+    console.log('arrayifiedOriginalMessage', arrayifiedOriginalMessage);
+    console.log('prefixedMessageHash', prefixedMessageHash);
+    // console.log('signatures', signatures);
 
-    const coordinator = new ethers.Wallet(
-        '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-        ethers.provider
-    );
+    // NOTE: if you send the wrongUUID, the transaction will revert! Success!
+    const tx = await thresholdSignature
+        .connect(signers[0])
+        .execute(mockUUID, mockBTCTxId, prefixedMessageHash, signatures);
 
-    const receipt = await execute(
-        thresholdSignature,
-        coordinator,
-        hash,
-        signatures
-    );
-
-    console.log(receipt);
+    // Wait for the transaction to be mined
+    const receipt = await tx.wait();
+    console.log('receipt: ', receipt);
 }
 
 main().catch((error) => {

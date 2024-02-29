@@ -10,11 +10,21 @@ interface IDLCManager {
         uint256 _btcFeeBasisPoints
     ) external returns (bytes32);
 
-    function setStatusFunded(bytes32 _uuid, string calldata _btcTxId) external;
+    function setStatusFunded(
+        bytes32 _uuid,
+        string calldata _btcTxId,
+        bytes32 _hash,
+        bytes[] calldata _signatures
+    ) external;
 
     function closeDLC(bytes32 _uuid) external;
 
-    function postCloseDLC(bytes32 _uuid, string calldata _btcTxId) external;
+    function postCloseDLC(
+        bytes32 _uuid,
+        string calldata _btcTxId,
+        bytes32 _hash,
+        bytes[] calldata _signatures
+    ) external;
 
     function getDLC(bytes32 _uuid) external view returns (DLCLink.DLC memory);
 }

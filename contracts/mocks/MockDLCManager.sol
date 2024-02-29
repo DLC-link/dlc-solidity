@@ -98,17 +98,9 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         address creator
     );
 
-    event SetStatusFunded(
-        bytes32 uuid,
-        address creator,
-        address sender
-    );
+    event SetStatusFunded(bytes32 uuid, address creator, address sender);
 
-    event CloseDLC(
-        bytes32 uuid,
-        address creator,
-        address sender
-    );
+    event CloseDLC(bytes32 uuid, address creator, address sender);
 
     event PostCloseDLC(
         bytes32 uuid,
@@ -164,12 +156,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             btcFeeBasisPoints: 0
         });
 
-        emit CreateDLC(
-            _uuid,
-            _valueLocked,
-            msg.sender,
-            tx.origin
-        );
+        emit CreateDLC(_uuid, _valueLocked, msg.sender, tx.origin);
 
         dlcIDsByUUID[_uuid] = _index;
         _index++;
@@ -179,7 +166,9 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
     function setStatusFunded(
         bytes32 _uuid,
-        string calldata _btcTxId
+        string calldata _btcTxId,
+        bytes32 /*_hash*/,
+        bytes[] calldata /*_signatures*/
     ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.FUNDED;
@@ -195,11 +184,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             _btcTxId
         );
 
-        emit SetStatusFunded(
-            _uuid,
-            dlc.creator,
-            msg.sender
-        );
+        emit SetStatusFunded(_uuid, dlc.creator, msg.sender);
     }
 
     function closeDLC(bytes32 _uuid) external whenNotPaused {
@@ -211,16 +196,14 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
         dlc.status = _newStatus;
 
-        emit CloseDLC(
-            _uuid,
-            dlc.creator,
-            msg.sender
-        );
+        emit CloseDLC(_uuid, dlc.creator, msg.sender);
     }
 
     function postCloseDLC(
         bytes32 _uuid,
-        string calldata _btcTxId
+        string calldata _btcTxId,
+        bytes32 /*_hash*/,
+        bytes[] calldata /*_signatures*/
     ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSED;
@@ -236,12 +219,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             _btcTxId
         );
 
-        emit PostCloseDLC(
-            _uuid,
-            dlc.creator,
-            msg.sender,
-            _btcTxId
-        );
+        emit PostCloseDLC(_uuid, dlc.creator, msg.sender, _btcTxId);
     }
 
     ////////////////////////////////////////////////////////////////

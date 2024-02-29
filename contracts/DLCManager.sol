@@ -64,9 +64,11 @@ contract DLCManager is
     error DLCNotFunded();
     error DLCNotClosing();
 
-    error NotEnoughSignatures();
-    error DuplicateSignature();
-    error SignatureNotFromSigner();
+    error InvalidSignatures();
+    // error InvalidHash();
+    // error NotEnoughSignatures();
+    // error DuplicateSignature();
+    // error SignatureNotFromSigner();
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -89,25 +91,13 @@ contract DLCManager is
         _;
     }
 
-    modifier attestorMultisig(bytes32 _hash, bytes[] memory _signatures) {
-        if (_signatures.length < _threshold) revert NotEnoughSignatures();
-        bytes32 signedMessage = ECDSAUpgradeable.toEthSignedMessageHash(_hash);
-
-        for (uint256 i = 0; i < _signatures.length; i++) {
-            address recovered = ECDSAUpgradeable.recover(signedMessage, _signatures[i]);
-            if (!_signers[recovered]) revert SignatureNotFromSigner();
-
-            // Prevent a signer from signing the same message multiple times
-            bytes32 signedHash = keccak256(abi.encodePacked(signedMessage, recovered));
-            if (_signatureCounts[signedHash] != 0) revert DuplicateSignature();
-            _signatureCounts[signedHash] = 1;
-        }
-        _;
-    }
-
-    function initialize(address _adminAddress) public initializer {
+    function initialize(
+        address _adminAddress,
+        uint16 threshold
+    ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, _adminAddress);
         _grantRole(DLC_ADMIN_ROLE, _adminAddress);
+        _threshold = threshold;
         _index = 0;
     }
 
@@ -128,22 +118,11 @@ contract DLCManager is
         uint256 timestamp
     );
 
-    event SetStatusFunded(
-        bytes32 uuid,
-        string btcTxId,
-        address sender
-    );
+    event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
 
-    event CloseDLC(
-        bytes32 uuid,
-        address sender
-    );
+    event CloseDLC(bytes32 uuid, address sender);
 
-    event PostCloseDLC(
-        bytes32 uuid,
-        string btcTxId,
-        address sender
-    );
+    event PostCloseDLC(bytes32 uuid, string btcTxId, address sender);
 
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
@@ -157,6 +136,42 @@ contract DLCManager is
             keccak256(
                 abi.encodePacked(sender, nonce, blockhash(block.number - 1))
             );
+    }
+
+    function _attestorMultisig(
+        bytes32 _uuid,
+        string memory _btcTxId,
+        bytes32 _hash,
+        bytes[] memory _signatures
+    ) internal returns (bool) {
+        // if (_signatures.length < _threshold) revert NotEnoughSignatures();
+        if (_signatures.length < _threshold) return false;
+
+        bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
+            keccak256(abi.encodePacked(_uuid, _btcTxId))
+        );
+        // if (_hash != prefixedMessageHash) revert InvalidHash();
+        if (_hash != prefixedMessageHash) return false;
+
+        bytes32 signedMessage = ECDSAUpgradeable.toEthSignedMessageHash(_hash);
+
+        for (uint256 i = 0; i < _signatures.length; i++) {
+            address recovered = ECDSAUpgradeable.recover(
+                signedMessage,
+                _signatures[i]
+            );
+            // if (!_signers[recovered]) revert SignatureNotFromSigner();
+            if (!_signers[recovered]) return false;
+
+            // Prevent a signer from signing the same message multiple times
+            bytes32 signedHash = keccak256(
+                abi.encodePacked(signedMessage, recovered)
+            );
+            // if (_signatureCounts[signedHash] != 0) revert DuplicateSignature();
+            if (_signatureCounts[signedHash] != 0) return false;
+            _signatureCounts[signedHash] = 1;
+        }
+        return true;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -213,22 +228,27 @@ contract DLCManager is
 
     /**
      * @notice  Confirms that a DLC was 'funded' on the Bitcoin blockchain.
-     * @dev     Called by the connected router-wallet.
+     * @dev     Called by the Attestor Coordinator.
      * @param   _uuid  UUID of the DLC.
      * @param   _btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @param   _hash  Hash of the message signed by the Attestors.
+     * @param   _signatures  Signatures of the Attestors.
      */
     function setStatusFunded(
         bytes32 _uuid,
-        string calldata _btcTxId
+        string calldata _btcTxId,
+        bytes32 _hash,
+        bytes[] calldata _signatures
     ) external whenNotPaused {
+        if (!_attestorMultisig(_uuid, _btcTxId, _hash, _signatures))
+            revert InvalidSignatures();
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
-        DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.FUNDED;
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
 
         dlc.fundingTxId = _btcTxId;
-        dlc.status = _newStatus;
+        dlc.status = DLCLink.DLCStatus.FUNDED;
 
         DLCLinkCompatible(dlc.protocolContract).setStatusFunded(
             _uuid,
@@ -240,9 +260,6 @@ contract DLCManager is
 
     /**
      * @notice  Triggers the creation of an Attestation.
-     * @dev     Attestors will sign the provided _outcome.
-     * There are several ways to design the outcome values, depending on the use case.
-     * See the DLC.Link documentation for more details.
      * @param   _uuid  UUID of the DLC.
      */
     function closeDLC(
@@ -261,33 +278,34 @@ contract DLCManager is
 
     /**
      * @notice  Triggered after a closing Tx has been confirmed Bitcoin.
-     * @dev     Similarly to setStatusFunded, this is called by a router-wallet.
+     * @dev     Similarly to setStatusFunded, this is called by the Attestor Coordinator.
      * @param   _uuid  UUID of the DLC.
      * @param   _btcTxId  Closing Bitcoin Tx id.
+     * @param   _hash  Hash of the message signed by the Attestors.
+     * @param   _signatures  Signatures of the Attestors.
      */
     function postCloseDLC(
         bytes32 _uuid,
-        string calldata _btcTxId
+        string calldata _btcTxId,
+        bytes32 _hash,
+        bytes[] calldata _signatures
     ) external whenNotPaused {
+        if (!_attestorMultisig(_uuid, _btcTxId, _hash, _signatures))
+            revert InvalidSignatures();
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
-        DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSED;
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.CLOSING) revert DLCNotClosing();
 
         dlc.closingTxId = _btcTxId;
-        dlc.status = _newStatus;
+        dlc.status = DLCLink.DLCStatus.CLOSED;
 
         DLCLinkCompatible(dlc.protocolContract).postCloseDLCHandler(
             _uuid,
             _btcTxId
         );
 
-        emit PostCloseDLC(
-            _uuid,
-            _btcTxId,
-            msg.sender
-        );
+        emit PostCloseDLC(_uuid, _btcTxId, msg.sender);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -331,5 +349,17 @@ contract DLCManager is
 
     function unpauseContract() external onlyAdmin {
         _unpause();
+    }
+
+    function setThreshold(uint16 _newThreshold) external onlyAdmin {
+        _threshold = _newThreshold;
+    }
+
+    function addSigner(address _signer) external onlyAdmin {
+        _signers[_signer] = true;
+    }
+
+    function removeSigner(address _signer) external onlyAdmin {
+        _signers[_signer] = false;
     }
 }

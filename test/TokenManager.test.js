@@ -9,6 +9,19 @@ const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
 const mockUUID1 =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
+const mockBTCTxId =
+    '0x1234567890123456789012345678901234567890123456789012345678901234';
+const mockSig =
+    '0x5f4896a5ad17ebc5277cf37fa8687163b50e6cfa73ffa5614f295929aa6ba11b3f6a4ff57817d99b737de84807229f19527f6c919c02ba38a7b6110cb86c11701b';
+
+const mockSigs = [
+    ethers.utils.arrayify(mockSig),
+    ethers.utils.arrayify(mockSig),
+];
+
+const mockHash = ethers.utils.keccak256(
+    ethers.utils.solidityPack(['bytes32', 'string'], [mockUUID, mockBTCTxId])
+);
 
 const Status = {
     READY: 0,
@@ -257,7 +270,9 @@ describe('TokenManager', function () {
             await tx.wait();
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
-                'someTx'
+                'someTx',
+                mockHash,
+                mockSigs
             );
             await tx2.wait();
             expect(await dlcBtc.balanceOf(user.address)).to.equal(
@@ -273,7 +288,9 @@ describe('TokenManager', function () {
             await tx.wait();
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
-                'someTx'
+                'someTx',
+                mockHash,
+                mockSigs
             );
             await tx2.wait();
         });
@@ -329,7 +346,9 @@ describe('TokenManager', function () {
             await tx.wait();
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
-                'someTx'
+                'someTx',
+                mockHash,
+                mockSigs
             );
             await tx2.wait();
 
@@ -337,7 +356,9 @@ describe('TokenManager', function () {
             await tx3.wait();
             const tx4 = await mockDLCManager.setStatusFunded(
                 mockUUID1,
-                'someOtherTx'
+                'someOtherTx',
+                mockHash,
+                mockSigs
             );
             await tx4.wait();
         });
@@ -363,7 +384,9 @@ describe('TokenManager', function () {
             await tx.wait();
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
-                'someTx'
+                'someTx',
+                mockHash,
+                mockSigs
             );
             await tx2.wait();
 
@@ -371,7 +394,9 @@ describe('TokenManager', function () {
             await tx3.wait();
             const tx4 = await mockDLCManager.setStatusFunded(
                 mockUUID1,
-                'someOtherTx'
+                'someOtherTx',
+                mockHash,
+                mockSigs
             );
             await tx4.wait();
 

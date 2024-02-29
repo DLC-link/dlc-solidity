@@ -103,15 +103,4 @@ module.exports = {
         pages: 'files',
         exclude: ['mocks', 'test', 'examples'],
     },
-    gasReporter: {
-        currency: 'USD',
-        enabled: process.env.REPORT_GAS ? true : false,
-        coinmarketcap: process.env['COINMARKETCAP_API_KEY'],
-        // gasPriceApi: gasPriceApi,
-        // gasPrice: 1,
-    },
-    docgen: {
-        pages: 'files',
-        exclude: ['mocks', 'test', 'examples'],
-    },
 };
