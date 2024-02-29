@@ -13,6 +13,8 @@ require('dotenv').config();
 const url = `https://${process.env.HARDHAT_NETWORK}.infura.io/v3/${process.env.INFURA_PROJECT_ID}`;
 const gasPriceApi = `https://api.arbiscan.io/api?module=proxy&action=eth_gasPrice&apikey=${process.env.ARBISCAN_API_KEY}`;
 
+if (!process.env.KEY_FOR_SAFE) process.env.KEY_FOR_SAFE = process.env.KEY;
+
 module.exports = {
     defaultNetwork: 'hardhat',
     solidity: {

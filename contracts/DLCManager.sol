@@ -65,10 +65,6 @@ contract DLCManager is
     error DLCNotClosing();
 
     error InvalidSignatures();
-    // error InvalidHash();
-    // error NotEnoughSignatures();
-    // error DuplicateSignature();
-    // error SignatureNotFromSigner();
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -138,19 +134,17 @@ contract DLCManager is
             );
     }
 
-    function _attestorMultisig(
+    function _attestorMultisigIsValid(
         bytes32 _uuid,
         string memory _btcTxId,
         bytes32 _hash,
         bytes[] memory _signatures
     ) internal returns (bool) {
-        // if (_signatures.length < _threshold) revert NotEnoughSignatures();
         if (_signatures.length < _threshold) return false;
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
             keccak256(abi.encodePacked(_uuid, _btcTxId))
         );
-        // if (_hash != prefixedMessageHash) revert InvalidHash();
         if (_hash != prefixedMessageHash) return false;
 
         bytes32 signedMessage = ECDSAUpgradeable.toEthSignedMessageHash(_hash);
@@ -160,14 +154,12 @@ contract DLCManager is
                 signedMessage,
                 _signatures[i]
             );
-            // if (!_signers[recovered]) revert SignatureNotFromSigner();
             if (!_signers[recovered]) return false;
 
             // Prevent a signer from signing the same message multiple times
             bytes32 signedHash = keccak256(
                 abi.encodePacked(signedMessage, recovered)
             );
-            // if (_signatureCounts[signedHash] != 0) revert DuplicateSignature();
             if (_signatureCounts[signedHash] != 0) return false;
             _signatureCounts[signedHash] = 1;
         }
@@ -240,7 +232,7 @@ contract DLCManager is
         bytes32 _hash,
         bytes[] calldata _signatures
     ) external whenNotPaused {
-        if (!_attestorMultisig(_uuid, _btcTxId, _hash, _signatures))
+        if (!_attestorMultisigIsValid(_uuid, _btcTxId, _hash, _signatures))
             revert InvalidSignatures();
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
 
@@ -290,7 +282,7 @@ contract DLCManager is
         bytes32 _hash,
         bytes[] calldata _signatures
     ) external whenNotPaused {
-        if (!_attestorMultisig(_uuid, _btcTxId, _hash, _signatures))
+        if (!_attestorMultisigIsValid(_uuid, _btcTxId, _hash, _signatures))
             revert InvalidSignatures();
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
 

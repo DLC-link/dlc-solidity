@@ -76,24 +76,6 @@ describe('TokenManager', function () {
     });
 
     describe('admin functions', async () => {
-        // describe('setRouterWallet', async () => {
-        //     it('reverts on unauthorized calls', async () => {
-        //         await expect(
-        //             tokenManager
-        //                 .connect(someRandomAccount)
-        //                 .setRouterWallet(someRandomAccount.address)
-        //         ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
-        //     });
-        //     it('should set router wallet', async () => {
-        //         await tokenManager
-        //             .connect(deployer)
-        //             .setRouterWallet(someRandomAccount.address);
-        //         expect(await tokenManager.routerWalletAddress()).to.equal(
-        //             someRandomAccount.address
-        //         );
-        //     });
-        // });
-
         describe('setMinimumDeposit', async () => {
             it('reverts on unauthorized calls', async () => {
                 await expect(
