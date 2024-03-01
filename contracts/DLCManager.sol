@@ -15,6 +15,12 @@ import "./DLCLinkCompatible.sol";
 import "./IDLCManager.sol";
 import "./DLCLinkLibrary.sol";
 
+// TODO:
+// - proxyadmin should be 25 people across the globe
+// - minimumThreshold variable? hardcoded?
+// - threshold in the constructor should be checked
+// - _approvedSigner counter?
+
 /**
  * @author  DLC.Link 2023
  * @title   DLCManager
@@ -48,7 +54,7 @@ contract DLCManager is
     mapping(bytes32 => uint256) public dlcIDsByUUID;
 
     uint16 private _threshold;
-    mapping(address => bool) private _signers;
+    mapping(address => bool) private _approvedSigners;
     mapping(bytes32 => uint256) private _signatureCounts;
 
     ////////////////////////////////////////////////////////////////
@@ -65,6 +71,10 @@ contract DLCManager is
     error DLCNotClosing();
 
     error InvalidSignatures();
+    error NotEnoughSignatures();
+    error InvalidHash();
+    error InvalidSigner();
+    error DuplicateSignature();
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -135,35 +145,33 @@ contract DLCManager is
     }
 
     function _attestorMultisigIsValid(
-        bytes32 _uuid,
-        string memory _btcTxId,
+        bytes memory _message,
         bytes32 _hash,
         bytes[] memory _signatures
-    ) internal returns (bool) {
-        if (_signatures.length < _threshold) return false;
+    ) internal {
+        if (_signatures.length < _threshold) revert NotEnoughSignatures();
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
-            keccak256(abi.encodePacked(_uuid, _btcTxId))
+            keccak256(_message)
         );
-        if (_hash != prefixedMessageHash) return false;
+        if (_hash != prefixedMessageHash) revert InvalidHash();
 
         bytes32 signedMessage = ECDSAUpgradeable.toEthSignedMessageHash(_hash);
 
         for (uint256 i = 0; i < _signatures.length; i++) {
-            address recovered = ECDSAUpgradeable.recover(
+            address attestorPubKey = ECDSAUpgradeable.recover(
                 signedMessage,
                 _signatures[i]
             );
-            if (!_signers[recovered]) return false;
+            if (!_approvedSigners[attestorPubKey]) revert InvalidSigner();
 
             // Prevent a signer from signing the same message multiple times
             bytes32 signedHash = keccak256(
-                abi.encodePacked(signedMessage, recovered)
+                abi.encodePacked(signedMessage, attestorPubKey)
             );
-            if (_signatureCounts[signedHash] != 0) return false;
+            if (_signatureCounts[signedHash] != 0) revert DuplicateSignature();
             _signatureCounts[signedHash] = 1;
         }
-        return true;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -175,13 +183,15 @@ contract DLCManager is
      * @dev     Call this function from a whitelisted protocol-contract.
      * @param   _valueLocked  Value to be locked in the DLC , in Satoshis.
      * @param   _btcFeeRecipient  Bitcoin address that will receive the DLC fees.
-     * @param   _btcFeeBasisPoints  Basis points of the valueLocked that will be sent to the _btcFeeRecipient.
+     * @param   _btcMintFeeBasisPoints  Basis points of the minting fee.
+     * @param   _btcRedeemFeeBasisPoints  Basis points of the redeeming fee.
      * @return  bytes32  A generated UUID.
      */
     function createDLC(
         uint256 _valueLocked,
         string calldata _btcFeeRecipient,
-        uint256 _btcFeeBasisPoints
+        uint256 _btcMintFeeBasisPoints,
+        uint256 _btcRedeemFeeBasisPoints
     )
         external
         override
@@ -201,7 +211,8 @@ contract DLCManager is
             fundingTxId: "",
             closingTxId: "",
             btcFeeRecipient: _btcFeeRecipient,
-            btcFeeBasisPoints: _btcFeeBasisPoints
+            btcMintFeeBasisPoints: _btcMintFeeBasisPoints,
+            btcRedeemFeeBasisPoints: _btcRedeemFeeBasisPoints
         });
 
         emit CreateDLC(
@@ -232,8 +243,11 @@ contract DLCManager is
         bytes32 _hash,
         bytes[] calldata _signatures
     ) external whenNotPaused {
-        if (!_attestorMultisigIsValid(_uuid, _btcTxId, _hash, _signatures))
-            revert InvalidSignatures();
+        _attestorMultisigIsValid(
+            abi.encodePacked(_uuid, _btcTxId),
+            _hash,
+            _signatures
+        );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
@@ -282,8 +296,11 @@ contract DLCManager is
         bytes32 _hash,
         bytes[] calldata _signatures
     ) external whenNotPaused {
-        if (!_attestorMultisigIsValid(_uuid, _btcTxId, _hash, _signatures))
-            revert InvalidSignatures();
+        _attestorMultisigIsValid(
+            abi.encodePacked(_uuid, _btcTxId),
+            _hash,
+            _signatures
+        );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
@@ -347,11 +364,11 @@ contract DLCManager is
         _threshold = _newThreshold;
     }
 
-    function addSigner(address _signer) external onlyAdmin {
-        _signers[_signer] = true;
+    function addApprovedSigner(address _signer) external onlyAdmin {
+        _approvedSigners[_signer] = true;
     }
 
-    function removeSigner(address _signer) external onlyAdmin {
-        _signers[_signer] = false;
+    function removeApprovedSigner(address _signer) external onlyAdmin {
+        _approvedSigners[_signer] = false;
     }
 }

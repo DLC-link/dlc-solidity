@@ -161,11 +161,7 @@ contract TokenManagerV2Test is
         if (btcDeposit > maximumDeposit)
             revert DepositTooLarge(btcDeposit, maximumDeposit);
 
-        bytes32 _uuid = dlcManager.createDLC(
-            btcDeposit,
-            "",
-            0
-        );
+        bytes32 _uuid = dlcManager.createDLC(btcDeposit, "", 0, 0);
 
         userVaults[msg.sender].push(_uuid);
 

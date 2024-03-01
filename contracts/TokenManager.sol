@@ -60,6 +60,7 @@ contract TokenManager is
     uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
     uint256 public outcomeFee; // in basis points (10000 = 100%) -- BTC
     uint256 public btcMintFeeRate; // in basis points (100 = 1%) -- BTC
+    uint256 public btcRedeemFeeRate; // in basis points (100 = 1%) -- BTC
     bool public whitelistingEnabled;
 
     mapping(address => bytes32[]) public userVaults;
@@ -126,6 +127,7 @@ contract TokenManager is
         outcomeFee = 0; // 0% BTC bias for now
         whitelistingEnabled = true;
         btcMintFeeRate = 100; // 1% BTC fee for now
+        btcRedeemFeeRate = 100; // 1% BTC fee for now
         btcFeeRecipient = _btcFeeRecipient;
     }
 
@@ -208,7 +210,8 @@ contract TokenManager is
         bytes32 _uuid = dlcManager.createDLC(
             btcDeposit,
             btcFeeRecipient,
-            btcMintFeeRate
+            btcMintFeeRate,
+            btcRedeemFeeRate
         );
 
         userVaults[msg.sender].push(_uuid);
@@ -331,6 +334,12 @@ contract TokenManager is
 
     function setBtcMintFeeRate(uint256 _btcMintFeeRate) external onlyDLCAdmin {
         btcMintFeeRate = _btcMintFeeRate;
+    }
+
+    function setBtcRedeemFeeRate(
+        uint256 _btcRedeemFeeRate
+    ) external onlyDLCAdmin {
+        btcRedeemFeeRate = _btcRedeemFeeRate;
     }
 
     function setBtcFeeRecipient(

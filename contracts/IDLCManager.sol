@@ -7,7 +7,8 @@ interface IDLCManager {
     function createDLC(
         uint256 _valueLocked,
         string calldata _btcFeeRecipient,
-        uint256 _btcFeeBasisPoints
+        uint256 _btcMintFeeBasisPoints,
+        uint256 _btcRedeemFeeBasisPoints
     ) external returns (bytes32);
 
     function setStatusFunded(

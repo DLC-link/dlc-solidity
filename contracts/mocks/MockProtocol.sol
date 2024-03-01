@@ -18,11 +18,7 @@ contract MockProtocol is DLCLinkCompatible {
     }
 
     function requestCreateDLC(uint256 _valueLocked) external returns (bytes32) {
-        bytes32 uuid = _dlcManager.createDLC(
-            _valueLocked,
-            "",
-            0
-        );
+        bytes32 uuid = _dlcManager.createDLC(_valueLocked, "", 0, 0);
         // console.log('[MockProtocol] requestCreateDLC called');
         // console.logBytes32(uuid);
         return (uuid);

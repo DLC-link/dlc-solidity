@@ -139,7 +139,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     function createDLC(
         uint256 _valueLocked,
         string calldata /*_btcFeeRecipient*/,
-        uint256 /*_btcFeeBasisPoints*/
+        uint256 /*_btcMintFeeBasisPoints*/,
+        uint256 /*_btcRedeemFeeBasisPoints*/
     ) external override returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
@@ -153,7 +154,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             fundingTxId: "",
             closingTxId: "",
             btcFeeRecipient: "",
-            btcFeeBasisPoints: 0
+            btcMintFeeBasisPoints: 0,
+            btcRedeemFeeBasisPoints: 0
         });
 
         emit CreateDLC(_uuid, _valueLocked, msg.sender, tx.origin);

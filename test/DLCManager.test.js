@@ -34,7 +34,7 @@ async function getSignatures(message, attestors, numberOfSignatures) {
 
 async function setSigners(dlcManager, attestors) {
     for (let i = 0; i < attestors.length; i++) {
-        await dlcManager.addSigner(attestors[i].address);
+        await dlcManager.addApprovedSigner(attestors[i].address);
     }
 }
 
@@ -184,7 +184,7 @@ describe('DLCManager', () => {
                         prefixedMessageHash,
                         signatureBytes
                     )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSignatures');
+            ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
         });
 
         it('reverts if contains non-approved signer', async () => {
@@ -203,7 +203,7 @@ describe('DLCManager', () => {
                         prefixedMessageHash,
                         signatureBytes
                     )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSignatures');
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
         // NOTE: TODO: it actually reverts with duplicate signature this way
@@ -260,7 +260,47 @@ describe('DLCManager', () => {
                         prefixedMessageHash,
                         signatureBytes
                     )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSignatures');
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidHash');
+        });
+
+        it('reverts if attestors sign a different btcTxId', async () => {
+            await setSigners(dlcManager, attestors);
+            const wrongBtcTxId =
+                '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId: wrongBtcTxId },
+                attestors,
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        prefixedMessageHash,
+                        signatureBytes
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidHash');
+        });
+
+        it('reverts if signatures are not unique', async () => {
+            await setSigners(dlcManager, attestors);
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
+                [attestor1, attestor1, attestor1],
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        prefixedMessageHash,
+                        signatureBytes
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
         });
 
         it('emits a StatusFunded event with the correct data', async () => {
@@ -421,7 +461,7 @@ describe('DLCManager', () => {
                     prefixedMessageHash,
                     signatureBytes
                 )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSignatures');
+            ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
         });
 
         it('reverts if contains non-approved signer', async () => {
@@ -438,7 +478,7 @@ describe('DLCManager', () => {
                     prefixedMessageHash,
                     signatureBytes
                 )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSignatures');
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
         it('reverts if attestors sign a different UUID', async () => {
@@ -456,7 +496,7 @@ describe('DLCManager', () => {
                     prefixedMessageHash,
                     signatureBytes
                 )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSignatures');
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidHash');
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {

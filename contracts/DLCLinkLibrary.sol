@@ -25,6 +25,7 @@ library DLCLink {
         string fundingTxId;
         string closingTxId;
         string btcFeeRecipient;
-        uint256 btcFeeBasisPoints;
+        uint256 btcMintFeeBasisPoints;
+        uint256 btcRedeemFeeBasisPoints;
     }
 }
