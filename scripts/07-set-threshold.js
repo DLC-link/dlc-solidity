@@ -5,10 +5,7 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const safeContractProposal = require('./helpers/safe-api-service');
 
-module.exports = async function registerProtocol(
-    protocolContractAddress,
-    version
-) {
+module.exports = async function setThreshold(threshold, version) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
 
@@ -28,14 +25,11 @@ module.exports = async function registerProtocol(
         hardhat.network.name === 'localhost' ||
         admin.address == (await dlcManager.defaultAdmin())
     ) {
-        console.log('admin has DEFAULT_ADMIN_ROLE, registering protocol');
+        console.log('admin has DEFAULT_ADMIN_ROLE, setting threshold');
 
-        await dlcManager.grantRole(
-            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
-            protocolContractAddress
-        );
-        console.log('Protocol registered');
-        console.log('Contract: ', protocolContractAddress);
+        await dlcManager.setThreshold(threshold);
+
+        console.log('Changed to: ', threshold);
     } else {
         console.log(
             'admin does not have DEFAULT_ADMIN_ROLE, submitting multisig request...'
@@ -43,10 +37,7 @@ module.exports = async function registerProtocol(
 
         const txRequest = await dlcManager
             .connect(admin)
-            .populateTransaction.grantRole(
-                hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
-                protocolContractAddress
-            );
+            .populateTransaction.setThreshold(threshold);
         await safeContractProposal(txRequest, admin);
     }
 };

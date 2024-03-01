@@ -16,6 +16,9 @@ const closeV1 = require('./02-close-dlc');
 const setupVault = require('./demos/15_V1-setup-vault');
 const setStatusFunded = require('./03-set-status-funded');
 const registerProtocol = require('./04-register-protocol');
+const addSigner = require('./05-add-signer');
+const removeSigner = require('./06-remove-signer');
+const setThreshold = require('./07-set-threshold');
 
 // TokenManager
 const whitelistAccount = require('./10_whitelist-account');
@@ -100,9 +103,29 @@ async function main() {
         .command('register-protocol')
         .description('[admin] register protocol contract')
         .argument('<contractAddress>', 'address of protocol contract')
-        .argument('<walletAddress>', 'address of protocol wallet')
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(registerProtocol);
+
+    program
+        .command('add-signer')
+        .description('[admin] add signer to DLCManager')
+        .argument('<signer>', 'address of signer')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(addSigner);
+
+    program
+        .command('remove-signer')
+        .description('[admin] remove signer to DLCManager')
+        .argument('<signer>', 'address of signer')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(removeSigner);
+
+    program
+        .command('set-threshold')
+        .description('[admin] set threshold on DLCManager')
+        .argument('<threshold>', 'threshold')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(setThreshold);
 
     program
         .command('whitelist-account')
