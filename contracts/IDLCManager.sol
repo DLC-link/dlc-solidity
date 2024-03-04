@@ -14,7 +14,6 @@ interface IDLCManager {
     function setStatusFunded(
         bytes32 _uuid,
         string calldata _btcTxId,
-        bytes32 _hash,
         bytes[] calldata _signatures
     ) external;
 
@@ -23,7 +22,6 @@ interface IDLCManager {
     function postCloseDLC(
         bytes32 _uuid,
         string calldata _btcTxId,
-        bytes32 _hash,
         bytes[] calldata _signatures
     ) external;
 

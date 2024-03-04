@@ -88,7 +88,7 @@ async function main() {
         ),
     ];
 
-    const originalMessage = ethers.utils.solidityPack(
+    const originalMessage = ethers.utils.defaultAbiCoder.encode(
         ['bytes32', 'string'],
         [mockUUID, mockBTCTxId]
     );
@@ -97,17 +97,12 @@ async function main() {
     const arrayifiedOriginalMessage = ethers.utils.arrayify(
         hashedOriginalMessage
     );
-
-    const prefixedMessageHash = ethers.utils.solidityKeccak256(
-        ['string', 'bytes32'],
-        ['\x19Ethereum Signed Message:\n32', arrayifiedOriginalMessage]
-    );
     // Create signatures
 
     const signatures = [];
     for (const signer of signers) {
         const signature = await signer.signMessage(
-            ethers.utils.arrayify(prefixedMessageHash)
+            ethers.utils.arrayify(arrayifiedOriginalMessage)
         );
         console.log('signature', signature);
         signatures.push(ethers.utils.arrayify(signature));
@@ -115,13 +110,12 @@ async function main() {
     console.log('originalMessage', originalMessage);
     console.log('hashedOriginalMessage', hashedOriginalMessage);
     console.log('arrayifiedOriginalMessage', arrayifiedOriginalMessage);
-    console.log('prefixedMessageHash', prefixedMessageHash);
     // console.log('signatures', signatures);
 
     // NOTE: if you send the wrongUUID, the transaction will revert! Success!
     const tx = await thresholdSignature
         .connect(signers[0])
-        .execute(mockUUID, mockBTCTxId, prefixedMessageHash, signatures);
+        .execute(mockUUID, mockBTCTxId, signatures);
 
     // Wait for the transaction to be mined
     const receipt = await tx.wait();

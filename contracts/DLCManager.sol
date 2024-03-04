@@ -146,7 +146,6 @@ contract DLCManager is
 
     function _attestorMultisigIsValid(
         bytes memory _message,
-        bytes32 _hash,
         bytes[] memory _signatures
     ) internal {
         if (_signatures.length < _threshold) revert NotEnoughSignatures();
@@ -154,20 +153,17 @@ contract DLCManager is
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
             keccak256(_message)
         );
-        if (_hash != prefixedMessageHash) revert InvalidHash();
-
-        bytes32 signedMessage = ECDSAUpgradeable.toEthSignedMessageHash(_hash);
 
         for (uint256 i = 0; i < _signatures.length; i++) {
             address attestorPubKey = ECDSAUpgradeable.recover(
-                signedMessage,
+                prefixedMessageHash,
                 _signatures[i]
             );
             if (!_approvedSigners[attestorPubKey]) revert InvalidSigner();
 
             // Prevent a signer from signing the same message multiple times
             bytes32 signedHash = keccak256(
-                abi.encodePacked(signedMessage, attestorPubKey)
+                abi.encodePacked(prefixedMessageHash, attestorPubKey)
             );
             if (_signatureCounts[signedHash] != 0) revert DuplicateSignature();
             _signatureCounts[signedHash] = 1;
@@ -234,18 +230,15 @@ contract DLCManager is
      * @dev     Called by the Attestor Coordinator.
      * @param   _uuid  UUID of the DLC.
      * @param   _btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
-     * @param   _hash  Hash of the message signed by the Attestors.
      * @param   _signatures  Signatures of the Attestors.
      */
     function setStatusFunded(
         bytes32 _uuid,
         string calldata _btcTxId,
-        bytes32 _hash,
         bytes[] calldata _signatures
     ) external whenNotPaused {
         _attestorMultisigIsValid(
-            abi.encodePacked(_uuid, _btcTxId),
-            _hash,
+            abi.encode(_uuid, _btcTxId),
             _signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
@@ -287,18 +280,15 @@ contract DLCManager is
      * @dev     Similarly to setStatusFunded, this is called by the Attestor Coordinator.
      * @param   _uuid  UUID of the DLC.
      * @param   _btcTxId  Closing Bitcoin Tx id.
-     * @param   _hash  Hash of the message signed by the Attestors.
      * @param   _signatures  Signatures of the Attestors.
      */
     function postCloseDLC(
         bytes32 _uuid,
         string calldata _btcTxId,
-        bytes32 _hash,
         bytes[] calldata _signatures
     ) external whenNotPaused {
         _attestorMultisigIsValid(
-            abi.encodePacked(_uuid, _btcTxId),
-            _hash,
+            abi.encode(_uuid, _btcTxId),
             _signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];

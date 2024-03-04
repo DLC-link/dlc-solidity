@@ -11,25 +11,29 @@ async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
 
 async function getSignatures(message, attestors, numberOfSignatures) {
     const hashedOriginalMessage = ethers.utils.keccak256(
-        ethers.utils.solidityPack(
+        ethers.utils.defaultAbiCoder.encode(
             ['bytes32', 'string'],
             [message.uuid, message.btcTxId]
         )
     );
-    const arrayifiedHash = ethers.utils.arrayify(hashedOriginalMessage);
-    const prefixedMessageHash = ethers.utils.solidityKeccak256(
-        ['string', 'bytes32'],
-        ['\x19Ethereum Signed Message:\n32', arrayifiedHash]
-    );
     let signatureBytes = [];
     for (let i = 0; i < numberOfSignatures; i++) {
         const sig = await attestors[i].signMessage(
-            ethers.utils.arrayify(prefixedMessageHash)
+            ethers.utils.arrayify(hashedOriginalMessage)
         );
+        // console.log('Attestor address:', attestors[i].address);
+        // console.log(
+        //     'Recovered:',
+        //     ethers.utils.verifyMessage(
+        //         ethers.utils.arrayify(hashedOriginalMessage),
+        //         sig
+        //     )
+        // );
+
         signatureBytes.push(ethers.utils.arrayify(sig));
     }
     // Convert signatures from strings to bytes
-    return { prefixedMessageHash, signatureBytes };
+    return { prefixedMessageHash: hashedOriginalMessage, signatureBytes };
 }
 
 async function setSigners(dlcManager, attestors) {
@@ -178,12 +182,7 @@ describe('DLCManager', () => {
             await expect(
                 dlcManager
                     .connect(attestor1)
-                    .setStatusFunded(
-                        uuid,
-                        btcTxId,
-                        prefixedMessageHash,
-                        signatureBytes
-                    )
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
         });
 
@@ -197,12 +196,7 @@ describe('DLCManager', () => {
             await expect(
                 dlcManager
                     .connect(attestor1)
-                    .setStatusFunded(
-                        uuid,
-                        btcTxId,
-                        prefixedMessageHash,
-                        signatureBytes
-                    )
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
@@ -254,13 +248,8 @@ describe('DLCManager', () => {
             await expect(
                 dlcManager
                     .connect(attestor1)
-                    .setStatusFunded(
-                        uuid,
-                        btcTxId,
-                        prefixedMessageHash,
-                        signatureBytes
-                    )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidHash');
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
         it('reverts if attestors sign a different btcTxId', async () => {
@@ -275,13 +264,8 @@ describe('DLCManager', () => {
             await expect(
                 dlcManager
                     .connect(attestor1)
-                    .setStatusFunded(
-                        uuid,
-                        btcTxId,
-                        prefixedMessageHash,
-                        signatureBytes
-                    )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidHash');
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
         it('reverts if signatures are not unique', async () => {
@@ -294,12 +278,7 @@ describe('DLCManager', () => {
             await expect(
                 dlcManager
                     .connect(attestor1)
-                    .setStatusFunded(
-                        uuid,
-                        btcTxId,
-                        prefixedMessageHash,
-                        signatureBytes
-                    )
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
         });
 
@@ -313,7 +292,6 @@ describe('DLCManager', () => {
             const tx = await dlcManager.setStatusFunded(
                 uuid,
                 btcTxId,
-                prefixedMessageHash,
                 signatureBytes
             );
             const receipt = await tx.wait();
@@ -348,12 +326,7 @@ describe('DLCManager', () => {
                 attestors,
                 3
             );
-            await dlcManager.setStatusFunded(
-                uuid,
-                btcTxId,
-                prefixedMessageHash,
-                signatureBytes
-            );
+            await dlcManager.setStatusFunded(uuid, btcTxId, signatureBytes);
         });
 
         it('reverts if not called by the creator contract', async () => {
@@ -413,7 +386,6 @@ describe('DLCManager', () => {
             const tx3 = await dlcManager.setStatusFunded(
                 uuid,
                 btcTxId,
-                prefixedMessageHash,
                 signatureBytes
             );
             await tx3.wait();
@@ -439,12 +411,7 @@ describe('DLCManager', () => {
                 3
             );
             await expect(
-                dlcManager.postCloseDLC(
-                    newUuid,
-                    closingBtcTxId,
-                    prefixedMessageHash,
-                    signatureBytes
-                )
+                dlcManager.postCloseDLC(newUuid, closingBtcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotClosing');
         });
 
@@ -455,12 +422,7 @@ describe('DLCManager', () => {
                 2
             );
             await expect(
-                dlcManager.postCloseDLC(
-                    uuid,
-                    closingBtcTxId,
-                    prefixedMessageHash,
-                    signatureBytes
-                )
+                dlcManager.postCloseDLC(uuid, closingBtcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
         });
 
@@ -472,12 +434,7 @@ describe('DLCManager', () => {
             );
 
             await expect(
-                dlcManager.postCloseDLC(
-                    uuid,
-                    closingBtcTxId,
-                    prefixedMessageHash,
-                    signatureBytes
-                )
+                dlcManager.postCloseDLC(uuid, closingBtcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
@@ -490,13 +447,8 @@ describe('DLCManager', () => {
                 3
             );
             await expect(
-                dlcManager.postCloseDLC(
-                    uuid,
-                    closingBtcTxId,
-                    prefixedMessageHash,
-                    signatureBytes
-                )
-            ).to.be.revertedWithCustomError(dlcManager, 'InvalidHash');
+                dlcManager.postCloseDLC(uuid, closingBtcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {
@@ -509,7 +461,6 @@ describe('DLCManager', () => {
             const tx = await dlcManager.postCloseDLC(
                 uuid,
                 closingBtcTxId,
-                prefixedMessageHash,
                 signatureBytes
             );
             const receipt = await tx.wait();

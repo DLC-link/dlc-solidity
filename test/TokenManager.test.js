@@ -19,10 +19,6 @@ const mockSigs = [
     ethers.utils.arrayify(mockSig),
 ];
 
-const mockHash = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['bytes32', 'string'], [mockUUID, mockBTCTxId])
-);
-
 const Status = {
     READY: 0,
     FUNDED: 1,
@@ -253,7 +249,6 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockHash,
                 mockSigs
             );
             await tx2.wait();
@@ -271,7 +266,6 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockHash,
                 mockSigs
             );
             await tx2.wait();
@@ -329,7 +323,6 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockHash,
                 mockSigs
             );
             await tx2.wait();
@@ -339,7 +332,6 @@ describe('TokenManager', function () {
             const tx4 = await mockDLCManager.setStatusFunded(
                 mockUUID1,
                 'someOtherTx',
-                mockHash,
                 mockSigs
             );
             await tx4.wait();
@@ -367,7 +359,6 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockHash,
                 mockSigs
             );
             await tx2.wait();
@@ -377,7 +368,6 @@ describe('TokenManager', function () {
             const tx4 = await mockDLCManager.setStatusFunded(
                 mockUUID1,
                 'someOtherTx',
-                mockHash,
                 mockSigs
             );
             await tx4.wait();

@@ -18,10 +18,6 @@ const mockSigs = [
     ethers.utils.arrayify(mockSig),
 ];
 
-const mockHash = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['bytes32', 'string'], [mockUUID, mockBTCTxId])
-);
-
 describe('DLCBTC', function () {
     let tokenManager, mockDLCManager, dlcBtc;
     let deployer, user, someRandomAccount;
@@ -124,7 +120,6 @@ describe('DLCBTC', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 mockBTCTxId,
-                mockHash,
                 mockSigs
             );
             await tx2.wait();
@@ -138,7 +133,6 @@ describe('DLCBTC', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 mockBTCTxId,
-                mockHash,
                 mockSigs
             );
             await tx2.wait();

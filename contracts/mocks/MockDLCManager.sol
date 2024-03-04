@@ -169,7 +169,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     function setStatusFunded(
         bytes32 _uuid,
         string calldata _btcTxId,
-        bytes32 /*_hash*/,
         bytes[] calldata /*_signatures*/
     ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
@@ -204,7 +203,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     function postCloseDLC(
         bytes32 _uuid,
         string calldata _btcTxId,
-        bytes32 /*_hash*/,
         bytes[] calldata /*_signatures*/
     ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];

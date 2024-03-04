@@ -27,7 +27,6 @@ contract ThresholdSignature {
     function execute(
         bytes32 _uuid,
         string memory _btxTxId,
-        bytes32 _hash,
         bytes[] memory _signatures
     ) public {
         // bytes memory originalMessage = abi.encodePacked(_uuid, _btxTxId);
@@ -44,24 +43,21 @@ contract ThresholdSignature {
         // console.log("Hashed Original Message:");
         // console.logBytes32(hashedOriginalMessage);
         bytes32 _prefixedMessageHash = ECDSA.toEthSignedMessageHash(
-            keccak256(abi.encodePacked(_uuid, _btxTxId))
+            keccak256(abi.encode(_uuid, _btxTxId))
         );
         console.log("Prefixed Message Hash:");
         console.logBytes32(_prefixedMessageHash);
 
-        require(
-            _hash == _prefixedMessageHash,
-            "Hash does not match the expected hash"
-        );
         require(_signatures.length >= threshold, "Not enough signatures");
-        bytes32 signedMessage = ECDSA.toEthSignedMessageHash(_hash);
-        console.log("Signed Message:");
-        console.logBytes32(signedMessage);
+
         for (uint256 i = 0; i < _signatures.length; i++) {
             // console.log("Signature");
             // console.logBytes(_signatures[i]);
             // address recovered = _recoverSigner(_hash, _signatures[i]);
-            address recovered = ECDSA.recover(signedMessage, _signatures[i]);
+            address recovered = ECDSA.recover(
+                _prefixedMessageHash,
+                _signatures[i]
+            );
             // console.log("Recovered Address:");
             // console.logAddress(recovered);
             require(
@@ -71,7 +67,7 @@ contract ThresholdSignature {
 
             // Prevent a signer from signing the same message multiple times
             bytes32 signedHash = keccak256(
-                abi.encodePacked(signedMessage, recovered)
+                abi.encodePacked(_prefixedMessageHash, recovered)
             );
             // console.logBytes32(signedHash);
             require(signatureCounts[signedHash] == 0, "Duplicate signature");
