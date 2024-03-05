@@ -70,6 +70,7 @@ contract DLCManager is
     error DLCNotFunded();
     error DLCNotClosing();
 
+    error Unauthorized();
     error InvalidSignatures();
     error NotEnoughSignatures();
     error InvalidHash();
@@ -88,6 +89,11 @@ contract DLCManager is
     modifier onlyWhiteListedContracts() {
         if (!hasRole(WHITELISTED_CONTRACT, msg.sender))
             revert ContractNotWhitelisted();
+        _;
+    }
+
+    modifier onlyApprovedSigners() {
+        if (!_approvedSigners[msg.sender]) revert Unauthorized();
         _;
     }
 
@@ -236,11 +242,8 @@ contract DLCManager is
         bytes32 _uuid,
         string calldata _btcTxId,
         bytes[] calldata _signatures
-    ) external whenNotPaused {
-        _attestorMultisigIsValid(
-            abi.encode(_uuid, _btcTxId),
-            _signatures
-        );
+    ) external whenNotPaused onlyApprovedSigners {
+        _attestorMultisigIsValid(abi.encode(_uuid, _btcTxId), _signatures);
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
@@ -286,11 +289,8 @@ contract DLCManager is
         bytes32 _uuid,
         string calldata _btcTxId,
         bytes[] calldata _signatures
-    ) external whenNotPaused {
-        _attestorMultisigIsValid(
-            abi.encode(_uuid, _btcTxId),
-            _signatures
-        );
+    ) external whenNotPaused onlyApprovedSigners {
+        _attestorMultisigIsValid(abi.encode(_uuid, _btcTxId), _signatures);
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();

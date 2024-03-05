@@ -154,22 +154,30 @@ module.exports = function getContractConfigs(networkConfig) {
                     `Would you like to transfer ownership of DLCBTC contract to ${tokenManager.address}?`
                 );
                 if (shouldTransferOwnership) {
-                    const oldTokenManager = await hardhat.ethers.getContractAt(
-                        'TokenManager',
-                        currentOwner
-                    );
+                    if (currentOwner === deployer.address) {
+                        console.log(
+                            'DLCBTC is owned by deployer, transferring ownership...'
+                        );
+                        await dlcBtc
+                            .connect(deployer)
+                            .transferOwnership(tokenManager.address);
+                    } else {
+                        const oldTokenManager =
+                            await hardhat.ethers.getContractAt(
+                                'TokenManager',
+                                currentOwner
+                            );
+                        const tx = await oldTokenManager
+                            .connect(deployer)
+                            .transferTokenContractOwnership(
+                                tokenManager.address
+                            );
+                        const receipt = await tx.wait();
+                        console.log(receipt);
+                    }
 
-                    console.log(
-                        'Transferring ownership of DLCBTC to...',
-                        tokenManager.address
-                    );
-                    await oldTokenManager
-                        .connect(deployer)
-                        .transferTokenContractOwnership(tokenManager.address);
-                    console.log(
-                        'Transferred ownership of DLCBTC to:',
-                        tokenManager.address
-                    );
+                    const newOwner = await dlcBtc.owner();
+                    console.log('New DLCBTC Owner:', newOwner);
                 }
 
                 const shouldRegisterProtocol = await promptUser(

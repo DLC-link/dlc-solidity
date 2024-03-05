@@ -174,6 +174,7 @@ describe('DLCManager', () => {
         });
 
         it('reverts if called without enough signatures', async () => {
+            await setSigners(dlcManager, attestors);
             const { prefixedMessageHash, signatureBytes } = await getSignatures(
                 { uuid, btcTxId },
                 attestors,
@@ -187,6 +188,7 @@ describe('DLCManager', () => {
         });
 
         it('reverts if contains non-approved signer', async () => {
+            await setSigners(dlcManager, attestors);
             const { prefixedMessageHash, signatureBytes } = await getSignatures(
                 { uuid, btcTxId },
                 [...attestors, randomAccount],
@@ -289,11 +291,9 @@ describe('DLCManager', () => {
                 attestors,
                 3
             );
-            const tx = await dlcManager.setStatusFunded(
-                uuid,
-                btcTxId,
-                signatureBytes
-            );
+            const tx = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'SetStatusFunded'
@@ -326,7 +326,9 @@ describe('DLCManager', () => {
                 attestors,
                 3
             );
-            await dlcManager.setStatusFunded(uuid, btcTxId, signatureBytes);
+            await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes);
         });
 
         it('reverts if not called by the creator contract', async () => {
@@ -383,11 +385,9 @@ describe('DLCManager', () => {
                 attestors,
                 3
             );
-            const tx3 = await dlcManager.setStatusFunded(
-                uuid,
-                btcTxId,
-                signatureBytes
-            );
+            const tx3 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes);
             await tx3.wait();
             const tx4 = await mockProtocol
                 .connect(protocol)
@@ -411,7 +411,9 @@ describe('DLCManager', () => {
                 3
             );
             await expect(
-                dlcManager.postCloseDLC(newUuid, closingBtcTxId, signatureBytes)
+                dlcManager
+                    .connect(attestor1)
+                    .postCloseDLC(newUuid, closingBtcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotClosing');
         });
 
@@ -422,7 +424,9 @@ describe('DLCManager', () => {
                 2
             );
             await expect(
-                dlcManager.postCloseDLC(uuid, closingBtcTxId, signatureBytes)
+                dlcManager
+                    .connect(attestor1)
+                    .postCloseDLC(uuid, closingBtcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
         });
 
@@ -434,7 +438,9 @@ describe('DLCManager', () => {
             );
 
             await expect(
-                dlcManager.postCloseDLC(uuid, closingBtcTxId, signatureBytes)
+                dlcManager
+                    .connect(attestor1)
+                    .postCloseDLC(uuid, closingBtcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
@@ -447,7 +453,9 @@ describe('DLCManager', () => {
                 3
             );
             await expect(
-                dlcManager.postCloseDLC(uuid, closingBtcTxId, signatureBytes)
+                dlcManager
+                    .connect(attestor1)
+                    .postCloseDLC(uuid, closingBtcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
@@ -458,11 +466,9 @@ describe('DLCManager', () => {
                 attestors,
                 3
             );
-            const tx = await dlcManager.postCloseDLC(
-                uuid,
-                closingBtcTxId,
-                signatureBytes
-            );
+            const tx = await dlcManager
+                .connect(attestor1)
+                .postCloseDLC(uuid, closingBtcTxId, signatureBytes);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'PostCloseDLC'
