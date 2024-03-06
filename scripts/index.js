@@ -3,17 +3,9 @@ require('dotenv').config();
 const path = require('path');
 const { Command } = require('commander');
 const version = require('../package.json').version;
-const mintStablecoin = require('./demos/01_mint-usdc');
 const addRoleToManager = require('./00-grant-role-on-manager');
-const addRoleToBtcNft = require('./demos/03_add-role-to-btcnft');
-const lendingSetupLoan = require('./demos/04_lending-setup-loan');
-const lendingCloseLoan = require('./demos/05_lending-close-loan');
-const lendingSetWallet = require('./demos/06_lending-set-wallet');
-const sendEth = require('./demos/08_send-eth');
-const sendNFT = require('./demos/09_send-nft');
 const createV1 = require('./01-create-dlc');
 const closeV1 = require('./02-close-dlc');
-const setupVault = require('./demos/15_V1-setup-vault');
 const setStatusFunded = require('./03-set-status-funded');
 const registerProtocol = require('./04-register-protocol');
 const addSigner = require('./05-add-signer');
@@ -183,63 +175,6 @@ async function main() {
         .argument('<uuid>', 'uuid of DLC')
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(setStatusFunded);
-
-    program
-        .command('send-eth')
-        .description('[util] send ETH to an address')
-        .argument('<addressTo>', 'address to send ETH to')
-        .argument('[amount]', 'amount to send in ETH', 0.1)
-        .action(sendEth);
-
-    program
-        .command('send-nft')
-        .description('[util] send NFT to an address')
-        .argument('<privateKey>', 'privateKey of address to send NFT from')
-        .argument('<addressTo>', 'address to send NFT to')
-        .argument('<id>', 'NFT ID')
-        .action(sendNFT);
-
-    program
-        .command('setup-loan')
-        .description('[demo] setup a loan')
-        .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
-        // .argument('[liquidationRatio]', 'liquidation ratio', 14000)
-        // .argument('[liquidationFee]', 'liquidation fee', 1000)
-        // .argument('[emergencyRefundTime]', 'emergency refund time', 5)
-        .action(lendingSetupLoan);
-
-    program
-        .command('close-loan')
-        .description('[demo] close a loan')
-        .argument('<loanID>', 'loan ID')
-        .action(lendingCloseLoan);
-
-    program
-        .command('setup-vault')
-        .description('[demo] setup a vault on DLCBroker')
-        .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 100000000)
-        .argument('[attestorCount]', 'number of attestors', 1)
-        .argument('[setFunded]', 'simulate funding', false)
-        .action(setupVault);
-
-    program
-        .command('mint-stablecoin')
-        .description('[demo] mint USDLC')
-        .argument('<addressTo>', 'address to mint to')
-        .argument('[amount]', 'amount to mint (no extra decimals needed)', 1000)
-        .argument('[privateKey]', 'private key of the address to mint from')
-        .action(mintStablecoin);
-
-    program
-        .command('add-role-to-btcnft')
-        .description('[demo] grant role on BTCNFT')
-        .argument('[role]', 'the role to grant', 'MINTER_ROLE')
-        .argument(
-            '[grantRoleToAddress]',
-            'the recipient of the role',
-            process.env.ADMIN_ADDRESS
-        )
-        .action(addRoleToBtcNft);
 
     program
         .command('burn-user-tokens')

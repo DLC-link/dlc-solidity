@@ -75,12 +75,6 @@ npm run analyze
 
 # Getting Started
 
-## Examples
-
-We have developed a few example applications which uses DLCs.
-
-You can find these examples under the contracts/examples folder. In each folder you will find a README describing the contract, as well as pointing to some frontend JS code where you can find examples of how we use the sample contracts for our web demos.
-
 ## Import and Setup
 
 First import the DLCManager contract, and the interface, and construct an object to interact with it.
