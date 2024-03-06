@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.18;
 
 import "solmate/src/mixins/ERC4626.sol";
 // import '@openzeppelin/contracts/interfaces/IERC20.sol';

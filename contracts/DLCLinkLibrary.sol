@@ -5,7 +5,7 @@
 //  / /_// /__/ /____/ /__| | | | |   <
 // /___,'\____|____(_)____/_|_| |_|_|\_\
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.18;
 
 library DLCLink {
     enum DLCStatus {

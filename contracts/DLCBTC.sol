@@ -5,11 +5,19 @@
 //  / /_// /__/ /____/ /__| | | | |   <
 // /___,'\____|____(_)____/_|_| |_|_|\_\
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/**
+ * @author  DLC.Link 2024
+ * @title   DLCBTC
+ * @notice  The DLCBTC Token represents Bitcoin locked through the DLC.Link bridge
+ * @dev     Owner is the TokenManager contract
+ * @custom:contact robert@dlc.link
+ * @custom:website https://www.dlc.link
+ */
 contract DLCBTC is ERC20, Ownable {
     constructor() ERC20("dlcBTC", "DLCBTC") {}
 
@@ -18,11 +26,11 @@ contract DLCBTC is ERC20, Ownable {
         return 8;
     }
 
-    function mint(address _to, uint256 _amount) external onlyOwner {
-        _mint(_to, _amount);
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
     }
 
-    function burn(address _from, uint256 _amount) external onlyOwner {
-        _burn(_from, _amount);
+    function burn(address from, uint256 amount) external onlyOwner {
+        _burn(from, amount);
     }
 }
