@@ -18,7 +18,7 @@ if (!process.env.KEY_FOR_SAFE) process.env.KEY_FOR_SAFE = process.env.KEY;
 module.exports = {
     defaultNetwork: 'hardhat',
     solidity: {
-        version: '0.8.17',
+        version: '0.8.18',
         settings: {
             optimizer: {
                 enabled: true,
