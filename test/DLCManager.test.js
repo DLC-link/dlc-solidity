@@ -108,6 +108,61 @@ describe('DLCManager', () => {
         });
     });
 
+    describe('setThreshold', async () => {
+        it('reverts if called by a non-admin', async () => {
+            await expect(
+                dlcManager.connect(user).setThreshold(4)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
+        });
+
+        it('reverts if threshold is set below minimum threshold', async () => {
+            await expect(
+                dlcManager.connect(deployer).setThreshold(0)
+            ).to.be.revertedWithCustomError(dlcManager, 'ThresholdTooLow');
+        });
+
+        it('emits a SetThreshold event with the correct data', async () => {
+            const tx = await dlcManager.connect(deployer).setThreshold(4);
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+
+            expect(event.event).to.equal('SetThreshold');
+            expect(event.args.newThreshold).to.equal(4);
+        });
+
+        it('updates the threshold correctly', async () => {
+            await dlcManager.connect(deployer).setThreshold(4);
+            const newThreshold = await dlcManager.getThreshold();
+            expect(newThreshold).to.equal(4);
+        });
+    });
+
+    describe('removeApprovedSigner', async () => {
+        it('reverts if called by a non-admin', async () => {
+            await expect(
+                dlcManager.connect(user).removeApprovedSigner(attestor1.address)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
+        });
+        it('reverts if trying to remove a non-approved signer', async () => {
+            await expect(
+                dlcManager
+                    .connect(deployer)
+                    .removeApprovedSigner(attestor1.address)
+            ).to.be.revertedWithCustomError(dlcManager, 'SignerNotApproved');
+        });
+        it('reverts if it would decrese below threshold', async () => {
+            await setSigners(dlcManager, attestors);
+            await expect(
+                dlcManager
+                    .connect(deployer)
+                    .removeApprovedSigner(attestor1.address)
+            ).to.be.revertedWithCustomError(
+                dlcManager,
+                'ThresholdMinimumReached'
+            );
+        });
+    });
+
     describe('createDLC', async () => {
         it('reverts if called from a non-whitelisted contract', async () => {
             await expect(
@@ -156,6 +211,63 @@ describe('DLCManager', () => {
             const uuid1 = decodedEvent.args.uuid;
             const uuid2 = decodedEvent2.args.uuid;
             expect(uuid1).to.not.equal(uuid2);
+        });
+    });
+
+    describe('getDLC', async () => {
+        let uuid;
+        beforeEach(async () => {
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+
+            const tx = await mockProtocol
+                .connect(user)
+                .requestCreateDLC(valueLocked);
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+        });
+
+        it('reverts if called with a non-existing UUID', async () => {
+            const wrongUUID =
+                '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
+            await expect(
+                dlcManager.getDLC(wrongUUID)
+            ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFound');
+        });
+
+        it('returns the correct data', async () => {
+            const data = await dlcManager.getDLC(uuid);
+            expect(data.creator).to.equal(user.address);
+            expect(data.valueLocked).to.equal(valueLocked);
+        });
+    });
+
+    describe('getDLCByIndex', async () => {
+        let uuid;
+        beforeEach(async () => {
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+
+            const tx = await mockProtocol
+                .connect(user)
+                .requestCreateDLC(valueLocked);
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+        });
+
+        it('returns 0s if called with a non-existing index', async () => {
+            let dlc = await dlcManager.getDLCByIndex(5);
+            expect(dlc.creator).to.equal(ethers.constants.AddressZero);
+            expect(dlc.valueLocked).to.equal(0);
+            expect(dlc.uuid).to.equal(ethers.constants.HashZero);
+        });
+
+        it('returns the correct data', async () => {
+            const data = await dlcManager.getDLCByIndex(0);
+            expect(data.creator).to.equal(user.address);
+            expect(data.valueLocked).to.equal(valueLocked);
         });
     });
 

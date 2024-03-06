@@ -67,10 +67,12 @@ contract DLCManager is
     error DLCNotClosing();
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
+    error ThresholdTooLow(uint16 _minimumThreshold);
     error Unauthorized();
     error NotEnoughSignatures();
     error InvalidSigner();
     error DuplicateSignature();
+    error SignerNotApproved(address signer);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -345,9 +347,13 @@ contract DLCManager is
         _unpause();
     }
 
+    function getThreshold() external view onlyAdmin returns (uint16) {
+        return _threshold;
+    }
+
     function setThreshold(uint16 newThreshold) external onlyAdmin {
         if (newThreshold < _minimumThreshold)
-            revert ThresholdMinimumReached(_minimumThreshold);
+            revert ThresholdTooLow(_minimumThreshold);
         _threshold = newThreshold;
         emit SetThreshold(newThreshold);
     }
@@ -360,6 +366,7 @@ contract DLCManager is
     function removeApprovedSigner(address signer) external onlyAdmin {
         if (_signerCount == _minimumThreshold)
             revert ThresholdMinimumReached(_minimumThreshold);
+        if (!_approvedSigners[signer]) revert SignerNotApproved(signer);
         _approvedSigners[signer] = false;
         _signerCount--;
     }
