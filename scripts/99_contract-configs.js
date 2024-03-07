@@ -40,7 +40,7 @@ module.exports = function getContractConfigs(networkConfig) {
     const network = hardhat.network.name;
     const { version, deployer, routerWallet, dlcAdminSafe } = networkConfig;
     const btcFeeRecipient = 'bcrt1qvgkz8m4m73kly4xhm28pcnv46n6u045lfq9ta3';
-    const threshold = 3;
+    const threshold = 2;
 
     return [
         {
@@ -158,9 +158,10 @@ module.exports = function getContractConfigs(networkConfig) {
                         console.log(
                             'DLCBTC is owned by deployer, transferring ownership...'
                         );
-                        await dlcBtc
+                        const tx = await dlcBtc
                             .connect(deployer)
                             .transferOwnership(tokenManager.address);
+                        await tx.wait();
                     } else {
                         const oldTokenManager =
                             await hardhat.ethers.getContractAt(

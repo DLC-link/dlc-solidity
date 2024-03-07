@@ -109,7 +109,7 @@ contract DLCManager is
         _threshold = threshold;
         _index = 0;
         // NOTE:
-        _minimumThreshold = 3;
+        _minimumThreshold = 2;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
