@@ -5,7 +5,7 @@
 //  / /_// /__/ /____/ /__| | | | |   <
 // /___,'\____|____(_)____/_|_| |_|_|\_\
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.18;
 
 library DLCLink {
     enum DLCStatus {
@@ -17,17 +17,15 @@ library DLCLink {
 
     struct DLC {
         bytes32 uuid;
-        address protocolWallet;
         address protocolContract;
         uint256 timestamp;
         uint256 valueLocked;
-        uint256 refundDelay;
         address creator;
-        uint256 outcome;
         DLCStatus status;
         string fundingTxId;
         string closingTxId;
         string btcFeeRecipient;
-        uint256 btcFeeBasisPoints;
+        uint256 btcMintFeeBasisPoints;
+        uint256 btcRedeemFeeBasisPoints;
     }
 }

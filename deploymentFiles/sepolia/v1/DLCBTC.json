@@ -1,10 +1,10 @@
 {
   "network": "sepolia",
-  "updatedAt": "2023-11-30T11:59:52.502Z",
-  "gitSHA": "d1048e2",
+  "updatedAt": "2024-03-07T15:28:26.431Z",
+  "gitSHA": "6ceca94",
   "contract": {
     "name": "DLCBTC",
-    "address": "0x84111D230eB7cc0693a4c0056Be3B126aeC79c03",
+    "address": "0xaCEF643C15388e210Cb7CC55866d9Ae981857459",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
@@ -14,11 +14,11 @@
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)",
       "function balanceOf(address account) view returns (uint256)",
-      "function burn(address _from, uint256 _amount)",
+      "function burn(address from, uint256 amount)",
       "function decimals() view returns (uint8)",
       "function decreaseAllowance(address spender, uint256 subtractedValue) returns (bool)",
       "function increaseAllowance(address spender, uint256 addedValue) returns (bool)",
-      "function mint(address _to, uint256 _amount)",
+      "function mint(address to, uint256 amount)",
       "function name() view returns (string)",
       "function owner() view returns (address)",
       "function renounceOwnership()",

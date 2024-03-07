@@ -5,17 +5,18 @@
 //  / /_// /__/ /____/ /__| | | | |   <
 // /___,'\____|____(_)____/_|_| |_|_|\_\
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "./DLCLinkCompatible.sol";
 import "./IDLCManager.sol";
 import "./DLCLinkLibrary.sol";
 
 /**
- * @author  DLC.Link 2023
+ * @author  DLC.Link 2024
  * @title   DLCManager
  * @dev     This is the contract the Attestor Layer listens to.
  * Protocol contracts should implement the DLCLinkCompatible interface and interact with this contract.
@@ -41,12 +42,16 @@ contract DLCManager is
         0x2bf88000669ee6f7a648a231f4adbc117f5a8e34f980c08420b9b9a9f2640aa1; // keccak256("DLC_ADMIN_ROLE")
     bytes32 public constant WHITELISTED_CONTRACT =
         0xec26500344858148ae6c4dd068dc3bae426095ee44cdb32b94288d883648f619; // keccak256("WHITELISTED_CONTRACT")
-    bytes32 public constant WHITELISTED_WALLET =
-        0xb9ec2c8072d6792e79a05f449c2577c76c4206da58e44ef66dde03fbe8d28112; // keccak256("WHITELISTED_WALLET")
 
     uint256 private _index;
     mapping(uint256 => DLCLink.DLC) public dlcs;
     mapping(bytes32 => uint256) public dlcIDsByUUID;
+
+    uint16 private _minimumThreshold;
+    uint16 private _threshold;
+    mapping(address => bool) private _approvedSigners;
+    uint16 private _signerCount;
+    mapping(bytes32 => uint256) private _signatureCounts;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -54,14 +59,20 @@ contract DLCManager is
 
     error NotDLCAdmin();
     error ContractNotWhitelisted();
-    error WalletNotWhitelisted();
-    error UnathorizedWallet();
     error NotCreatorContract();
     error WrongDLCState();
     error DLCNotFound();
     error DLCNotReady();
     error DLCNotFunded();
     error DLCNotClosing();
+
+    error ThresholdMinimumReached(uint16 _minimumThreshold);
+    error ThresholdTooLow(uint16 _minimumThreshold);
+    error Unauthorized();
+    error NotEnoughSignatures();
+    error InvalidSigner();
+    error DuplicateSignature();
+    error SignerNotApproved(address signer);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -78,17 +89,8 @@ contract DLCManager is
         _;
     }
 
-    modifier onlyWhitelistedWallet(address _wallet) {
-        if (!hasRole(WHITELISTED_WALLET, _wallet))
-            revert WalletNotWhitelisted();
-        _;
-    }
-
-    modifier onlyWhitelistedAndConnectedWallet(bytes32 _uuid) {
-        if (!hasRole(WHITELISTED_WALLET, msg.sender))
-            revert WalletNotWhitelisted();
-        if (dlcs[dlcIDsByUUID[_uuid]].protocolWallet != msg.sender)
-            revert UnathorizedWallet();
+    modifier onlyApprovedSigners() {
+        if (!_approvedSigners[msg.sender]) revert Unauthorized();
         _;
     }
 
@@ -98,10 +100,16 @@ contract DLCManager is
         _;
     }
 
-    function initialize(address _adminAddress) public initializer {
-        __AccessControlDefaultAdminRules_init(2 days, _adminAddress);
-        _grantRole(DLC_ADMIN_ROLE, _adminAddress);
+    function initialize(
+        address adminAddress,
+        uint16 threshold
+    ) public initializer {
+        __AccessControlDefaultAdminRules_init(2 days, adminAddress);
+        _grantRole(DLC_ADMIN_ROLE, adminAddress);
+        _threshold = threshold;
         _index = 0;
+        // NOTE:
+        _minimumThreshold = 2;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -118,31 +126,16 @@ contract DLCManager is
         uint256 valueLocked,
         address protocolContract,
         address creator,
-        address protocolWallet,
         uint256 timestamp
     );
 
-    event SetStatusFunded(
-        bytes32 uuid,
-        string btcTxId,
-        address protocolWallet,
-        address sender
-    );
+    event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
 
-    event CloseDLC(
-        bytes32 uuid,
-        uint256 outcome,
-        address protocolWallet,
-        address sender
-    );
+    event CloseDLC(bytes32 uuid, address sender);
 
-    event PostCloseDLC(
-        bytes32 uuid,
-        uint256 outcome,
-        string btcTxId,
-        address protocolWallet,
-        address sender
-    );
+    event PostCloseDLC(bytes32 uuid, string btcTxId, address sender);
+
+    event SetThreshold(uint16 newThreshold);
 
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
@@ -158,6 +151,32 @@ contract DLCManager is
             );
     }
 
+    function _attestorMultisigIsValid(
+        bytes memory message,
+        bytes[] memory signatures
+    ) internal {
+        if (signatures.length < _threshold) revert NotEnoughSignatures();
+
+        bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
+            keccak256(message)
+        );
+
+        for (uint256 i = 0; i < signatures.length; i++) {
+            address attestorPubKey = ECDSAUpgradeable.recover(
+                prefixedMessageHash,
+                signatures[i]
+            );
+            if (!_approvedSigners[attestorPubKey]) revert InvalidSigner();
+
+            // Prevent a signer from signing the same message multiple times
+            bytes32 signedHash = keccak256(
+                abi.encodePacked(prefixedMessageHash, attestorPubKey)
+            );
+            if (_signatureCounts[signedHash] != 0) revert DuplicateSignature();
+            _signatureCounts[signedHash] = 1;
+        }
+    }
+
     ////////////////////////////////////////////////////////////////
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -165,24 +184,21 @@ contract DLCManager is
     /**
      * @notice  Triggers the creation of an Announcement in the Attestor Layer.
      * @dev     Call this function from a whitelisted protocol-contract.
-     * @param   _protocolWallet  A router-wallet address, that will be authorized to update this DLC.
-     * @param   _valueLocked  Value to be locked in the DLC , in Satoshis.
-     * @param   _refundDelay  Delay in seconds before the creator can claim a refund. Set 0 to disable.
-     * @param   _btcFeeRecipient  Bitcoin address that will receive the DLC fees.
-     * @param   _btcFeeBasisPoints  Basis points of the valueLocked that will be sent to the _btcFeeRecipient.
+     * @param   valueLocked  Value to be locked in the DLC , in Satoshis.
+     * @param   btcFeeRecipient  Bitcoin address that will receive the DLC fees.
+     * @param   btcMintFeeBasisPoints  Basis points of the minting fee.
+     * @param   btcRedeemFeeBasisPoints  Basis points of the redeeming fee.
      * @return  bytes32  A generated UUID.
      */
     function createDLC(
-        address _protocolWallet,
-        uint256 _valueLocked,
-        uint256 _refundDelay,
-        string calldata _btcFeeRecipient,
-        uint256 _btcFeeBasisPoints
+        uint256 valueLocked,
+        string calldata btcFeeRecipient,
+        uint256 btcMintFeeBasisPoints,
+        uint256 btcRedeemFeeBasisPoints
     )
         external
         override
         onlyWhiteListedContracts
-        onlyWhitelistedWallet(_protocolWallet)
         whenNotPaused
         returns (bytes32)
     {
@@ -190,26 +206,23 @@ contract DLCManager is
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
-            protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
-            valueLocked: _valueLocked,
-            refundDelay: _refundDelay,
+            valueLocked: valueLocked,
             timestamp: block.timestamp,
             creator: tx.origin,
-            outcome: 0,
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
-            btcFeeRecipient: _btcFeeRecipient,
-            btcFeeBasisPoints: _btcFeeBasisPoints
+            btcFeeRecipient: btcFeeRecipient,
+            btcMintFeeBasisPoints: btcMintFeeBasisPoints,
+            btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints
         });
 
         emit CreateDLC(
             _uuid,
-            _valueLocked,
+            valueLocked,
             msg.sender,
             tx.origin,
-            _protocolWallet,
             block.timestamp
         );
 
@@ -221,86 +234,74 @@ contract DLCManager is
 
     /**
      * @notice  Confirms that a DLC was 'funded' on the Bitcoin blockchain.
-     * @dev     Called by the connected router-wallet.
-     * @param   _uuid  UUID of the DLC.
-     * @param   _btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @dev     Called by the Attestor Coordinator.
+     * @param   uuid  UUID of the DLC.
+     * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @param   signatures  Signatures of the Attestors.
      */
     function setStatusFunded(
-        bytes32 _uuid,
-        string calldata _btcTxId
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
-        DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.FUNDED;
+        bytes32 uuid,
+        string calldata btcTxId,
+        bytes[] calldata signatures
+    ) external whenNotPaused onlyApprovedSigners {
+        _attestorMultisigIsValid(abi.encode(uuid, btcTxId), signatures);
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
 
-        dlc.fundingTxId = _btcTxId;
-        dlc.status = _newStatus;
+        dlc.fundingTxId = btcTxId;
+        dlc.status = DLCLink.DLCStatus.FUNDED;
 
-        DLCLinkCompatible(dlc.protocolContract).setStatusFunded(
-            _uuid,
-            _btcTxId
-        );
+        DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
 
-        emit SetStatusFunded(_uuid, _btcTxId, dlc.protocolWallet, msg.sender);
+        emit SetStatusFunded(uuid, btcTxId, msg.sender);
     }
 
     /**
      * @notice  Triggers the creation of an Attestation.
-     * @dev     Attestors will sign the provided _outcome.
-     * There are several ways to design the outcome values, depending on the use case.
-     * See the DLC.Link documentation for more details.
-     * @param   _uuid  UUID of the DLC.
-     * @param   _outcome  Outcome of the DLC, generally a number between 0-10000. (10000 = 100%)
+     * @param   uuid  UUID of the DLC.
      */
     function closeDLC(
-        bytes32 _uuid,
-        uint256 _outcome
-    ) external onlyCreatorContract(_uuid) whenNotPaused {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
-        DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSING;
+        bytes32 uuid
+    ) external onlyCreatorContract(uuid) whenNotPaused {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
-        dlc.outcome = _outcome;
-        dlc.status = _newStatus;
+        dlc.status = DLCLink.DLCStatus.CLOSING;
 
-        emit CloseDLC(_uuid, _outcome, dlc.protocolWallet, msg.sender);
+        emit CloseDLC(uuid, msg.sender);
     }
 
     /**
      * @notice  Triggered after a closing Tx has been confirmed Bitcoin.
-     * @dev     Similarly to setStatusFunded, this is called by a router-wallet.
-     * @param   _uuid  UUID of the DLC.
-     * @param   _btcTxId  Closing Bitcoin Tx id.
+     * @dev     Similarly to setStatusFunded, this is called by the Attestor Coordinator.
+     * @param   uuid  UUID of the DLC.
+     * @param   btcTxId  Closing Bitcoin Tx id.
+     * @param   signatures  Signatures of the Attestors.
      */
     function postCloseDLC(
-        bytes32 _uuid,
-        string calldata _btcTxId
-    ) external onlyWhitelistedAndConnectedWallet(_uuid) whenNotPaused {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
-        DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSED;
+        bytes32 uuid,
+        string calldata btcTxId,
+        bytes[] calldata signatures
+    ) external whenNotPaused onlyApprovedSigners {
+        _attestorMultisigIsValid(abi.encode(uuid, btcTxId), signatures);
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.CLOSING) revert DLCNotClosing();
 
-        dlc.closingTxId = _btcTxId;
-        dlc.status = _newStatus;
+        dlc.closingTxId = btcTxId;
+        dlc.status = DLCLink.DLCStatus.CLOSED;
 
         DLCLinkCompatible(dlc.protocolContract).postCloseDLCHandler(
-            _uuid,
-            _btcTxId
+            uuid,
+            btcTxId
         );
 
-        emit PostCloseDLC(
-            _uuid,
-            dlc.outcome,
-            _btcTxId,
-            dlc.protocolWallet,
-            msg.sender
-        );
+        emit PostCloseDLC(uuid, btcTxId, msg.sender);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -308,11 +309,11 @@ contract DLCManager is
     ////////////////////////////////////////////////////////////////
 
     function getDLC(
-        bytes32 _uuid
+        bytes32 uuid
     ) external view override returns (DLCLink.DLC memory) {
-        DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[_uuid]];
+        DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[uuid]];
         if (_dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (_dlc.uuid != _uuid) revert DLCNotFound();
+        if (_dlc.uuid != uuid) revert DLCNotFound();
         return _dlc;
     }
 
@@ -344,5 +345,29 @@ contract DLCManager is
 
     function unpauseContract() external onlyAdmin {
         _unpause();
+    }
+
+    function getThreshold() external view onlyAdmin returns (uint16) {
+        return _threshold;
+    }
+
+    function setThreshold(uint16 newThreshold) external onlyAdmin {
+        if (newThreshold < _minimumThreshold)
+            revert ThresholdTooLow(_minimumThreshold);
+        _threshold = newThreshold;
+        emit SetThreshold(newThreshold);
+    }
+
+    function addApprovedSigner(address signer) external onlyAdmin {
+        _approvedSigners[signer] = true;
+        _signerCount++;
+    }
+
+    function removeApprovedSigner(address signer) external onlyAdmin {
+        if (_signerCount == _minimumThreshold)
+            revert ThresholdMinimumReached(_minimumThreshold);
+        if (!_approvedSigners[signer]) revert SignerNotApproved(signer);
+        _approvedSigners[signer] = false;
+        _signerCount--;
     }
 }

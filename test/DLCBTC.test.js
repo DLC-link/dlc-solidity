@@ -7,10 +7,20 @@ function getRoleInBytes(role) {
 }
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
+const mockBTCTxId =
+    '0x1234567890123456789012345678901234567890123456789012345678901234';
+
+const mockSig =
+    '0x5f4896a5ad17ebc5277cf37fa8687163b50e6cfa73ffa5614f295929aa6ba11b3f6a4ff57817d99b737de84807229f19527f6c919c02ba38a7b6110cb86c11701b';
+
+const mockSigs = [
+    ethers.utils.arrayify(mockSig),
+    ethers.utils.arrayify(mockSig),
+];
 
 describe('DLCBTC', function () {
     let tokenManager, mockDLCManager, dlcBtc;
-    let deployer, routerWallet, user, someRandomAccount;
+    let deployer, user, someRandomAccount;
 
     let deposit = 100000000; // 1 BTC
     let btcFeeRecipient = '0x000001';
@@ -19,7 +29,6 @@ describe('DLCBTC', function () {
     beforeEach(async () => {
         accounts = await ethers.getSigners();
         deployer = accounts[0];
-        routerWallet = accounts[1];
         user = accounts[2];
         someRandomAccount = accounts[3];
 
@@ -40,7 +49,6 @@ describe('DLCBTC', function () {
             deployer.address,
             mockDLCManager.address,
             dlcBtc.address,
-            routerWallet.address,
             btcFeeRecipient,
         ]);
     });
@@ -109,9 +117,11 @@ describe('DLCBTC', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const tx2 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID, 'someTx');
+            const tx2 = await mockDLCManager.setStatusFunded(
+                mockUUID,
+                mockBTCTxId,
+                mockSigs
+            );
             await tx2.wait();
             expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
         });
@@ -120,9 +130,11 @@ describe('DLCBTC', function () {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
-            const tx2 = await mockDLCManager
-                .connect(routerWallet)
-                .setStatusFunded(mockUUID, 'someTx');
+            const tx2 = await mockDLCManager.setStatusFunded(
+                mockUUID,
+                mockBTCTxId,
+                mockSigs
+            );
             await tx2.wait();
 
             expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);

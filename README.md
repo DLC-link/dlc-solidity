@@ -17,13 +17,63 @@ This way, any EVM chain can essentially move native Bitcoin in a safe, "bridgele
 Learn more about the whole architecture on the documentation site here:
 https://docs.dlc.link/architecture/tech-stack
 
+# Dev notes:
+
+Create a `.env` based on the `.env.template` fields.
+Be sure to set the correct `HARDHAT_NETWORK` for the scripts to work properly. (Set 'localhost' when using hardhat).
+
+To start local hardhat node:
+
+```bash
+npx hardhat node
+```
+
+## Scripts
+
+In the `scripts` directory you will find various helper scripts.
+
+The easiest way to use them is by running the package:
+
+```bash
+# If the following throws a 'command not found: dlc-link-eth' error, try running 'npm link' after 'npm i' to set up the symlink for your $PATH
+
+# To see help:
+dlc-link-eth --help
+# For example for contract deployment and admin scripts:
+dlc-link-eth contract-admin
+```
+
+Note that properly testing the entire DLC creation flow requires more of the DLC.Link infrastructure running -- but contract-integration can still be tested thoroughly and easily:
+
+## Testing
+
+### With Hardhat
+
+---
+
+```
+npm run test
+```
+
+\*optionally, `REPORT_GAS=true npm run test` to see gas usage.
+
+Modify the `hardhat.config.js` for more testing / deployment options.
+
+### Coverage using hardhat-coverage
+
+```
+npm run coverage
+```
+
+### Static Analysis using Slither
+
+In the root folder, run:
+
+```
+npm run analyze
+```
+
 # Getting Started
-
-## Examples
-
-We have developed a few example applications which uses DLCs.
-
-You can find these examples under the contracts/examples folder. In each folder you will find a README describing the contract, as well as pointing to some frontend JS code where you can find examples of how we use the sample contracts for our web demos.
 
 ## Import and Setup
 
@@ -103,68 +153,6 @@ INFURA_PROJECT_ID="<PROJECT_ID>" # needed for deploying
 KEY="<ETH_PRIVATE_KEY>" # needed for deploying
 ETHERSCAN_API_KEY="<ETHERSCAN_API_KEY>" # only needed for submitting the contract to etherscan
 HARDHAT_NETWORK=goerli # set network as needed
-```
-
-# Dev notes:
-
-Create a `.env` based on the `.env.template` fields.
-Be sure to set the correct `HARDHAT_NETWORK` for the scripts to work properly. (Set 'localhost' when using hardhat).
-
-To start local hardhat node:
-
-```bash
-npx hardhat node
-```
-
-Alternatively to run a local hardhat node and IPFS instance too:
-
-```bash
-./start-local-environment.sh
-```
-
-## Scripts
-
-In the `scripts` directory you will find various helper scripts.
-
-The easiest way to use them is by running the package:
-
-```bash
-# If the following throws a 'command not found: dlc-link-eth' error, try running 'npm link' after 'npm i' to set up the symlink for your $PATH
-
-# To see help:
-dlc-link-eth --help
-# For example for contract deployment and admin scripts:
-dlc-link-eth contract-admin
-```
-
-Note that properly testing the entire DLC creation flow requires more of the DLC.Link infrastructure running -- but contract-integration can still be tested thoroughly and easily:
-
-## Testing
-
-### With Hardhat
-
----
-
-```
-npx hardhat test
-```
-
-\*optionally, `--parallel` to speed this up a bit.
-
-Modify the `hardhat.config.js` for more testing / deployment options.
-
-### Coverage
-
-```
-npx hardhat coverage
-```
-
-### Static Analysis
-
-In the root folder, run:
-
-```
-slither .
 ```
 
 # What Are DLCs

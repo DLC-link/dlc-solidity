@@ -5,7 +5,7 @@
 //  / /_// /__/ /____/ /__| | | | |   <
 // /___,'\____|____(_)____/_|_| |_|_|\_\
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -38,8 +38,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
     error NotDLCAdmin();
     error ContractNotWhitelisted();
-    error WalletNotWhitelisted();
-    error UnathorizedWallet();
     error NotCreatorContract();
     error WrongDLCState();
     error DLCStateAlreadySet(DLCLink.DLCStatus status);
@@ -97,30 +95,16 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         bytes32 uuid,
         uint256 valueLocked,
         address protocolContract,
-        address creator,
-        address protocolWallet
+        address creator
     );
 
-    event SetStatusFunded(
-        bytes32 uuid,
-        address creator,
-        address protocolWallet,
-        address sender
-    );
+    event SetStatusFunded(bytes32 uuid, address creator, address sender);
 
-    event CloseDLC(
-        bytes32 uuid,
-        uint256 outcome,
-        address creator,
-        address protocolWallet,
-        address sender
-    );
+    event CloseDLC(bytes32 uuid, address creator, address sender);
 
     event PostCloseDLC(
         bytes32 uuid,
-        uint256 outcome,
         address creator,
-        address protocolWallet,
         address sender,
         string btcTxId
     );
@@ -153,37 +137,28 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     ////////////////////////////////////////////////////////////////
 
     function createDLC(
-        address _protocolWallet,
         uint256 _valueLocked,
-        uint256 _refundDelay,
         string calldata /*_btcFeeRecipient*/,
-        uint256 /*_btcFeeBasisPoints*/
+        uint256 /*_btcMintFeeBasisPoints*/,
+        uint256 /*_btcRedeemFeeBasisPoints*/
     ) external override returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
-            protocolWallet: _protocolWallet,
             protocolContract: msg.sender,
             valueLocked: _valueLocked,
-            refundDelay: _refundDelay,
             timestamp: block.timestamp,
             creator: tx.origin,
-            outcome: 0,
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
             btcFeeRecipient: "",
-            btcFeeBasisPoints: 0
+            btcMintFeeBasisPoints: 0,
+            btcRedeemFeeBasisPoints: 0
         });
 
-        emit CreateDLC(
-            _uuid,
-            _valueLocked,
-            msg.sender,
-            tx.origin,
-            _protocolWallet
-        );
+        emit CreateDLC(_uuid, _valueLocked, msg.sender, tx.origin);
 
         dlcIDsByUUID[_uuid] = _index;
         _index++;
@@ -193,7 +168,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
     function setStatusFunded(
         bytes32 _uuid,
-        string calldata _btcTxId
+        string calldata _btcTxId,
+        bytes[] calldata /*_signatures*/
     ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.FUNDED;
@@ -209,36 +185,25 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             _btcTxId
         );
 
-        emit SetStatusFunded(
-            _uuid,
-            dlc.creator,
-            dlc.protocolWallet,
-            msg.sender
-        );
+        emit SetStatusFunded(_uuid, dlc.creator, msg.sender);
     }
 
-    function closeDLC(bytes32 _uuid, uint256 _outcome) external whenNotPaused {
+    function closeDLC(bytes32 _uuid) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSING;
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
-        dlc.outcome = _outcome;
         dlc.status = _newStatus;
 
-        emit CloseDLC(
-            _uuid,
-            _outcome,
-            dlc.creator,
-            dlc.protocolWallet,
-            msg.sender
-        );
+        emit CloseDLC(_uuid, dlc.creator, msg.sender);
     }
 
     function postCloseDLC(
         bytes32 _uuid,
-        string calldata _btcTxId
+        string calldata _btcTxId,
+        bytes[] calldata /*_signatures*/
     ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.CLOSED;
@@ -254,14 +219,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             _btcTxId
         );
 
-        emit PostCloseDLC(
-            _uuid,
-            dlc.outcome,
-            dlc.creator,
-            dlc.protocolWallet,
-            msg.sender,
-            _btcTxId
-        );
+        emit PostCloseDLC(_uuid, dlc.creator, msg.sender, _btcTxId);
     }
 
     ////////////////////////////////////////////////////////////////

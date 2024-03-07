@@ -40,6 +40,7 @@ module.exports = function getContractConfigs(networkConfig) {
     const network = hardhat.network.name;
     const { version, deployer, routerWallet, dlcAdminSafe } = networkConfig;
     const btcFeeRecipient = 'bcrt1qvgkz8m4m73kly4xhm28pcnv46n6u045lfq9ta3';
+    const threshold = 2;
 
     return [
         {
@@ -50,14 +51,14 @@ module.exports = function getContractConfigs(networkConfig) {
             deploy: async (requirementAddresses) => {
                 await beforeDeployment(
                     'DLCManager',
-                    `_adminAddress: ${dlcAdminSafe}`,
+                    `_adminAddress: ${dlcAdminSafe} _threshold: ${threshold}`,
                     network
                 );
                 const DLCManager =
                     await hardhat.ethers.getContractFactory('DLCManager');
                 const dlcManager = await hardhat.upgrades.deployProxy(
                     DLCManager,
-                    [dlcAdminSafe]
+                    [dlcAdminSafe, threshold]
                 );
                 await dlcManager.deployed();
 
@@ -119,7 +120,7 @@ module.exports = function getContractConfigs(networkConfig) {
 
                 await beforeDeployment(
                     'TokenManager',
-                    `_adminAddress: ${dlcAdminSafe}, _dlcManager: ${DLCManagerAddress}, _dlcBtc: ${DLCBTCAddress}, _routerWallet: ${routerWallet.address}, _btcFeeRecipient: ${btcFeeRecipient}`,
+                    `_adminAddress: ${dlcAdminSafe}, _dlcManager: ${DLCManagerAddress}, _dlcBtc: ${DLCBTCAddress}, _btcFeeRecipient: ${btcFeeRecipient}`,
                     network
                 );
 
@@ -133,7 +134,6 @@ module.exports = function getContractConfigs(networkConfig) {
                         dlcAdminSafe,
                         DLCManagerAddress,
                         DLCBTCAddress,
-                        routerWallet.address,
                         btcFeeRecipient,
                     ]
                 );
@@ -154,33 +154,38 @@ module.exports = function getContractConfigs(networkConfig) {
                     `Would you like to transfer ownership of DLCBTC contract to ${tokenManager.address}?`
                 );
                 if (shouldTransferOwnership) {
-                    const oldTokenManager = await hardhat.ethers.getContractAt(
-                        'TokenManager',
-                        currentOwner
-                    );
+                    if (currentOwner === deployer.address) {
+                        console.log(
+                            'DLCBTC is owned by deployer, transferring ownership...'
+                        );
+                        const tx = await dlcBtc
+                            .connect(deployer)
+                            .transferOwnership(tokenManager.address);
+                        await tx.wait();
+                    } else {
+                        const oldTokenManager =
+                            await hardhat.ethers.getContractAt(
+                                'TokenManager',
+                                currentOwner
+                            );
+                        const tx = await oldTokenManager
+                            .connect(deployer)
+                            .transferTokenContractOwnership(
+                                tokenManager.address
+                            );
+                        const receipt = await tx.wait();
+                        console.log(receipt);
+                    }
 
-                    console.log(
-                        'Transferring ownership of DLCBTC to...',
-                        tokenManager.address
-                    );
-                    await oldTokenManager
-                        .connect(deployer)
-                        .transferTokenContractOwnership(tokenManager.address);
-                    console.log(
-                        'Transferred ownership of DLCBTC to:',
-                        tokenManager.address
-                    );
+                    const newOwner = await dlcBtc.owner();
+                    console.log('New DLCBTC Owner:', newOwner);
                 }
 
                 const shouldRegisterProtocol = await promptUser(
-                    `Would you like to register TokenManager @ ${tokenManager.address} on DLCManager @ ${DLCManagerAddress} with router-wallet @ ${routerWallet.address}?`
+                    `Would you like to register TokenManager @ ${tokenManager.address} on DLCManager @ ${DLCManagerAddress}?`
                 );
                 if (shouldRegisterProtocol) {
-                    await registerProtocol(
-                        tokenManager.address,
-                        routerWallet.address,
-                        version
-                    );
+                    await registerProtocol(tokenManager.address, version);
                 }
 
                 return tokenManager.address;

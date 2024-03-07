@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.18;
 
 /**
- * @author  DLC.Link 2023
+ * @author  DLC.Link 2024
  * @title   DLCLinkCompatible
  * @dev     Protocol-contracts MUST implement this interface to be compatible with the DLCManager contract
  * @notice  A simple interface for accepting callbacks from the DLCManager contract

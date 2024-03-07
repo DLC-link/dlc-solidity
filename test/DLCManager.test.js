@@ -2,49 +2,81 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const hardhat = require('hardhat');
 
-async function whitelistProtocolContractAndAddress(
-    dlcManager,
-    mockProtocol,
-    protocolWallet
-) {
+async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
     await dlcManager.grantRole(
         ethers.utils.id('WHITELISTED_CONTRACT'),
         mockProtocol.address
     );
-    await dlcManager.grantRole(
-        ethers.utils.id('WHITELISTED_WALLET'),
-        protocolWallet.address
+}
+
+async function getSignatures(message, attestors, numberOfSignatures) {
+    const hashedOriginalMessage = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(
+            ['bytes32', 'string'],
+            [message.uuid, message.btcTxId]
+        )
     );
+    let signatureBytes = [];
+    for (let i = 0; i < numberOfSignatures; i++) {
+        const sig = await attestors[i].signMessage(
+            ethers.utils.arrayify(hashedOriginalMessage)
+        );
+        // console.log('Attestor address:', attestors[i].address);
+        // console.log(
+        //     'Recovered:',
+        //     ethers.utils.verifyMessage(
+        //         ethers.utils.arrayify(hashedOriginalMessage),
+        //         sig
+        //     )
+        // );
+
+        signatureBytes.push(ethers.utils.arrayify(sig));
+    }
+    // Convert signatures from strings to bytes
+    return { prefixedMessageHash: hashedOriginalMessage, signatureBytes };
+}
+
+async function setSigners(dlcManager, attestors) {
+    for (let i = 0; i < attestors.length; i++) {
+        await dlcManager.addApprovedSigner(attestors[i].address);
+    }
 }
 
 describe('DLCManager', () => {
     let dlcManager, mockProtocol;
-    let accounts, deployer, protocol, protocolWallet, user;
+    let accounts, deployer, protocol, user, randomAccount, anotherAccount;
+    let attestor1, attestor2, attestor3;
+    let attestors;
 
     const valueLocked = 100000000; // 1 BTC
     const btcTxId = '0x1234567890';
+    const btcTxId2 = '0x1234567891';
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
         deployer = accounts[0];
         protocol = accounts[1];
-        protocolWallet = accounts[2];
         user = accounts[3];
         randomAccount = accounts[4];
         anotherAccount = accounts[5];
+
+        attestor1 = accounts[6];
+        attestor2 = accounts[7];
+        attestor3 = accounts[8];
+        attestors = [attestor1, attestor2, attestor3];
 
         // DLCManager
         const DLCManager = await ethers.getContractFactory('DLCManager');
         dlcManager = await hardhat.upgrades.deployProxy(DLCManager, [
             deployer.address,
+            3,
         ]);
         await dlcManager.deployed();
 
         // MockProtocol
         const MockProtocol = await ethers.getContractFactory('MockProtocol');
         mockProtocol = await MockProtocol.connect(protocol).deploy(
-            dlcManager.address,
-            protocolWallet.address
+            dlcManager.address
         );
         await mockProtocol.deployed();
     });
@@ -60,11 +92,7 @@ describe('DLCManager', () => {
 
     describe('contract is pausable', async () => {
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             await dlcManager.pauseContract();
         });
@@ -81,6 +109,61 @@ describe('DLCManager', () => {
         });
     });
 
+    describe('setThreshold', async () => {
+        it('reverts if called by a non-admin', async () => {
+            await expect(
+                dlcManager.connect(user).setThreshold(4)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
+        });
+
+        it('reverts if threshold is set below minimum threshold', async () => {
+            await expect(
+                dlcManager.connect(deployer).setThreshold(0)
+            ).to.be.revertedWithCustomError(dlcManager, 'ThresholdTooLow');
+        });
+
+        it('emits a SetThreshold event with the correct data', async () => {
+            const tx = await dlcManager.connect(deployer).setThreshold(4);
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+
+            expect(event.event).to.equal('SetThreshold');
+            expect(event.args.newThreshold).to.equal(4);
+        });
+
+        it('updates the threshold correctly', async () => {
+            await dlcManager.connect(deployer).setThreshold(4);
+            const newThreshold = await dlcManager.getThreshold();
+            expect(newThreshold).to.equal(4);
+        });
+    });
+
+    describe('removeApprovedSigner', async () => {
+        it('reverts if called by a non-admin', async () => {
+            await expect(
+                dlcManager.connect(user).removeApprovedSigner(attestor1.address)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
+        });
+        it('reverts if trying to remove a non-approved signer', async () => {
+            await expect(
+                dlcManager
+                    .connect(deployer)
+                    .removeApprovedSigner(attestor1.address)
+            ).to.be.revertedWithCustomError(dlcManager, 'SignerNotApproved');
+        });
+        it('reverts if it would decrese below threshold', async () => {
+            await setSigners(dlcManager, attestors);
+            await expect(
+                dlcManager
+                    .connect(deployer)
+                    .removeApprovedSigner(attestor1.address)
+            ).to.be.revertedWithCustomError(
+                dlcManager,
+                'ThresholdMinimumReached'
+            );
+        });
+    });
+
     describe('createDLC', async () => {
         it('reverts if called from a non-whitelisted contract', async () => {
             await expect(
@@ -91,22 +174,8 @@ describe('DLCManager', () => {
             );
         });
 
-        it('reverts if called with a non-whitelisted protocolWallet address', async () => {
-            await dlcManager.grantRole(
-                ethers.utils.id('WHITELISTED_CONTRACT'),
-                mockProtocol.address
-            );
-            await expect(
-                mockProtocol.connect(user).requestCreateDLC(valueLocked)
-            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
-        });
-
         it('emits a CreateDLC event with the correct data', async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -120,20 +189,10 @@ describe('DLCManager', () => {
             expect(decodedEvent.name).to.equal('CreateDLC');
             expect(decodedEvent.args.uuid).to.not.equal(undefined);
             expect(decodedEvent.args.creator).to.equal(user.address);
-            expect(decodedEvent.args.protocolWallet).to.equal(
-                protocolWallet.address
-            );
-            // expect(decodedEvent.args.eventSource).to.equal(
-            //     'dlclink:create-dlc:v2'
-            // );
         });
 
         it('called multiple times generates unique UUIDs', async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -156,14 +215,10 @@ describe('DLCManager', () => {
         });
     });
 
-    describe('setStatusFunded', async () => {
+    describe('getDLC', async () => {
         let uuid;
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -174,48 +229,176 @@ describe('DLCManager', () => {
             uuid = decodedEvent.args.uuid;
         });
 
-        it('reverts if called from a non-whitelisted wallet', async () => {
+        it('reverts if called with a non-existing UUID', async () => {
+            const wrongUUID =
+                '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
             await expect(
-                dlcManager.connect(randomAccount).setStatusFunded(uuid, btcTxId)
-            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
+                dlcManager.getDLC(wrongUUID)
+            ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFound');
         });
 
-        it('reverts if not called from the associated wallet', async () => {
-            await dlcManager.grantRole(
-                ethers.utils.id('WHITELISTED_WALLET'),
-                randomAccount.address
-            );
-
-            await expect(
-                dlcManager.connect(randomAccount).setStatusFunded(uuid, btcTxId)
-            ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
+        it('returns the correct data', async () => {
+            const data = await dlcManager.getDLC(uuid);
+            expect(data.creator).to.equal(user.address);
+            expect(data.valueLocked).to.equal(valueLocked);
         });
+    });
 
-        it('reverts if DLC is not in the right state', async () => {
+    describe('getDLCByIndex', async () => {
+        let uuid;
+        beforeEach(async () => {
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+
             const tx = await mockProtocol
                 .connect(user)
                 .requestCreateDLC(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
-            const newUuid = decodedEvent.args.uuid;
+            uuid = decodedEvent.args.uuid;
+        });
 
-            const tx2 = await dlcManager
-                .connect(protocolWallet)
-                .setStatusFunded(newUuid, btcTxId);
-            await tx2.wait();
+        it('returns 0s if called with a non-existing index', async () => {
+            let dlc = await dlcManager.getDLCByIndex(5);
+            expect(dlc.creator).to.equal(ethers.constants.AddressZero);
+            expect(dlc.valueLocked).to.equal(0);
+            expect(dlc.uuid).to.equal(ethers.constants.HashZero);
+        });
+
+        it('returns the correct data', async () => {
+            const data = await dlcManager.getDLCByIndex(0);
+            expect(data.creator).to.equal(user.address);
+            expect(data.valueLocked).to.equal(valueLocked);
+        });
+    });
+
+    describe('setStatusFunded', async () => {
+        let uuid;
+        beforeEach(async () => {
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+
+            const tx = await mockProtocol
+                .connect(user)
+                .requestCreateDLC(valueLocked);
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+        });
+
+        it('reverts if called without enough signatures', async () => {
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
+                attestors,
+                2
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
+        });
+
+        it('reverts if contains non-approved signer', async () => {
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
+                [...attestors, randomAccount],
+                4
+            );
 
             await expect(
                 dlcManager
-                    .connect(protocolWallet)
-                    .setStatusFunded(newUuid, btcTxId)
+                    .connect(attestor1)
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        });
+
+        it('reverts if DLC is not in the right state', async () => {
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
+                attestors,
+                3
+            );
+
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes);
+            await tx2.wait();
+
+            await mockProtocol.connect(user).requestCloseDLC(uuid);
+
+            const sigs = await getSignatures(
+                { uuid, btcTxId: btcTxId2 },
+                attestors,
+                3
+            );
+
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(uuid, btcTxId2, sigs.signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotReady');
         });
 
+        it('reverts if attestors sign a different UUID', async () => {
+            await setSigners(dlcManager, attestors);
+            const wrongUUID =
+                '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid: wrongUUID, btcTxId },
+                attestors,
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        });
+
+        it('reverts if attestors sign a different btcTxId', async () => {
+            await setSigners(dlcManager, attestors);
+            const wrongBtcTxId =
+                '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId: wrongBtcTxId },
+                attestors,
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        });
+
+        it('reverts if signatures are not unique', async () => {
+            await setSigners(dlcManager, attestors);
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
+                [attestor1, attestor1, attestor1],
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(uuid, btcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
+        });
+
         it('emits a StatusFunded event with the correct data', async () => {
+            await setSigners(dlcManager, attestors);
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
+                attestors,
+                3
+            );
             const tx = await dlcManager
-                .connect(protocolWallet)
-                .setStatusFunded(uuid, btcTxId);
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'SetStatusFunded'
@@ -224,8 +407,6 @@ describe('DLCManager', () => {
             expect(event.event).to.equal('SetStatusFunded');
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.btcTxId).to.equal(btcTxId);
-            expect(event.args.protocolWallet).to.equal(protocolWallet.address);
-            expect(event.args.sender).to.equal(protocolWallet.address);
         });
     });
 
@@ -234,11 +415,7 @@ describe('DLCManager', () => {
         let outcome = 10000;
 
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -248,14 +425,20 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
 
+            await setSigners(dlcManager, attestors);
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
+                attestors,
+                3
+            );
             await dlcManager
-                .connect(protocolWallet)
-                .setStatusFunded(uuid, btcTxId);
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes);
         });
 
         it('reverts if not called by the creator contract', async () => {
             await expect(
-                dlcManager.connect(randomAccount).closeDLC(uuid, outcome)
+                dlcManager.connect(randomAccount).closeDLC(uuid)
             ).to.be.revertedWithCustomError(dlcManager, 'NotCreatorContract');
         });
 
@@ -269,14 +452,12 @@ describe('DLCManager', () => {
             const newUuid = decodedEvent.args.uuid;
 
             await expect(
-                mockProtocol.connect(protocol).requestCloseDLC(newUuid, outcome)
+                mockProtocol.connect(protocol).requestCloseDLC(newUuid)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFunded');
         });
 
         it('emits a CloseDLC event with the correct data', async () => {
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCloseDLC(uuid, outcome);
+            const tx = await mockProtocol.connect(user).requestCloseDLC(uuid);
             const receipt = await tx.wait();
             const event = receipt.events[0];
 
@@ -284,24 +465,16 @@ describe('DLCManager', () => {
 
             expect(decodedEvent.name).to.equal('CloseDLC');
             expect(decodedEvent.args.uuid).to.equal(uuid);
-            expect(decodedEvent.args.outcome).to.equal(outcome);
-            expect(decodedEvent.args.protocolWallet).to.equal(
-                protocolWallet.address
-            );
             expect(decodedEvent.args.sender).to.equal(mockProtocol.address);
         });
     });
 
     describe('postCloseDLC', async () => {
         let uuid;
-        let outcome = 10000;
+        const closingBtcTxId = '0x1234567890123';
 
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(
-                dlcManager,
-                mockProtocol,
-                protocolWallet
-            );
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
 
             const tx = await mockProtocol
                 .connect(user)
@@ -311,31 +484,20 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
 
+            await setSigners(dlcManager, attestors);
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
+                attestors,
+                3
+            );
             const tx3 = await dlcManager
-                .connect(protocolWallet)
-                .setStatusFunded(uuid, btcTxId);
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes);
             await tx3.wait();
             const tx4 = await mockProtocol
                 .connect(protocol)
-                .requestCloseDLC(uuid, outcome);
+                .requestCloseDLC(uuid);
             await tx4.wait();
-        });
-
-        it('reverts if called from a non-whitelisted wallet', async () => {
-            await expect(
-                dlcManager.connect(randomAccount).postCloseDLC(uuid, btcTxId)
-            ).to.be.revertedWithCustomError(dlcManager, 'WalletNotWhitelisted');
-        });
-
-        it('reverts if not called from the associated wallet', async () => {
-            await dlcManager.grantRole(
-                ethers.utils.id('WHITELISTED_WALLET'),
-                randomAccount.address
-            );
-
-            await expect(
-                dlcManager.connect(randomAccount).postCloseDLC(uuid, btcTxId)
-            ).to.be.revertedWithCustomError(dlcManager, 'UnathorizedWallet');
         });
 
         it('reverts if DLC is not in the right state', async () => {
@@ -347,17 +509,71 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             const newUuid = decodedEvent.args.uuid;
 
+            await setSigners(dlcManager, attestors);
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid: newUuid, btcTxId: closingBtcTxId },
+                attestors,
+                3
+            );
             await expect(
                 dlcManager
-                    .connect(protocolWallet)
-                    .postCloseDLC(newUuid, btcTxId)
+                    .connect(attestor1)
+                    .postCloseDLC(newUuid, closingBtcTxId, signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotClosing');
         });
 
+        it('reverts if called without enough signatures', async () => {
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId: closingBtcTxId },
+                attestors,
+                2
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .postCloseDLC(uuid, closingBtcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
+        });
+
+        it('reverts if contains non-approved signer', async () => {
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId: closingBtcTxId },
+                [...attestors, randomAccount],
+                4
+            );
+
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .postCloseDLC(uuid, closingBtcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        });
+
+        it('reverts if attestors sign a different UUID', async () => {
+            const wrongUUID =
+                '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid: wrongUUID, btcTxId: closingBtcTxId },
+                attestors,
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .postCloseDLC(uuid, closingBtcTxId, signatureBytes)
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        });
+
         it('emits a PostCloseDLC event with the correct data', async () => {
+            await setSigners(dlcManager, attestors);
+            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+                { uuid, btcTxId: closingBtcTxId },
+                attestors,
+                3
+            );
             const tx = await dlcManager
-                .connect(protocolWallet)
-                .postCloseDLC(uuid, btcTxId);
+                .connect(attestor1)
+                .postCloseDLC(uuid, closingBtcTxId, signatureBytes);
             const receipt = await tx.wait();
             const event = receipt.events.find(
                 (e) => e.event === 'PostCloseDLC'
@@ -365,10 +581,7 @@ describe('DLCManager', () => {
 
             expect(event.event).to.equal('PostCloseDLC');
             expect(event.args.uuid).to.equal(uuid);
-            expect(event.args.outcome).to.equal(outcome);
-            expect(event.args.btcTxId).to.equal(btcTxId);
-            expect(event.args.protocolWallet).to.equal(protocolWallet.address);
-            expect(event.args.sender).to.equal(protocolWallet.address);
+            expect(event.args.btcTxId).to.equal(closingBtcTxId);
         });
     });
 });

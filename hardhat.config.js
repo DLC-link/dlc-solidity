@@ -13,10 +13,12 @@ require('dotenv').config();
 const url = `https://${process.env.HARDHAT_NETWORK}.infura.io/v3/${process.env.INFURA_PROJECT_ID}`;
 const gasPriceApi = `https://api.arbiscan.io/api?module=proxy&action=eth_gasPrice&apikey=${process.env.ARBISCAN_API_KEY}`;
 
+if (!process.env.KEY_FOR_SAFE) process.env.KEY_FOR_SAFE = process.env.KEY;
+
 module.exports = {
     defaultNetwork: 'hardhat',
     solidity: {
-        version: '0.8.17',
+        version: '0.8.18',
         settings: {
             optimizer: {
                 enabled: true,
@@ -91,17 +93,6 @@ module.exports = {
                 },
             },
         ],
-    },
-    gasReporter: {
-        currency: 'USD',
-        enabled: process.env.REPORT_GAS ? true : false,
-        coinmarketcap: process.env['COINMARKETCAP_API_KEY'],
-        // gasPriceApi: gasPriceApi,
-        // gasPrice: 1,
-    },
-    docgen: {
-        pages: 'files',
-        exclude: ['mocks', 'test', 'examples'],
     },
     gasReporter: {
         currency: 'USD',

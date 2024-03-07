@@ -1,7 +1,7 @@
 {
   "network": "localhost",
-  "updatedAt": "2023-11-27T17:56:58.803Z",
-  "gitSHA": "760c270",
+  "updatedAt": "2024-03-05T09:08:39.853Z",
+  "gitSHA": "103a1cb",
   "contract": {
     "name": "DLCBTC",
     "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
