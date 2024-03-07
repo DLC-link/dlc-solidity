@@ -66,9 +66,6 @@ contract TokenManager is
     mapping(address => bytes32[]) public userVaults;
     mapping(address => bool) private _whitelistedAddresses;
 
-    // NOTE: TODO: Remove this for production
-    bytes32[] public allVaults;
-
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
     ////////////////////////////////////////////////////////////////
@@ -228,9 +225,6 @@ contract TokenManager is
         );
 
         userVaults[msg.sender].push(_uuid);
-
-        // NOTE: TODO: Remove this for production
-        allVaults.push(_uuid);
 
         emit SetupVault(_uuid, btcDeposit, msg.sender);
 
@@ -408,18 +402,5 @@ contract TokenManager is
 
     function unpauseContract() external onlyPauser {
         _unpause();
-    }
-
-    // NOTE: TODO: These are dev functions to burn all tokens in the token contract
-    // Not to be deployed in production
-    function burnAllUserTokens() external onlyDLCAdmin {
-        for (uint256 i = 0; i < allVaults.length; i++) {
-            DLCLink.DLC memory dlc = dlcManager.getDLC(allVaults[i]);
-            _burnTokens(dlc.creator, dlc.valueLocked);
-        }
-    }
-
-    function burnUserTokens(address userAddress) external onlyDLCAdmin {
-        _burnTokens(userAddress, dlcBTC.balanceOf(userAddress));
     }
 }

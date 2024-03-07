@@ -224,7 +224,19 @@ describe('TokenManager', function () {
             expect(vault.fundingTxId).to.equal('');
             expect(vault.closingTxId).to.equal('');
         });
-        xit('emits the correct event', async () => {});
+        it('emits the correct event', async () => {
+            await tokenManager.connect(deployer).whitelistAddress(user.address);
+            const tx = await tokenManager.connect(user).setupVault(deposit);
+            const receipt = await tx.wait();
+            const event = receipt.events.find(
+                (ev) => ev.event === 'SetupVault'
+            );
+            expect(event.args).to.eql([
+                mockUUID,
+                BigNumber.from(deposit),
+                user.address,
+            ]);
+        });
     });
 
     describe('setStatusFunded', async () => {
@@ -351,31 +363,31 @@ describe('TokenManager', function () {
         });
     });
 
-    describe('BurnAllTokens dev function', async () => {
-        it('burns all tokens', async () => {
-            await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager.connect(user).setupVault(deposit);
-            await tx.wait();
-            const tx2 = await mockDLCManager.setStatusFunded(
-                mockUUID,
-                'someTx',
-                mockSigs
-            );
-            await tx2.wait();
+    // describe('BurnAllTokens dev function', async () => {
+    //     it('burns all tokens', async () => {
+    //         await tokenManager.connect(deployer).whitelistAddress(user.address);
+    //         const tx = await tokenManager.connect(user).setupVault(deposit);
+    //         await tx.wait();
+    //         const tx2 = await mockDLCManager.setStatusFunded(
+    //             mockUUID,
+    //             'someTx',
+    //             mockSigs
+    //         );
+    //         await tx2.wait();
 
-            const tx3 = await tokenManager.connect(user).setupVault(deposit);
-            await tx3.wait();
-            const tx4 = await mockDLCManager.setStatusFunded(
-                mockUUID1,
-                'someOtherTx',
-                mockSigs
-            );
-            await tx4.wait();
+    //         const tx3 = await tokenManager.connect(user).setupVault(deposit);
+    //         await tx3.wait();
+    //         const tx4 = await mockDLCManager.setStatusFunded(
+    //             mockUUID1,
+    //             'someOtherTx',
+    //             mockSigs
+    //         );
+    //         await tx4.wait();
 
-            expect(await dlcBtc.totalSupply()).to.equal(deposit * 2);
+    //         expect(await dlcBtc.totalSupply()).to.equal(deposit * 2);
 
-            await tokenManager.connect(deployer).burnAllUserTokens();
-            expect(await dlcBtc.totalSupply()).to.equal(0);
-        });
-    });
+    //         await tokenManager.connect(deployer).burnAllUserTokens();
+    //         expect(await dlcBtc.totalSupply()).to.equal(0);
+    //     });
+    // });
 });

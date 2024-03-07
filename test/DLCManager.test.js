@@ -50,6 +50,7 @@ describe('DLCManager', () => {
 
     const valueLocked = 100000000; // 1 BTC
     const btcTxId = '0x1234567890';
+    const btcTxId2 = '0x1234567891';
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -287,7 +288,7 @@ describe('DLCManager', () => {
 
         it('reverts if called without enough signatures', async () => {
             await setSigners(dlcManager, attestors);
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+            const { signatureBytes } = await getSignatures(
                 { uuid, btcTxId },
                 attestors,
                 2
@@ -301,7 +302,7 @@ describe('DLCManager', () => {
 
         it('reverts if contains non-approved signer', async () => {
             await setSigners(dlcManager, attestors);
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
+            const { signatureBytes } = await getSignatures(
                 { uuid, btcTxId },
                 [...attestors, randomAccount],
                 4
@@ -314,39 +315,31 @@ describe('DLCManager', () => {
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
-        // NOTE: TODO: it actually reverts with duplicate signature this way
-        xit('reverts if DLC is not in the right state', async () => {
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
-            const receipt = await tx.wait();
-            const event = receipt.events[0];
-            const decodedEvent = dlcManager.interface.parseLog(event);
-            const newUuid = decodedEvent.args.uuid;
-
+        it('reverts if DLC is not in the right state', async () => {
             await setSigners(dlcManager, attestors);
-
-            const { prefixedMessage, signatureBytes } = await getSignatures(
-                newUuid,
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId },
                 attestors,
                 3
             );
 
-            const tx2 = await dlcManager.setStatusFunded(
-                newUuid,
-                btcTxId,
-                prefixedMessage,
-                signatureBytes
-            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes);
             await tx2.wait();
 
+            await mockProtocol.connect(user).requestCloseDLC(uuid);
+
+            const sigs = await getSignatures(
+                { uuid, btcTxId: btcTxId2 },
+                attestors,
+                3
+            );
+
             await expect(
-                dlcManager.setStatusFunded(
-                    newUuid,
-                    btcTxId,
-                    prefixedMessage,
-                    signatureBytes
-                )
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(uuid, btcTxId2, sigs.signatureBytes)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotReady');
         });
 
