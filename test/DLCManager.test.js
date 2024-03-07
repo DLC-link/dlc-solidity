@@ -152,7 +152,7 @@ describe('DLCManager', () => {
             ).to.be.revertedWithCustomError(dlcManager, 'SignerNotApproved');
         });
         it('reverts if it would decrese below threshold', async () => {
-            await setSigners(dlcManager, attestors);
+            await setSigners(dlcManager, [attestor1, attestor2]);
             await expect(
                 dlcManager
                     .connect(deployer)
@@ -291,7 +291,7 @@ describe('DLCManager', () => {
             const { signatureBytes } = await getSignatures(
                 { uuid, btcTxId },
                 attestors,
-                2
+                1
             );
             await expect(
                 dlcManager
@@ -526,7 +526,7 @@ describe('DLCManager', () => {
             const { prefixedMessageHash, signatureBytes } = await getSignatures(
                 { uuid, btcTxId: closingBtcTxId },
                 attestors,
-                2
+                1
             );
             await expect(
                 dlcManager
