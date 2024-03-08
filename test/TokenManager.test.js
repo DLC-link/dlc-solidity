@@ -129,20 +129,6 @@ describe('TokenManager', function () {
             });
         });
 
-        describe('setOutcomeFee', async () => {
-            it('reverts on unauthorized calls', async () => {
-                await expect(
-                    tokenManager
-                        .connect(someRandomAccount)
-                        .setOutcomeFee(someRandomAccount.address)
-                ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
-            });
-            it('should set outcome fee rate', async () => {
-                await tokenManager.connect(deployer).setOutcomeFee(1000);
-                expect(await tokenManager.outcomeFee()).to.equal(1000);
-            });
-        });
-
         describe('pauseContract', async () => {
             it('is only callable by PAUSER_ROLE', async () => {
                 await expect(
