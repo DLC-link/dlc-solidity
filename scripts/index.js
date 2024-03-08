@@ -86,7 +86,7 @@ async function main() {
         .argument(
             '[grantRoleToAddress]',
             'the recipient of the role',
-            process.env.ADMIN_ADDRESS
+            '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9'
         )
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(addRoleToManager);

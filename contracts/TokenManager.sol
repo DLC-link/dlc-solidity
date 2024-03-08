@@ -27,7 +27,7 @@ import "./DLCLinkLibrary.sol";
  * @dev     It is upgradable through the OpenZeppelin proxy pattern
  * @dev     Launched with Whitelisted useraddresses enabled first
  * @dev     It is extendable to allow taking fees during vault creation and/or during DLC closing.
- * @dev     It is governed by the DLC_ADMIN_ROLE, a multisig
+ * @dev     It is governed by the DLC_ADMIN_ROLE, a multisig wallet
  * @custom:contact robert@dlc.link
  * @custom:website https://www.dlc.link
  */
@@ -58,7 +58,6 @@ contract TokenManager is
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
     uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
-    uint256 public outcomeFee; // in basis points (10000 = 100%) -- BTC
     uint256 public btcMintFeeRate; // in basis points (100 = 1%) -- BTC
     uint256 public btcRedeemFeeRate; // in basis points (100 = 1%) -- BTC
     bool public whitelistingEnabled;
@@ -117,11 +116,9 @@ contract TokenManager is
         _grantRole(PAUSER_ROLE, adminAddress);
         dlcManager = IDLCManager(dlcManagerAddress);
         dlcBTC = tokenContract;
-        // NOTE:
         minimumDeposit = 1000; // 0.00001 BTC
         maximumDeposit = 1e9; // 10 BTC
         mintFeeRate = 0; // 0% dlcBTC fee for now
-        outcomeFee = 0; // 0% BTC bias for now
         whitelistingEnabled = true;
         btcMintFeeRate = 100; // 1% BTC fee for now
         btcRedeemFeeRate = 100; // 1% BTC fee for now
@@ -154,7 +151,6 @@ contract TokenManager is
     event SetMinimumDeposit(uint256 newMinimumDeposit);
     event SetMaximumDeposit(uint256 newMaximumDeposit);
     event SetMintFeeRate(uint256 newMintFeeRate);
-    event SetOutcomeFee(uint256 newOutcomeFee);
     event SetBtcMintFeeRate(uint256 newBtcMintFeeRate);
     event SetBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate);
     event SetBtcFeeRecipient(string btcFeeRecipient);
@@ -177,16 +173,6 @@ contract TokenManager is
         uint256 amount
     ) internal view returns (uint256) {
         return (amount * (10000 - mintFeeRate)) / 10000;
-    }
-
-    /**
-     * @notice  Outcome is the number signed by the Attestors
-     * @dev     0 means all back to depositor, 10000 all to counterparty
-     * @dev     Currently we don't take any fees on outcome but the option is there
-     * @return  uint256  outcome
-     */
-    function _calculateOutcome() internal view returns (uint256) {
-        return 0 + outcomeFee;
     }
 
     function _mintTokens(address to, uint256 amount) internal {
@@ -262,7 +248,6 @@ contract TokenManager is
             );
 
         _burnTokens(dlc.creator, dlc.valueLocked);
-        // uint256 outcome = _calculateOutcome();
 
         dlcManager.closeDLC(uuid);
         emit CloseVault(uuid, msg.sender);
@@ -307,10 +292,6 @@ contract TokenManager is
         return _getFeeAdjustedAmount(amount);
     }
 
-    function previewCalculateOutcome() public view returns (uint256) {
-        return _calculateOutcome();
-    }
-
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -346,11 +327,6 @@ contract TokenManager is
     function setMintFeeRate(uint256 newMintFeeRate) external onlyDLCAdmin {
         mintFeeRate = newMintFeeRate;
         emit SetMintFeeRate(newMintFeeRate);
-    }
-
-    function setOutcomeFee(uint256 newOutcomeFee) external onlyDLCAdmin {
-        outcomeFee = newOutcomeFee;
-        emit SetOutcomeFee(newOutcomeFee);
     }
 
     function setBtcMintFeeRate(

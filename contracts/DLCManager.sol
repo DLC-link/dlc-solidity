@@ -60,7 +60,6 @@ contract DLCManager is
     error NotDLCAdmin();
     error ContractNotWhitelisted();
     error NotCreatorContract();
-    error WrongDLCState();
     error DLCNotFound();
     error DLCNotReady();
     error DLCNotFunded();
@@ -108,7 +107,6 @@ contract DLCManager is
         _grantRole(DLC_ADMIN_ROLE, adminAddress);
         _threshold = threshold;
         _index = 0;
-        // NOTE:
         _minimumThreshold = 2;
     }
 
@@ -151,6 +149,13 @@ contract DLCManager is
             );
     }
 
+    /**
+     * @notice  Checks the 'signatures' of Attestors for a given 'message'.
+     * @dev     Recalculates the hash to make sure the signatures are for the same message.
+     * @dev     Uses OpenZeppelin's ECDSA library to recover the public keys from the signatures.
+     * @param   message  Original message that was signed.
+     * @param   signatures  Byte array of at least 'threshold' number of signatures.
+     */
     function _attestorMultisigIsValid(
         bytes memory message,
         bytes[] memory signatures

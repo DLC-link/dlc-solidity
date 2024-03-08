@@ -10,27 +10,49 @@ Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) 
 
 ## Overview
 
-A DLC is a contract on Bitcoin that enables users to move/lock Bitcoin conditionally. The possible outcomes of a DLC are predefined in 'Announcements' made by the DLC.Link Attestor Layer. An Announcement can then be used to lock bitcoin on the Bitcoin network, and actions regarding this can be taken on an EVM blockchain. The outcome - that is, the value that will be 'attested' to - is supplied by smart contracts too.
+A DLC is a contract on Bitcoin that enables users to move/lock Bitcoin conditionally. The possible outcomes of a DLC are predefined and stored by the DLC.Link Attestor Layer. Bitcoin locked in such a way can be represented then on any EVM chain using these smart contracts. The outcome - that is, the value that will be 'attested' to - is supplied by smart contracts too.
 
-This way, any EVM chain can essentially move native Bitcoin in a safe, "bridgeless" way. Ethereum can leverage the power of DLCs, and the trustless Attestor Layer that DLC.Link provides.
+This way, any EVM chain can essentially move native Bitcoin in a safe, "bridgeless" way. Ethereum can leverage the power of DLCs and the trustless Attestor Layer that DLC.Link provides.
 
 Learn more about the whole architecture on the documentation site here:
 https://docs.dlc.link/architecture/tech-stack
 
-# Dev notes:
+# Dev notes
 
-Create a `.env` based on the `.env.template` fields.
-Be sure to set the correct `HARDHAT_NETWORK` for the scripts to work properly. (Set 'localhost' when using hardhat).
+## Testing
 
-To start local hardhat node:
+### Run unit tests
 
-```bash
-npx hardhat node
+---
+
+```
+npm run test
+```
+
+\*optionally, `REPORT_GAS=true npm run test` to see gas usage.
+
+Modify the `hardhat.config.js` for more testing / deployment options.
+
+### See test coverage
+
+```
+npm run coverage
+```
+
+### Static analysis using Slither
+
+In the root folder, run:
+
+```
+npm run analyze
 ```
 
 ## Scripts
 
 In the `scripts` directory you will find various helper scripts.
+
+Create a `.env` based on the `.env.template` fields.
+Be sure to set the correct `HARDHAT_NETWORK` for the scripts to work properly. (Set 'localhost' when using hardhat).
 
 The easiest way to use them is by running the package:
 
@@ -43,37 +65,19 @@ dlc-link-eth --help
 dlc-link-eth contract-admin
 ```
 
-Note that properly testing the entire DLC creation flow requires more of the DLC.Link infrastructure running -- but contract-integration can still be tested thoroughly and easily:
+To start a local hardhat node to test against:
 
-## Testing
-
-### With Hardhat
-
----
-
-```
-npm run test
+```bash
+npx hardhat node
 ```
 
-\*optionally, `REPORT_GAS=true npm run test` to see gas usage.
-
-Modify the `hardhat.config.js` for more testing / deployment options.
-
-### Coverage using hardhat-coverage
-
-```
-npm run coverage
-```
-
-### Static Analysis using Slither
-
-In the root folder, run:
-
-```
-npm run analyze
-```
+Note that properly testing the entire DLC creation flow requires more of the DLC.Link infrastructure running -- but contract-integration can still be tested thoroughly and easily using the [testing framework](https://github.com/DLC-link/dlc-solidity#Testing).
 
 # Getting Started
+
+## Examples
+
+See our [Token Manager contract](./contracts/TokenManager.sol) for an example integration into our core functionality.
 
 ## Import and Setup
 
@@ -95,16 +99,15 @@ DLCManager _dlcManager = DLCManager(publcDLCManagerContractAddress);
 
 ## Opening a DLC
 
-When you register a DLC with this contract using the `createDLC` function, a DLC Announcement is created on the Bitcoin Attestor Layer (DLC Oracles).
-
-`refundDelay` is the amount of time in seconds to wait from the maturation of the DLC announcement until the DLC can be refunded on Bitcoin. Setting this value to 0 will essentially disable this functionality (setting it to a very long time into the future).
-
-With the announcement hash, you are now able to set up the DLC between the two participants on Bitcoin (users, user/protocol, etc.) This is done via a DLC-enabled BTC wallet. See the section on leveraging DLC-enabled BTC wallets here to learn more: https://docs.dlc.link/architecture/installation-and-setup/bitcoin-wallets
+When you register a DLC with this contract using the `createDLC` function, a DLC object is created with the core information locked for the lifetime of the DLC.
 
 ```solidity
-// createDLC: Creates the DLC in the DLC Manager contract, as well as in the Oracle network.
-//
-bytes32 dlcUUID = _dlcManager.createDLC(address _protocolWallet, uint256 _valueLocked, uint256 refundDelay);
+bytes32 dlcUUID = _dlcManager.createDLC(
+            valueLocked       // The amount of BTC to lock
+            btcFeeRecipient,  // The address that will receive the fees
+            btcMintFeeRate,   // The fee rate for minting the DLC
+            btcRedeemFeeRate  // The fee rate for redeeming the DLC
+          );
 ```
 
 ## Overrides
@@ -123,18 +126,13 @@ function postCloseDLCHandler(bytes32 uuid, string btcTxId) external;
 
 ## Closing the DLC
 
-Finally, the contract can call close on the DLCManager with the UUID of the contract to create the DLC attestation and close the Bitcoin contract. At this point, the funds will get sent out of the Bitcoin contract and sent back to the participants' BTC wallets in the ratio set in the close function.
+Finally, the contract can call close on the DLCManager with the UUID of the contract to create the DLC attestation and close the Bitcoin contract. At this point, the funds will get sent out of the Bitcoin contract and sent back to the user's BTC wallet.
 
 ```solidity
-// Close the DLC, which sends the collateral out of the Bitcoin DLC at the given ratio.
-//
-// @parameters
-// outcome: Number between 0 and 10000 representing the % of bitcoin paid out from the DLC to the original participants (two decimals precision)
-//              0 means the user gets all the collateral, 100.00 means this contract gets all the collateral.
- _dlcManager.closeDLC(dlcUUID, outcome);
+ _dlcManager.closeDLC(dlcUUID);
 
  // Overwrite this function to complete the close DLC logic
-function postCloseDLCHandler(bytes32 uuid) external;
+function postCloseDLCHandler(bytes32 uuid, string btcTxId) external;
 ```
 
 # Contributing
@@ -148,11 +146,26 @@ For reference, you can find samples of the deployed contract by checking the dep
 Add a `.env` file with the following fields:
 
 ```bash
-NODE_URL="https://goerli.infura.io/v3/<PROJECT_ID>" # needed for deploying
-INFURA_PROJECT_ID="<PROJECT_ID>" # needed for deploying
-KEY="<ETH_PRIVATE_KEY>" # needed for deploying
-ETHERSCAN_API_KEY="<ETHERSCAN_API_KEY>" # only needed for submitting the contract to etherscan
-HARDHAT_NETWORK=goerli # set network as needed
+# Infura key
+INFURA_PROJECT_ID=
+# Deployer private key
+KEY=
+# optional
+KEY2=
+# optional
+KEY3=
+# Etherscan API KEY (optional)
+# only needed for submitting the contract to etherscan
+ETHERSCAN_API_KEY=
+# Network to use e.g. localhost(for hardhat)/goerli/sepolia/mainnet
+HARDHAT_NETWORK=
+# Coinmarketcap API KEY (optional, for gas calculations)
+COINMARKETCAP_API_KEY=
+# Report gas usage after test run (optional) boolean
+REPORT_GAS=
+# SAFE key signer (optional)
+KEY_FOR_SAFE=
+
 ```
 
 # What Are DLCs
