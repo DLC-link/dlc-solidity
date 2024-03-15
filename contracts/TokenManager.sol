@@ -116,8 +116,8 @@ contract TokenManager is
         _grantRole(PAUSER_ROLE, adminAddress);
         dlcManager = IDLCManager(dlcManagerAddress);
         dlcBTC = tokenContract;
-        minimumDeposit = 1000; // 0.00001 BTC
-        maximumDeposit = 1e9; // 10 BTC
+        minimumDeposit = 100000; // 0.001 BTC
+        maximumDeposit = 1e8; // 1 BTC
         mintFeeRate = 0; // 0% dlcBTC fee for now
         whitelistingEnabled = true;
         btcMintFeeRate = 100; // 1% BTC fee for now
