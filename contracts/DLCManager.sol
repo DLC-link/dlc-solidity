@@ -52,6 +52,7 @@ contract DLCManager is
     mapping(address => bool) private _approvedSigners;
     uint16 private _signerCount;
     mapping(bytes32 => uint256) private _signatureCounts;
+    bytes32 public tssCommitment;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -108,6 +109,7 @@ contract DLCManager is
         _threshold = threshold;
         _index = 0;
         _minimumThreshold = 2;
+        tssCommitment = 0x0;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -374,5 +376,9 @@ contract DLCManager is
         if (!_approvedSigners[signer]) revert SignerNotApproved(signer);
         _approvedSigners[signer] = false;
         _signerCount--;
+    }
+
+    function setTSSCommitment(bytes32 commitment) external onlyAdmin {
+        tssCommitment = commitment;
     }
 }

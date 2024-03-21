@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const hardhat = require('hardhat');
+const crypto = require('crypto');
 
 async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
     await dlcManager.grantRole(
@@ -161,6 +162,22 @@ describe('DLCManager', () => {
                 dlcManager,
                 'ThresholdMinimumReached'
             );
+        });
+    });
+
+    describe('tssCommitment', async () => {
+        it('is settable', async () => {
+            // we have an original identifier
+            const secretIdentifier = crypto.randomBytes(32);
+            // we hash it
+            const hashedIdentifier = ethers.utils.keccak256(secretIdentifier);
+            // we set the commitment
+            await dlcManager
+                .connect(deployer)
+                .setTSSCommitment(hashedIdentifier);
+
+            const commitment = await dlcManager.tssCommitment();
+            expect(commitment).to.equal(hashedIdentifier);
         });
     });
 
