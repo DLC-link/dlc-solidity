@@ -1,7 +1,7 @@
 {
   "network": "localhost",
-  "updatedAt": "2024-03-05T09:08:39.853Z",
-  "gitSHA": "103a1cb",
+  "updatedAt": "2024-03-21T18:27:00.744Z",
+  "gitSHA": "9f3e3ac",
   "contract": {
     "name": "DLCBTC",
     "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
@@ -14,11 +14,11 @@
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)",
       "function balanceOf(address account) view returns (uint256)",
-      "function burn(address _from, uint256 _amount)",
+      "function burn(address from, uint256 amount)",
       "function decimals() view returns (uint8)",
       "function decreaseAllowance(address spender, uint256 subtractedValue) returns (bool)",
       "function increaseAllowance(address spender, uint256 addedValue) returns (bool)",
-      "function mint(address _to, uint256 _amount)",
+      "function mint(address to, uint256 amount)",
       "function name() view returns (string)",
       "function owner() view returns (address)",
       "function renounceOwnership()",

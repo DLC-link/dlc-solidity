@@ -11,6 +11,7 @@ const registerProtocol = require('./04-register-protocol');
 const addSigner = require('./05-add-signer');
 const removeSigner = require('./06-remove-signer');
 const setThreshold = require('./07-set-threshold');
+const setTSSCommitment = require('./08-set-tss-commitment');
 
 // TokenManager
 const whitelistAccount = require('./10_whitelist-account');
@@ -118,6 +119,17 @@ async function main() {
         .argument('<threshold>', 'threshold')
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(setThreshold);
+
+    program
+        .command('set-tss-commitment')
+        .description('[admin] set TSS commitment')
+        .argument(
+            '[secretIdentifier]',
+            'secret identifier to use for commitment',
+            null
+        )
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(setTSSCommitment);
 
     program
         .command('whitelist-account')
