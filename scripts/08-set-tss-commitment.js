@@ -22,14 +22,19 @@ module.exports = async function setTSSCommitment(secretIdentifier, version) {
         admin
     );
 
+    let secretIdentifierBytes;
     if (secretIdentifier == null) {
-        secretIdentifier = ethers.utils.randomBytes(32);
+        secretIdentifierBytes = ethers.utils.randomBytes(32);
+    } else {
+        secretIdentifierBytes = ethers.utils.toUtf8Bytes(secretIdentifier);
     }
-    const commitment = ethers.utils.keccak256(secretIdentifier);
+
     console.log(
         'Setting TSS commitment with secret identifier: ',
-        secretIdentifier.toString()
+        secretIdentifier
     );
+
+    const commitment = ethers.utils.keccak256(secretIdentifierBytes);
     console.log('Commitment: ', commitment.toString());
 
     if (

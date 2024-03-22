@@ -1,10 +1,10 @@
 {
   "network": "sepolia",
-  "updatedAt": "2024-03-07T15:28:04.911Z",
-  "gitSHA": "6ceca94",
+  "updatedAt": "2024-03-22T13:34:51.507Z",
+  "gitSHA": "9f3e3ac",
   "contract": {
     "name": "DLCManager",
-    "address": "0x17c81cd6d76Aef163FB4C46ec59D6C1e4Aa13C86",
+    "address": "0xEcE9dC128bf3338FBD03406CD94C25bc6980cEd5",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
@@ -22,7 +22,6 @@
       "error ThresholdMinimumReached(uint16 _minimumThreshold)",
       "error ThresholdTooLow(uint16 _minimumThreshold)",
       "error Unauthorized()",
-      "error WrongDLCState()",
       "event CloseDLC(bytes32 uuid, address sender)",
       "event CreateDLC(bytes32 uuid, uint256 valueLocked, address protocolContract, address creator, uint256 timestamp)",
       "event DefaultAdminDelayChangeCanceled()",
@@ -72,8 +71,10 @@
       "function revokeRole(bytes32 role, address account)",
       "function rollbackDefaultAdminDelay()",
       "function setStatusFunded(bytes32 uuid, string btcTxId, bytes[] signatures)",
+      "function setTSSCommitment(bytes32 commitment)",
       "function setThreshold(uint16 newThreshold)",
       "function supportsInterface(bytes4 interfaceId) view returns (bool)",
+      "function tssCommitment() view returns (bytes32)",
       "function unpauseContract()"
     ]
   }
