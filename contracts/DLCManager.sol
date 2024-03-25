@@ -152,7 +152,12 @@ contract DLCManager is
     ) private view returns (bytes32) {
         return
             keccak256(
-                abi.encodePacked(sender, nonce, blockhash(block.number - 1))
+                abi.encodePacked(
+                    sender,
+                    nonce,
+                    blockhash(block.number - 1),
+                    block.chainid
+                )
             );
     }
 
