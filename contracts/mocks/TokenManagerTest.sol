@@ -65,6 +65,8 @@ contract TokenManagerV2Test is
 
     mapping(address => bytes32[]) public userVaults;
     mapping(address => bool) private _whitelistedAddresses;
+    uint256 someNewVar;
+    uint256[49] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //

@@ -54,6 +54,7 @@ contract DLCManager is
     uint16 private _signerCount;
     mapping(bytes32 => uint256) private _signatureCounts;
     bytes32 public tssCommitment;
+    uint256[50] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //

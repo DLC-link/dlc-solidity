@@ -65,6 +65,7 @@ contract TokenManager is
 
     mapping(address => bytes32[]) public userVaults;
     mapping(address => bool) private _whitelistedAddresses;
+    uint256[50] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
