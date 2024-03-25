@@ -55,6 +55,7 @@ contract TokenManager is
     DLCBTC public dlcBTC; // dlcBTC contract
     IDLCManager public dlcManager; // DLCManager contract
     string private _btcFeeRecipient; // BTC address to send fees to
+    address public feeRecipient; // address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
     uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
@@ -119,6 +120,7 @@ contract TokenManager is
         minimumDeposit = 1000; // 0.00001 BTC
         maximumDeposit = 1e9; // 10 BTC
         mintFeeRate = 0; // 0% dlcBTC fee for now
+        feeRecipient = adminAddress; // default to admin address
         whitelistingEnabled = true;
         btcMintFeeRate = 100; // 1% BTC fee for now
         btcRedeemFeeRate = 100; // 1% BTC fee for now
@@ -151,6 +153,7 @@ contract TokenManager is
     event SetMinimumDeposit(uint256 newMinimumDeposit);
     event SetMaximumDeposit(uint256 newMaximumDeposit);
     event SetMintFeeRate(uint256 newMintFeeRate);
+    event SetFeeRecipient(address newFeeRecipient);
     event SetBtcMintFeeRate(uint256 newBtcMintFeeRate);
     event SetBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate);
     event SetBtcFeeRecipient(string btcFeeRecipient);
@@ -227,8 +230,14 @@ contract TokenManager is
         string calldata btcTxId
     ) external override whenNotPaused onlyDLCManagerContract {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        uint256 _feeAdjustedAmount = _getFeeAdjustedAmount(dlc.valueLocked);
 
-        _mintTokens(dlc.creator, _getFeeAdjustedAmount(dlc.valueLocked));
+        if (mintFeeRate > 0) {
+            uint256 _fee = dlc.valueLocked - _feeAdjustedAmount;
+            _mintTokens(feeRecipient, _fee);
+        }
+
+        _mintTokens(dlc.creator, _feeAdjustedAmount);
         emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
@@ -327,6 +336,11 @@ contract TokenManager is
     function setMintFeeRate(uint256 newMintFeeRate) external onlyDLCAdmin {
         mintFeeRate = newMintFeeRate;
         emit SetMintFeeRate(newMintFeeRate);
+    }
+
+    function setFeeRecipient(address newFeeRecipient) external onlyDLCAdmin {
+        feeRecipient = newFeeRecipient;
+        emit SetFeeRecipient(newFeeRecipient);
     }
 
     function setBtcMintFeeRate(
