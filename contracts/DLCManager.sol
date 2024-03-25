@@ -76,6 +76,8 @@ contract DLCManager is
     error DuplicateSignature();
     error SignerNotApproved(address signer);
 
+    error InvalidRange();
+
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
     ////////////////////////////////////////////////////////////////
@@ -333,10 +335,16 @@ contract DLCManager is
         return dlcs[index];
     }
 
-    function getFundedTxIds() public view returns (string[] memory) {
-        string[] memory _fundedTxIds = new string[](_index);
+    function getFundedTxIds(
+        uint256 startIndex,
+        uint256 endIndex
+    ) public view returns (string[] memory) {
+        if (startIndex >= endIndex) revert InvalidRange();
+        if (endIndex > _index) revert InvalidRange();
+        uint256 _indexRange = endIndex - startIndex;
+        string[] memory _fundedTxIds = new string[](_indexRange);
         uint256 _fundedTxIdsCount = 0;
-        for (uint256 i = 0; i < _index; i++) {
+        for (uint256 i = startIndex; i < endIndex; i++) {
             if (dlcs[i].status == DLCLink.DLCStatus.FUNDED) {
                 _fundedTxIds[_fundedTxIdsCount] = dlcs[i].fundingTxId;
                 _fundedTxIdsCount++;
