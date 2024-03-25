@@ -42,6 +42,8 @@ contract DLCManager is
         0x2bf88000669ee6f7a648a231f4adbc117f5a8e34f980c08420b9b9a9f2640aa1; // keccak256("DLC_ADMIN_ROLE")
     bytes32 public constant WHITELISTED_CONTRACT =
         0xec26500344858148ae6c4dd068dc3bae426095ee44cdb32b94288d883648f619; // keccak256("WHITELISTED_CONTRACT")
+    bytes32 public constant APPROVED_SIGNER =
+        0xc726b34d4e524d7255dc7e36b5dfca6bd2dcd2891ae8c75d511a7e82da8696e5; // keccak256("APPROVED_SIGNER")
 
     uint256 private _index;
     mapping(uint256 => DLCLink.DLC) public dlcs;
@@ -49,7 +51,6 @@ contract DLCManager is
 
     uint16 private _minimumThreshold;
     uint16 private _threshold;
-    mapping(address => bool) private _approvedSigners;
     uint16 private _signerCount;
     mapping(bytes32 => uint256) private _signatureCounts;
     bytes32 public tssCommitment;
@@ -59,6 +60,7 @@ contract DLCManager is
     ////////////////////////////////////////////////////////////////
 
     error NotDLCAdmin();
+    error IncompatibleRoles();
     error ContractNotWhitelisted();
     error NotCreatorContract();
     error DLCNotFound();
@@ -90,7 +92,7 @@ contract DLCManager is
     }
 
     modifier onlyApprovedSigners() {
-        if (!_approvedSigners[msg.sender]) revert Unauthorized();
+        if (!hasRole(APPROVED_SIGNER, msg.sender)) revert Unauthorized();
         _;
     }
 
@@ -173,7 +175,8 @@ contract DLCManager is
                 prefixedMessageHash,
                 signatures[i]
             );
-            if (!_approvedSigners[attestorPubKey]) revert InvalidSigner();
+            if (!hasRole(APPROVED_SIGNER, attestorPubKey))
+                revert InvalidSigner();
 
             // Prevent a signer from signing the same message multiple times
             bytes32 signedHash = keccak256(
@@ -346,6 +349,34 @@ contract DLCManager is
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
+    function grantRole(
+        bytes32 role,
+        address account
+    ) public override(AccessControlDefaultAdminRulesUpgradeable) {
+        if (
+            (role == WHITELISTED_CONTRACT &&
+                hasRole(APPROVED_SIGNER, account)) ||
+            (role == APPROVED_SIGNER && hasRole(WHITELISTED_CONTRACT, account))
+        ) revert IncompatibleRoles();
+
+        // role based setup ensures that address can only be added once
+        super.grantRole(role, account);
+        if (role == APPROVED_SIGNER) _signerCount++;
+    }
+
+    function revokeRole(
+        bytes32 role,
+        address account
+    ) public override(AccessControlDefaultAdminRulesUpgradeable) {
+        super.revokeRole(role, account);
+
+        if (role == APPROVED_SIGNER) {
+            if (_signerCount == _minimumThreshold)
+                revert ThresholdMinimumReached(_minimumThreshold);
+            _signerCount--;
+        }
+    }
+
     function pauseContract() external onlyAdmin {
         _pause();
     }
@@ -363,19 +394,6 @@ contract DLCManager is
             revert ThresholdTooLow(_minimumThreshold);
         _threshold = newThreshold;
         emit SetThreshold(newThreshold);
-    }
-
-    function addApprovedSigner(address signer) external onlyAdmin {
-        _approvedSigners[signer] = true;
-        _signerCount++;
-    }
-
-    function removeApprovedSigner(address signer) external onlyAdmin {
-        if (_signerCount == _minimumThreshold)
-            revert ThresholdMinimumReached(_minimumThreshold);
-        if (!_approvedSigners[signer]) revert SignerNotApproved(signer);
-        _approvedSigners[signer] = false;
-        _signerCount--;
     }
 
     function setTSSCommitment(bytes32 commitment) external onlyAdmin {

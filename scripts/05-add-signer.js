@@ -27,7 +27,10 @@ module.exports = async function addSigner(signer, version) {
     ) {
         console.log('admin has DEFAULT_ADMIN_ROLE, adding signer');
 
-        await dlcManager.addApprovedSigner(signer);
+        await dlcManager.grantRole(
+            hardhat.ethers.utils.id('APPROVED_SIGNER'),
+            signer
+        );
 
         console.log('Added: ', signer);
     } else {
@@ -37,7 +40,10 @@ module.exports = async function addSigner(signer, version) {
 
         const txRequest = await dlcManager
             .connect(admin)
-            .populateTransaction.addApprovedSigner(signer);
+            .populateTransaction.grantRole(
+                hardhat.ethers.utils.id('APPROVED_SIGNER'),
+                signer
+            );
         await safeContractProposal(txRequest, admin);
     }
 };
