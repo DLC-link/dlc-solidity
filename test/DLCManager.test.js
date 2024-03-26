@@ -532,7 +532,6 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             const newUuid = decodedEvent.args.uuid;
 
-            await setSigners(dlcManager, attestors);
             const { prefixedMessageHash, signatureBytes } = await getSignatures(
                 { uuid: newUuid, btcTxId: closingBtcTxId },
                 attestors,
@@ -588,7 +587,6 @@ describe('DLCManager', () => {
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {
-            await setSigners(dlcManager, attestors);
             const { prefixedMessageHash, signatureBytes } = await getSignatures(
                 { uuid, btcTxId: closingBtcTxId },
                 attestors,

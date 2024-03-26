@@ -111,9 +111,11 @@ contract DLCManager is
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, adminAddress);
         _grantRole(DLC_ADMIN_ROLE, adminAddress);
+        _minimumThreshold = 2;
+        if (threshold < _minimumThreshold)
+            revert ThresholdTooLow(_minimumThreshold);
         _threshold = threshold;
         _index = 0;
-        _minimumThreshold = 2;
         tssCommitment = 0x0;
     }
 
@@ -363,15 +365,18 @@ contract DLCManager is
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
+    function _hasAnyRole(address account) internal view returns (bool) {
+        return
+            hasRole(DLC_ADMIN_ROLE, account) ||
+            hasRole(WHITELISTED_CONTRACT, account) ||
+            hasRole(APPROVED_SIGNER, account);
+    }
+
     function grantRole(
         bytes32 role,
         address account
     ) public override(AccessControlDefaultAdminRulesUpgradeable) {
-        if (
-            (role == WHITELISTED_CONTRACT &&
-                hasRole(APPROVED_SIGNER, account)) ||
-            (role == APPROVED_SIGNER && hasRole(WHITELISTED_CONTRACT, account))
-        ) revert IncompatibleRoles();
+        if (_hasAnyRole(account)) revert IncompatibleRoles();
 
         // role based setup ensures that address can only be added once
         super.grantRole(role, account);
