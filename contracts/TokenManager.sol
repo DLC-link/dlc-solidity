@@ -80,6 +80,8 @@ contract TokenManager is
     error DepositTooLarge(uint256 deposit, uint256 maximumDeposit);
     error InsufficientTokenBalance(uint256 balance, uint256 amount);
 
+    error FeeRateOutOfBounds(uint256 feeRate);
+
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
     ////////////////////////////////////////////////////////////////
@@ -335,6 +337,7 @@ contract TokenManager is
     }
 
     function setMintFeeRate(uint256 newMintFeeRate) external onlyDLCAdmin {
+        if (newMintFeeRate > 10000) revert FeeRateOutOfBounds(newMintFeeRate);
         mintFeeRate = newMintFeeRate;
         emit SetMintFeeRate(newMintFeeRate);
     }
@@ -347,6 +350,8 @@ contract TokenManager is
     function setBtcMintFeeRate(
         uint256 newBtcMintFeeRate
     ) external onlyDLCAdmin {
+        if (newBtcMintFeeRate > 10000)
+            revert FeeRateOutOfBounds(newBtcMintFeeRate);
         btcMintFeeRate = newBtcMintFeeRate;
         emit SetBtcMintFeeRate(newBtcMintFeeRate);
     }
