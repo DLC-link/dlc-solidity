@@ -5,7 +5,7 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const safeContractProposal = require('./helpers/safe-api-service');
 
-module.exports = async function setWhitelisting(btcFeeRecipient, version) {
+module.exports = async function setBtcFeeRecipient(btcFeeRecipient, version) {
     const accounts = await hardhat.ethers.getSigners();
     // NOTE: should be key_for_safe
     const admin = accounts[0];
