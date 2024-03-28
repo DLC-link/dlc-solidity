@@ -11,9 +11,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRule
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
-import "./DLCLinkCompatible.sol";
-import "./IDLCManager.sol";
-import "./DLCLinkLibrary.sol";
+import "../DLCLinkCompatible.sol";
+import "../IDLCManager.sol";
+import "../DLCLinkLibrary.sol";
 
 /**
  * @author  DLC.Link 2024
@@ -25,7 +25,7 @@ import "./DLCLinkLibrary.sol";
  * @custom:contact robert@dlc.link
  * @custom:website https://www.dlc.link
  */
-contract DLCManager is
+contract DLCManagerV2Test is
     Initializable,
     AccessControlDefaultAdminRulesUpgradeable,
     PausableUpgradeable,
@@ -54,8 +54,8 @@ contract DLCManager is
     uint16 private _signerCount;
     mapping(bytes32 => uint256) private _signatureCounts;
     bytes32 public tssCommitment;
-    string public attestorGroupPubKey;
-    uint256[50] __gap;
+    string public testString;
+    uint256[49] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -284,7 +284,6 @@ contract DLCManager is
 
         dlc.fundingTxId = btcTxId;
         dlc.status = DLCLink.DLCStatus.FUNDED;
-        dlc.taprootPubKey = taprootPubKey;
 
         DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
 
@@ -431,19 +430,15 @@ contract DLCManager is
         emit SetThreshold(newThreshold);
     }
 
-    function getMinimumThreshold() external view onlyAdmin returns (uint16) {
-        return _minimumThreshold;
-    }
-
-    function getSignerCount() external view onlyAdmin returns (uint16) {
-        return _signerCount;
-    }
-
     function setTSSCommitment(bytes32 commitment) external onlyAdmin {
         tssCommitment = commitment;
     }
 
-    function setAttestorGroupPubKey(string calldata pubKey) external onlyAdmin {
-        attestorGroupPubKey = pubKey;
+    function newTestFunction() public pure returns (uint) {
+        return 1;
+    }
+
+    function setTestString(string calldata _testString) external {
+        testString = _testString;
     }
 }
