@@ -237,14 +237,14 @@ contract DLCManager is
             closingTxId: "",
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeBasisPoints,
-            btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints,
-            reservedSlots: [
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0)
-            ]
+            btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints
+            // reservedSlots: [
+            //     uint256(0),
+            //     uint256(0),
+            //     uint256(0),
+            //     uint256(0),
+            //     uint256(0)
+            // ]
         });
 
         emit CreateDLC(

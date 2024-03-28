@@ -15,6 +15,7 @@ import "./IDLCManager.sol";
 import "./DLCLinkCompatible.sol";
 import "./DLCBTC.sol";
 import "./DLCLinkLibrary.sol";
+import "./DLCManager.sol";
 
 /**
  * @author  DLC.Link 2024
@@ -53,7 +54,7 @@ contract TokenManager is
         0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a; // keccak256("PAUSER_ROLE");
 
     DLCBTC public dlcBTC; // dlcBTC contract
-    IDLCManager public dlcManager; // DLCManager contract
+    DLCManager public dlcManager; // DLCManager contract
     string public btcFeeRecipient; // BTC address to send fees to
     address public feeRecipient; // address to send fees to
     uint256 public minimumDeposit; // in sats
@@ -118,7 +119,7 @@ contract TokenManager is
         _grantRole(DLC_ADMIN_ROLE, adminAddress);
         _grantRole(DLC_MANAGER_ROLE, dlcManagerAddress);
         _grantRole(PAUSER_ROLE, adminAddress);
-        dlcManager = IDLCManager(dlcManagerAddress);
+        dlcManager = DLCManager(dlcManagerAddress);
         dlcBTC = tokenContract;
         minimumDeposit = 1000; // 0.00001 BTC
         maximumDeposit = 1e9; // 10 BTC
@@ -380,7 +381,7 @@ contract TokenManager is
     function updateDLCManagerContract(
         address newDLCManagerAddress
     ) external onlyDLCAdmin {
-        dlcManager = IDLCManager(newDLCManagerAddress);
+        dlcManager = DLCManager(newDLCManagerAddress);
         _grantRole(DLC_MANAGER_ROLE, newDLCManagerAddress);
         emit NewDLCManagerContract(newDLCManagerAddress);
     }
