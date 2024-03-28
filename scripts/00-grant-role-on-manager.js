@@ -11,7 +11,7 @@ module.exports = async function grantRoleOnManager(
     grantRoleToAddress,
     version
 ) {
-    const roleInBytes = hardhat.ethers.utils.id(role);
+    const roleInBytes = hardhat.ethers.keccak256(new Uint8Array(role));
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
         'DLCManager',

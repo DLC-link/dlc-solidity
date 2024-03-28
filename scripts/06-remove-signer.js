@@ -28,7 +28,7 @@ module.exports = async function removeSigner(signer, version) {
         console.log('admin has DEFAULT_ADMIN_ROLE, removing signer');
 
         await dlcManager.revokeRole(
-            hardhat.ethers.utils.id('APPROVED_SIGNER'),
+            hardhat.ethers.keccak256(new Uint8Array('APPROVED_SIGNER')),
             signer
         );
 
@@ -41,7 +41,7 @@ module.exports = async function removeSigner(signer, version) {
         const txRequest = await dlcManager
             .connect(admin)
             .populateTransaction.revokeRole(
-                hardhat.ethers.utils.id('APPROVED_SIGNER'),
+                hardhat.ethers.keccak256(new Uint8Array('APPROVED_SIGNER')),
                 signer
             );
         await safeContractProposal(txRequest, admin);

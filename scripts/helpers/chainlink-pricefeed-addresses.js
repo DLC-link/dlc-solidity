@@ -4,7 +4,7 @@ async function deployAndGetMockAggregatorAddress() {
     console.log('deploying mock aggregator');
     const MockAggregator = await ethers.getContractFactory('MockV3Aggregator');
     const mockAggregator = await MockAggregator.deploy(8, 2612647400000);
-    await mockAggregator.deployed();
+    await mockAggregator.waitForDeployment();
     return mockAggregator.address;
 }
 

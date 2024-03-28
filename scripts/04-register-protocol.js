@@ -31,7 +31,7 @@ module.exports = async function registerProtocol(
         console.log('admin has DEFAULT_ADMIN_ROLE, registering protocol');
 
         await dlcManager.grantRole(
-            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
+            hardhat.ethers.keccak256(new Uint8Array('WHITELISTED_CONTRACT')),
             protocolContractAddress
         );
         console.log('Protocol registered');
@@ -44,7 +44,9 @@ module.exports = async function registerProtocol(
         const txRequest = await dlcManager
             .connect(admin)
             .populateTransaction.grantRole(
-                hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
+                hardhat.ethers.keccak256(
+                    new Uint8Array('WHITELISTED_CONTRACT')
+                ),
                 protocolContractAddress
             );
         await safeContractProposal(txRequest, admin);

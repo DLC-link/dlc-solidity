@@ -39,7 +39,8 @@ async function afterDeployment(contractName, contractObject, version) {
 module.exports = function getContractConfigs(networkConfig) {
     const network = hardhat.network.name;
     const { version, deployer, routerWallet, dlcAdminSafe } = networkConfig;
-    const btcFeeRecipient = 'bcrt1qvgkz8m4m73kly4xhm28pcnv46n6u045lfq9ta3';
+    const btcFeeRecipient =
+        '031131cd88bcea8c1d84da8e034bb24c2f6e748c571922dc363e7e088f5df0436c';
     const threshold = 2;
 
     return [
@@ -60,7 +61,7 @@ module.exports = function getContractConfigs(networkConfig) {
                     DLCManager,
                     [dlcAdminSafe, threshold]
                 );
-                await dlcManager.deployed();
+                await dlcManager.waitForDeployment();
 
                 await afterDeployment('DLCManager', dlcManager, version);
 
@@ -88,7 +89,7 @@ module.exports = function getContractConfigs(networkConfig) {
                 const DLCBTC =
                     await hardhat.ethers.getContractFactory('DLCBTC');
                 const dlcBtc = await DLCBTC.deploy();
-                await dlcBtc.deployed();
+                await dlcBtc.waitForDeployment();
 
                 await afterDeployment('DLCBTC', dlcBtc, version);
 
@@ -137,7 +138,7 @@ module.exports = function getContractConfigs(networkConfig) {
                         btcFeeRecipient,
                     ]
                 );
-                await tokenManager.deployed();
+                await tokenManager.waitForDeployment();
 
                 await afterDeployment('TokenManager', tokenManager, version);
 
@@ -212,7 +213,7 @@ module.exports = function getContractConfigs(networkConfig) {
                     'USDStableCoinForDLCs'
                 );
                 const usdc = await USDC.deploy();
-                await usdc.deployed();
+                await usdc.waitForDeployment();
                 await afterDeployment('USDC', usdc, version);
                 return usdc.address;
             },
@@ -256,7 +257,7 @@ module.exports = function getContractConfigs(networkConfig) {
                     routerWallet.address,
                     pricefeedAddress
                 );
-                await lendingDemo.deployed();
+                await lendingDemo.waitForDeployment();
 
                 await afterDeployment('LendingContract', lendingDemo, version);
 
@@ -332,14 +333,14 @@ module.exports = function getContractConfigs(networkConfig) {
 // const MockDLCManager =
 //     await hardhat.ethers.getContractFactory('MockDLCManager');
 // mockDLCManager = await MockDLCManager.deploy();
-// await mockDLCManager.deployed();
+// await mockDLCManager.waitForDeployment();
 // console.log(
 //     `deployed contract MockDLCManager to ${mockDLCManager.address}`
 // );
 
 // const DLCBTC = await hardhat.ethers.getContractFactory('DLCBTC', deployer);
 // dlcBtc = await DLCBTC.deploy();
-// await dlcBtc.deployed();
+// await dlcBtc.waitForDeployment();
 // console.log(`deployed contract DLCBTC to ${dlcBtc.address}`);
 
 // try {

@@ -244,20 +244,24 @@ module.exports = async function contractAdmin(_version) {
             if (
                 network === 'localhost' ||
                 (await oldTokenManager.hasRole(
-                    hardhat.ethers.utils.id('DLC_ADMIN_ROLE'),
+                    hardhat.ethers.keccak256(new Uint8Array('DLC_ADMIN_ROLE')),
                     deployer.address
                 ))
             ) {
                 console.log('deployer has DLC_ADMIN_ROLE, continuing...');
-                console.log('Transferring ownership of DLCBTC...', newAdmin.value);
-            await oldTokenManager
-                .connect(deployer)
-                .transferTokenContractOwnership(newAdmin.value);
+                console.log(
+                    'Transferring ownership of DLCBTC...',
+                    newAdmin.value
+                );
+                await oldTokenManager
+                    .connect(deployer)
+                    .transferTokenContractOwnership(newAdmin.value);
             } else {
                 const txRequest = await oldTokenManager
                     .connect(deployer)
-                    .populateTransaction.
-                    transferTokenContractOwnership(newAdmin.value);
+                    .populateTransaction.transferTokenContractOwnership(
+                        newAdmin.value
+                    );
                 await safeContractProposal(txRequest, deployer);
             }
             break;
@@ -301,14 +305,14 @@ module.exports = async function contractAdmin(_version) {
     // const MockDLCManager =
     //     await hardhat.ethers.getContractFactory('MockDLCManager');
     // mockDLCManager = await MockDLCManager.deploy();
-    // await mockDLCManager.deployed();
+    // await mockDLCManager.waitForDeployment();
     // console.log(
     //     `deployed contract MockDLCManager to ${mockDLCManager.address}`
     // );
 
     // const DLCBTC = await hardhat.ethers.getContractFactory('DLCBTC', deployer);
     // dlcBtc = await DLCBTC.deploy();
-    // await dlcBtc.deployed();
+    // await dlcBtc.waitForDeployment();
     // console.log(`deployed contract DLCBTC to ${dlcBtc.address}`);
 
     // try {

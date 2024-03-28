@@ -27,7 +27,7 @@ module.exports = async function unwhitelistAccount(
     if (
         hardhat.network.name === 'localhost' ||
         (await tokenManager.hasRole(
-            hardhat.ethers.utils.id('DLC_ADMIN_ROLE'),
+            hardhat.ethers.keccak256(new Uint8Array('DLC_ADMIN_ROLE')),
             admin.address
         ))
     ) {

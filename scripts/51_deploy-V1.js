@@ -90,7 +90,7 @@ module.exports = async function deployV1(version) {
         const AttestorManager =
             await hardhat.ethers.getContractFactory('AttestorManager');
         const attestorManager = await AttestorManager.deploy();
-        await attestorManager.deployed();
+        await attestorManager.waitForDeployment();
         console.log(
             `deployed contract AttestorManager to ${attestorManager.address} (network: ${network})`
         );
@@ -115,7 +115,7 @@ module.exports = async function deployV1(version) {
             admin.address,
             attestorManagerAddress
         );
-        await dlcManager.deployed();
+        await dlcManager.waitForDeployment();
         console.log(
             `deployed contract DLCManager to ${dlcManager.address} (network: ${network})`
         );
@@ -139,7 +139,7 @@ module.exports = async function deployV1(version) {
             dlcManagerAddress,
             protocol.address
         );
-        await mockProtocol.deployed();
+        await mockProtocol.waitForDeployment();
         console.log(
             `deployed contract MockProtocol to ${mockProtocol.address} (network: ${network})`
         );
@@ -160,7 +160,7 @@ module.exports = async function deployV1(version) {
             'USDStableCoinForDLCs'
         );
         const usdc = await USDC.connect(usdcDeployer).deploy();
-        await usdc.deployed();
+        await usdc.waitForDeployment();
         console.log(
             `deployed contract for token USDStableCoinForDLCs (USDC) to ${usdc.address} (network: ${network})`
         );
@@ -214,7 +214,7 @@ module.exports = async function deployV1(version) {
             CLpricefeed
         );
 
-        await lendingDemo.deployed();
+        await lendingDemo.waitForDeployment();
         console.log(
             `deployed contract LendingContractV1 to ${lendingDemo.address} (network: ${network})`
         );
@@ -243,11 +243,11 @@ module.exports = async function deployV1(version) {
         );
 
         await dlcManager.grantRole(
-            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
+            hardhat.ethers.keccak256(new Uint8Array('WHITELISTED_CONTRACT'),
             lendingDemo.address
         );
         await dlcManager.grantRole(
-            hardhat.ethers.utils.id('WHITELISTED_WALLET'),
+            hardhat.ethers.keccak256(new Uint8Array('WHITELISTED_WALLET'),
             protocol.address
         );
 
@@ -260,7 +260,7 @@ module.exports = async function deployV1(version) {
         console.log(`deploying contract BtcNft to network "${network}"...`);
         const BtcNft = await hardhat.ethers.getContractFactory('BtcNft');
         const btcNft = await BtcNft.deploy();
-        await btcNft.deployed();
+        await btcNft.waitForDeployment();
         console.log(
             `deployed contract BtcNft to ${btcNft.address} (network: ${network})`
         );
@@ -278,7 +278,7 @@ module.exports = async function deployV1(version) {
         const DLCBTCExample =
             await hardhat.ethers.getContractFactory('DLCBTCExample');
         const dlcBtcExample = await DLCBTCExample.deploy();
-        await dlcBtcExample.deployed();
+        await dlcBtcExample.waitForDeployment();
         console.log(
             `deployed contract DLCBTCExample to ${dlcBtcExample.address} (network: ${network})`
         );
@@ -317,7 +317,7 @@ module.exports = async function deployV1(version) {
             dlcBtcAddress,
             protocolAddress
         );
-        await dlcRouter.deployed();
+        await dlcRouter.waitForDeployment();
         console.log(
             `deployed contract DlcRouter to ${dlcRouter.address} (network: ${network})`
         );
@@ -335,7 +335,7 @@ module.exports = async function deployV1(version) {
         await btcnft
             .connect(admin)
             .grantRole(
-                hardhat.ethers.utils.id('MINTER_ROLE'),
+                hardhat.ethers.keccak256(new Uint8Array('MINTER_ROLE'),
                 dlcRouter.address
             );
 
@@ -349,11 +349,11 @@ module.exports = async function deployV1(version) {
         );
 
         await dlcManager.grantRole(
-            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
+            hardhat.ethers.keccak256(new Uint8Array('WHITELISTED_CONTRACT'),
             dlcRouter.address
         );
         await dlcManager.grantRole(
-            hardhat.ethers.utils.id('WHITELISTED_WALLET'),
+            hardhat.ethers.keccak256(new Uint8Array('WHITELISTED_WALLET'),
             protocolAddress
         );
     }
@@ -396,7 +396,7 @@ module.exports = async function deployV1(version) {
             dlcBtcAddress,
             protocolAddress
         );
-        await depositDemo.deployed();
+        await depositDemo.waitForDeployment();
         console.log(
             `deployed contract DepositDemo to ${depositDemo.address} (network: ${network})`
         );
@@ -415,11 +415,11 @@ module.exports = async function deployV1(version) {
         );
 
         await dlcManager.grantRole(
-            hardhat.ethers.utils.id('WHITELISTED_CONTRACT'),
+            hardhat.ethers.keccak256(new Uint8Array('WHITELISTED_CONTRACT'),
             depositDemo.address
         );
         await dlcManager.grantRole(
-            hardhat.ethers.utils.id('WHITELISTED_WALLET'),
+            hardhat.ethers.keccak256(new Uint8Array('WHITELISTED_WALLET'),
             protocolAddress
         );
     }
@@ -467,7 +467,7 @@ module.exports = async function deployV1(version) {
             CLpricefeed
         );
 
-        await usdcBorrowVault.deployed();
+        await usdcBorrowVault.waitForDeployment();
         console.log(
             `deployed contract USDCBorrowVault to ${usdcBorrowVault.address} (network: ${network})`
         );

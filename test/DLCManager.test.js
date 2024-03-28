@@ -5,8 +5,8 @@ const crypto = require('crypto');
 
 async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
     await dlcManager.grantRole(
-        ethers.utils.id('WHITELISTED_CONTRACT'),
-        mockProtocol.address
+        ethers.keccak256(new Uint8Array('WHITELISTED_CONTRACT')),
+        await mockProtocol.getAddress()
     );
 }
 
@@ -20,18 +20,18 @@ async function getSignatures(message, attestors, numberOfSignatures) {
     let signatureBytes = [];
     for (let i = 0; i < numberOfSignatures; i++) {
         const sig = await attestors[i].signMessage(
-            ethers.utils.arrayify(hashedOriginalMessage)
+            ethers.getBytes(hashedOriginalMessage)
         );
         // console.log('Attestor address:', attestors[i].address);
         // console.log(
         //     'Recovered:',
         //     ethers.utils.verifyMessage(
-        //         ethers.utils.arrayify(hashedOriginalMessage),
+        //         ethers.getBytes(hashedOriginalMessage),
         //         sig
         //     )
         // );
 
-        signatureBytes.push(ethers.utils.arrayify(sig));
+        signatureBytes.push(ethers.getBytes(sig));
     }
     // Convert signatures from strings to bytes
     return { prefixedMessageHash: hashedOriginalMessage, signatureBytes };
@@ -40,7 +40,7 @@ async function getSignatures(message, attestors, numberOfSignatures) {
 async function setSigners(dlcManager, attestors) {
     for (let i = 0; i < attestors.length; i++) {
         await dlcManager.grantRole(
-            ethers.utils.id('APPROVED_SIGNER'),
+            ethers.keccak256(new Uint8Array('APPROVED_SIGNER')),
             attestors[i].address
         );
     }
@@ -75,22 +75,22 @@ describe('DLCManager', () => {
             deployer.address,
             3,
         ]);
-        await dlcManager.deployed();
+        await dlcManager.waitForDeployment();
 
         // MockProtocol
         const MockProtocol = await ethers.getContractFactory('MockProtocol');
         mockProtocol = await MockProtocol.connect(protocol).deploy(
-            dlcManager.address
+            await dlcManager.getAddress()
         );
-        await mockProtocol.deployed();
+        await mockProtocol.waitForDeployment();
     });
 
     describe('test contracts are deployed correctly', async () => {
         it('deploys DLCManager correctly', async () => {
-            expect(dlcManager.address).to.not.equal(0);
+            expect(await dlcManager.getAddress()).to.not.equal(0);
         });
         it('deploys MockProtocol correctly', async () => {
-            expect(mockProtocol.address).to.not.equal(0);
+            expect(await mockProtocol.getAddress()).to.not.equal(0);
         });
     });
 
@@ -148,7 +148,7 @@ describe('DLCManager', () => {
                 dlcManager
                     .connect(user)
                     .revokeRole(
-                        ethers.utils.id('APPROVED_SIGNER'),
+                        ethers.keccak256(new Uint8Array('APPROVED_SIGNER')),
                         attestor1.address
                     )
             ).to.be.revertedWith(
@@ -161,7 +161,7 @@ describe('DLCManager', () => {
                 dlcManager
                     .connect(deployer)
                     .revokeRole(
-                        ethers.utils.id('APPROVED_SIGNER'),
+                        ethers.keccak256(new Uint8Array('APPROVED_SIGNER')),
                         attestor1.address
                     )
             ).to.be.revertedWithCustomError(
@@ -488,7 +488,9 @@ describe('DLCManager', () => {
 
             expect(decodedEvent.name).to.equal('CloseDLC');
             expect(decodedEvent.args.uuid).to.equal(uuid);
-            expect(decodedEvent.args.sender).to.equal(mockProtocol.address);
+            expect(decodedEvent.args.sender).to.equal(
+                await mockProtocol.getAddress()
+            );
         });
     });
 

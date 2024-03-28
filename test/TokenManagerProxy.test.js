@@ -4,7 +4,7 @@ const { ethers } = require('hardhat');
 const hardhat = require('hardhat');
 
 function getRoleInBytes(role) {
-    return ethers.utils.id(role);
+    return ethers.keccak256(new Uint8Array(role));
 }
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
@@ -33,11 +33,11 @@ describe('TokenManager Proxy', function () {
         const MockDLCManager =
             await ethers.getContractFactory('MockDLCManager');
         mockDLCManager = await MockDLCManager.deploy();
-        await mockDLCManager.deployed();
+        await mockDLCManager.waitForDeployment();
 
         const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
         dlcBtc = await DLCBTC.deploy();
-        await dlcBtc.deployed();
+        await dlcBtc.waitForDeployment();
 
         const TokenManager = await ethers.getContractFactory(
             'TokenManager',
