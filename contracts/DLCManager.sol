@@ -343,22 +343,25 @@ contract DLCManager is
         return dlcs[index];
     }
 
-    function getFundedTxIds(
+    function getFundedDLCs(
         uint256 startIndex,
         uint256 endIndex
-    ) public view returns (string[] memory) {
+    ) public view returns (DLCLink.DLC[] memory) {
         if (startIndex >= endIndex) revert InvalidRange();
-        if (endIndex > _index) revert InvalidRange();
+        if (endIndex > _index) endIndex = _index;
+
         uint256 _indexRange = endIndex - startIndex;
-        string[] memory _fundedTxIds = new string[](_indexRange);
-        uint256 _fundedTxIdsCount = 0;
+        DLCLink.DLC[] memory fundedDLCs = new DLCLink.DLC[](_indexRange);
+
+        uint256 _fundedCount = 0;
+
         for (uint256 i = startIndex; i < endIndex; i++) {
             if (dlcs[i].status == DLCLink.DLCStatus.FUNDED) {
-                _fundedTxIds[_fundedTxIdsCount] = dlcs[i].fundingTxId;
-                _fundedTxIdsCount++;
+                fundedDLCs[_fundedCount] = dlcs[i];
+                _fundedCount++;
             }
         }
-        return _fundedTxIds;
+        return fundedDLCs;
     }
 
     ////////////////////////////////////////////////////////////////
