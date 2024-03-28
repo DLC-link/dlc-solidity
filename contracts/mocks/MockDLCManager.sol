@@ -155,7 +155,14 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             closingTxId: "",
             btcFeeRecipient: "",
             btcMintFeeBasisPoints: 0,
-            btcRedeemFeeBasisPoints: 0
+            btcRedeemFeeBasisPoints: 0,
+            reservedSlots: [
+                uint256(0),
+                uint256(0),
+                uint256(0),
+                uint256(0),
+                uint256(0)
+            ]
         });
 
         emit CreateDLC(_uuid, _valueLocked, msg.sender, tx.origin);
