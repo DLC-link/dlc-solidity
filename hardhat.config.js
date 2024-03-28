@@ -2,16 +2,12 @@
 
 require('@nomicfoundation/hardhat-toolbox');
 require('@openzeppelin/hardhat-upgrades');
-require('@nomicfoundation/hardhat-chai-matchers');
 require('@nomiclabs/hardhat-solhint');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
 require('solidity-docgen');
 
 require('dotenv').config();
-
-const url = `https://${process.env.HARDHAT_NETWORK}.infura.io/v3/${process.env.INFURA_PROJECT_ID}`;
-const gasPriceApi = `https://api.arbiscan.io/api?module=proxy&action=eth_gasPrice&apikey=${process.env.ARBISCAN_API_KEY}`;
 
 if (!process.env.KEY_FOR_SAFE) process.env.KEY_FOR_SAFE = process.env.KEY;
 
@@ -51,12 +47,18 @@ module.exports = {
                 process.env['KEY_FOR_SAFE'],
             ],
         },
-        arbitrumGoerli: {
-            url: 'https://goerli-rollup.arbitrum.io/rpc',
-            chainId: 421613,
-            //accounts: [GOERLI_TESTNET_PRIVATE_KEY]
+        arbsepolia: {
+            // url: 'https://sepolia-rollup.arbitrum.io/rpc',
+            url: process.env['ARB_SEPOLIA_NODE_ADDR'],
+            chainId: 421614,
+            accounts: [
+                process.env['KEY'],
+                process.env['KEY2'],
+                process.env['KEY3'],
+                process.env['KEY_FOR_SAFE'],
+            ],
         },
-        arbitrumOne: {
+        arbitrum: {
             url: 'https://arb1.arbitrum.io/rpc',
             //accounts: [ARBITRUM_MAINNET_TEMPORARY_PRIVATE_KEY]
         },
@@ -90,6 +92,14 @@ module.exports = {
                 urls: {
                     apiURL: 'https://testnet-explorer.gobob.xyz/api',
                     browserURL: 'https://testnet-explorer.gobob.xyz',
+                },
+            },
+            {
+                network: 'arbsepolia',
+                chainId: 421614,
+                urls: {
+                    apiURL: `https://api-sepolia.arbiscan.io/api?apikey=${process.env.ARBISCAN_API_KEY}`,
+                    browserURL: 'https://sepolia.arbiscan.io',
                 },
             },
         ],
