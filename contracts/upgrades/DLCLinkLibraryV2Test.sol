@@ -7,7 +7,7 @@
 
 pragma solidity 0.8.18;
 
-library DLCLink {
+library DLCLinkV2 {
     enum DLCStatus {
         READY,
         FUNDED,
@@ -38,5 +38,6 @@ library DLCLink {
         uint256 btcMintFeeBasisPoints;
         uint256 btcRedeemFeeBasisPoints;
         string taprootPubKey;
+        address someNewField;
     }
 }

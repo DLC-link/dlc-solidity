@@ -239,14 +239,7 @@ contract DLCManager is
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeBasisPoints,
             btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints,
-            taprootPubKey: "",
-            reservedSlots: [
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0)
-            ]
+            taprootPubKey: ""
         });
 
         emit CreateDLC(

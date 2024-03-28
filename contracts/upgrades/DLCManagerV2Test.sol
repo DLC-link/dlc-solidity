@@ -12,8 +12,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "../DLCLinkCompatible.sol";
-import "../IDLCManager.sol";
-import "../DLCLinkLibrary.sol";
+import "./IDLCManagerV2.sol";
+import "./DLCLinkLibraryV2Test.sol";
 
 /**
  * @author  DLC.Link 2024
@@ -31,8 +31,8 @@ contract DLCManagerV2Test is
     PausableUpgradeable,
     IDLCManager
 {
-    using DLCLink for DLCLink.DLC;
-    using DLCLink for DLCLink.DLCStatus;
+    using DLCLinkV2 for DLCLinkV2.DLC;
+    using DLCLinkV2 for DLCLinkV2.DLCStatus;
 
     ////////////////////////////////////////////////////////////////
     //                      STATE VARIABLES                       //
@@ -46,7 +46,7 @@ contract DLCManagerV2Test is
         0xc726b34d4e524d7255dc7e36b5dfca6bd2dcd2891ae8c75d511a7e82da8696e5; // keccak256("APPROVED_SIGNER")
 
     uint256 private _index;
-    mapping(uint256 => DLCLink.DLC) public dlcs;
+    mapping(uint256 => DLCLinkV2.DLC) public dlcs;
     mapping(bytes32 => uint256) public dlcIDsByUUID;
 
     uint16 private _minimumThreshold;
@@ -227,26 +227,20 @@ contract DLCManagerV2Test is
     {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
-        dlcs[_index] = DLCLink.DLC({
+        dlcs[_index] = DLCLinkV2.DLC({
             uuid: _uuid,
             protocolContract: msg.sender,
             valueLocked: valueLocked,
             timestamp: block.timestamp,
             creator: tx.origin,
-            status: DLCLink.DLCStatus.READY,
+            status: DLCLinkV2.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeBasisPoints,
             btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints,
             taprootPubKey: "",
-            reservedSlots: [
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0)
-            ]
+            someNewField: address(0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9)
         });
 
         emit CreateDLC(
@@ -277,13 +271,13 @@ contract DLCManagerV2Test is
         string calldata taprootPubKey
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(abi.encode(uuid, btcTxId), signatures);
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        DLCLinkV2.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
+        if (dlc.status != DLCLinkV2.DLCStatus.READY) revert DLCNotReady();
 
         dlc.fundingTxId = btcTxId;
-        dlc.status = DLCLink.DLCStatus.FUNDED;
+        dlc.status = DLCLinkV2.DLCStatus.FUNDED;
 
         DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
 
@@ -297,12 +291,12 @@ contract DLCManagerV2Test is
     function closeDLC(
         bytes32 uuid
     ) external onlyCreatorContract(uuid) whenNotPaused {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        DLCLinkV2.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
+        if (dlc.status != DLCLinkV2.DLCStatus.FUNDED) revert DLCNotFunded();
 
-        dlc.status = DLCLink.DLCStatus.CLOSING;
+        dlc.status = DLCLinkV2.DLCStatus.CLOSING;
 
         emit CloseDLC(uuid, msg.sender);
     }
@@ -320,13 +314,13 @@ contract DLCManagerV2Test is
         bytes[] calldata signatures
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(abi.encode(uuid, btcTxId), signatures);
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        DLCLinkV2.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.CLOSING) revert DLCNotClosing();
+        if (dlc.status != DLCLinkV2.DLCStatus.CLOSING) revert DLCNotClosing();
 
         dlc.closingTxId = btcTxId;
-        dlc.status = DLCLink.DLCStatus.CLOSED;
+        dlc.status = DLCLinkV2.DLCStatus.CLOSED;
 
         DLCLinkCompatible(dlc.protocolContract).postCloseDLCHandler(
             uuid,
@@ -342,8 +336,8 @@ contract DLCManagerV2Test is
 
     function getDLC(
         bytes32 uuid
-    ) external view override returns (DLCLink.DLC memory) {
-        DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[uuid]];
+    ) external view override returns (DLCLinkV2.DLC memory) {
+        DLCLinkV2.DLC memory _dlc = dlcs[dlcIDsByUUID[uuid]];
         if (_dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (_dlc.uuid != uuid) revert DLCNotFound();
         return _dlc;
@@ -351,24 +345,24 @@ contract DLCManagerV2Test is
 
     function getDLCByIndex(
         uint256 index
-    ) external view returns (DLCLink.DLC memory) {
+    ) external view returns (DLCLinkV2.DLC memory) {
         return dlcs[index];
     }
 
     function getFundedDLCs(
         uint256 startIndex,
         uint256 endIndex
-    ) public view returns (DLCLink.DLC[] memory) {
+    ) public view returns (DLCLinkV2.DLC[] memory) {
         if (startIndex >= endIndex) revert InvalidRange();
         if (endIndex > _index) endIndex = _index;
 
         uint256 _indexRange = endIndex - startIndex;
-        DLCLink.DLC[] memory fundedDLCs = new DLCLink.DLC[](_indexRange);
+        DLCLinkV2.DLC[] memory fundedDLCs = new DLCLinkV2.DLC[](_indexRange);
 
         uint256 _fundedCount = 0;
 
         for (uint256 i = startIndex; i < endIndex; i++) {
-            if (dlcs[i].status == DLCLink.DLCStatus.FUNDED) {
+            if (dlcs[i].status == DLCLinkV2.DLCStatus.FUNDED) {
                 fundedDLCs[_fundedCount] = dlcs[i];
                 _fundedCount++;
             }

@@ -6,6 +6,14 @@ const hardhat = require('hardhat');
 function getRoleInBytes(role) {
     return ethers.utils.id(role);
 }
+
+async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
+    await dlcManager.grantRole(
+        ethers.utils.id('WHITELISTED_CONTRACT'),
+        mockProtocol.address
+    );
+}
+
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
 
@@ -15,6 +23,7 @@ describe('DLCManager Proxy', function () {
     let attestor1, attestor2, attestor3;
     let attestors;
     let dlcManagerV2;
+    let UUID;
 
     const valueLocked = 100000000; // 1 BTC
     const btcTxId = '0x1234567890';
@@ -47,6 +56,18 @@ describe('DLCManager Proxy', function () {
             dlcManager.address
         );
         await mockProtocol.deployed();
+
+        await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+
+        const tx = await mockProtocol
+            .connect(user)
+            .requestCreateDLC(valueLocked);
+        const receipt = await tx.wait();
+        const event = receipt.events[0];
+
+        const decodedEvent = dlcManager.interface.parseLog(event);
+        UUID = decodedEvent.args.uuid;
+        console.log('UUID:', UUID);
     });
 
     it('should deploy', async () => {
@@ -86,6 +107,11 @@ describe('DLCManager Proxy', function () {
         it('should have the new test string', async () => {
             await dlcManagerV2.setTestString('test');
             expect(await dlcManagerV2.testString()).to.equal('test');
+        });
+        it('should still have the created DLC', async () => {
+            const dlc = await dlcManagerV2.getDLC(UUID);
+            console.log(dlc);
+            expect(dlc.valueLocked).to.equal(valueLocked);
         });
     });
 });
