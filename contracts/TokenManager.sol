@@ -53,7 +53,7 @@ contract TokenManager is
 
     DLCBTC public dlcBTC; // dlcBTC contract
     IDLCManager public dlcManager; // DLCManager contract
-    string private _btcFeeRecipient; // BTC address to send fees to
+    string public btcFeeRecipient; // BTC address to send fees to
     address public feeRecipient; // address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
@@ -110,7 +110,7 @@ contract TokenManager is
         address adminAddress,
         address dlcManagerAddress,
         DLCBTC tokenContract,
-        string memory btcFeeRecipient
+        string memory btcFeeRecipientToSet
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, adminAddress);
         _grantRole(DLC_ADMIN_ROLE, adminAddress);
@@ -123,7 +123,7 @@ contract TokenManager is
         whitelistingEnabled = true;
         btcMintFeeRate = 100; // 1% BTC fee for now
         btcRedeemFeeRate = 100; // 1% BTC fee for now
-        _btcFeeRecipient = btcFeeRecipient;
+        btcFeeRecipient = btcFeeRecipientToSet;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -192,7 +192,7 @@ contract TokenManager is
 
         bytes32 _uuid = dlcManager.createDLC(
             btcDeposit,
-            _btcFeeRecipient,
+            btcFeeRecipient,
             btcMintFeeRate,
             btcRedeemFeeRate
         );
@@ -323,9 +323,9 @@ contract TokenManager is
     }
 
     function setBtcFeeRecipient(
-        string calldata btcFeeRecipient
+        string calldata btcFeeRecipientToSet
     ) external onlyDLCAdmin {
-        _btcFeeRecipient = btcFeeRecipient;
+        btcFeeRecipient = btcFeeRecipientToSet;
         emit SetBtcFeeRecipient(btcFeeRecipient);
     }
 
