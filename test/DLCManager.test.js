@@ -39,7 +39,10 @@ async function getSignatures(message, attestors, numberOfSignatures) {
 
 async function setSigners(dlcManager, attestors) {
     for (let i = 0; i < attestors.length; i++) {
-        await dlcManager.addApprovedSigner(attestors[i].address);
+        await dlcManager.grantRole(
+            ethers.utils.id('APPROVED_SIGNER'),
+            attestors[i].address
+        );
     }
 }
 
@@ -139,25 +142,28 @@ describe('DLCManager', () => {
         });
     });
 
-    describe('removeApprovedSigner', async () => {
+    describe('revoke APPROVED_SIGNER role', async () => {
         it('reverts if called by a non-admin', async () => {
             await expect(
-                dlcManager.connect(user).removeApprovedSigner(attestor1.address)
-            ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
-        });
-        it('reverts if trying to remove a non-approved signer', async () => {
-            await expect(
                 dlcManager
-                    .connect(deployer)
-                    .removeApprovedSigner(attestor1.address)
-            ).to.be.revertedWithCustomError(dlcManager, 'SignerNotApproved');
+                    .connect(user)
+                    .revokeRole(
+                        ethers.utils.id('APPROVED_SIGNER'),
+                        attestor1.address
+                    )
+            ).to.be.revertedWith(
+                'AccessControl: account 0x90f79bf6eb2c4f870365e785982e1f101e93b906 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000'
+            );
         });
         it('reverts if it would decrese below threshold', async () => {
             await setSigners(dlcManager, [attestor1, attestor2]);
             await expect(
                 dlcManager
                     .connect(deployer)
-                    .removeApprovedSigner(attestor1.address)
+                    .revokeRole(
+                        ethers.utils.id('APPROVED_SIGNER'),
+                        attestor1.address
+                    )
             ).to.be.revertedWithCustomError(
                 dlcManager,
                 'ThresholdMinimumReached'
@@ -526,7 +532,6 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             const newUuid = decodedEvent.args.uuid;
 
-            await setSigners(dlcManager, attestors);
             const { prefixedMessageHash, signatureBytes } = await getSignatures(
                 { uuid: newUuid, btcTxId: closingBtcTxId },
                 attestors,
@@ -582,7 +587,6 @@ describe('DLCManager', () => {
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {
-            await setSigners(dlcManager, attestors);
             const { prefixedMessageHash, signatureBytes } = await getSignatures(
                 { uuid, btcTxId: closingBtcTxId },
                 attestors,

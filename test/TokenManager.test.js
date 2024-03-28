@@ -108,6 +108,14 @@ describe('TokenManager', function () {
                         .setMintFeeRate(someRandomAccount.address)
                 ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
             });
+            it('reverts on invalid fee rate', async () => {
+                await expect(
+                    tokenManager.connect(deployer).setMintFeeRate(10001)
+                ).to.be.revertedWithCustomError(
+                    tokenManager,
+                    'FeeRateOutOfBounds'
+                );
+            });
             it('should set mint fee rate', async () => {
                 await tokenManager.connect(deployer).setMintFeeRate(1000);
                 expect(await tokenManager.mintFeeRate()).to.equal(1000);

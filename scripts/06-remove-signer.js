@@ -27,7 +27,10 @@ module.exports = async function removeSigner(signer, version) {
     ) {
         console.log('admin has DEFAULT_ADMIN_ROLE, removing signer');
 
-        await dlcManager.removeApprovedSigner(signer);
+        await dlcManager.revokeRole(
+            hardhat.ethers.utils.id('APPROVED_SIGNER'),
+            signer
+        );
 
         console.log('Added: ', signer);
     } else {
@@ -37,7 +40,10 @@ module.exports = async function removeSigner(signer, version) {
 
         const txRequest = await dlcManager
             .connect(admin)
-            .populateTransaction.removeApprovedSigner(signer);
+            .populateTransaction.revokeRole(
+                hardhat.ethers.utils.id('APPROVED_SIGNER'),
+                signer
+            );
         await safeContractProposal(txRequest, admin);
     }
 };
