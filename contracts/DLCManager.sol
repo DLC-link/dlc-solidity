@@ -422,6 +422,14 @@ contract DLCManager is
         emit SetThreshold(newThreshold);
     }
 
+    function getMinimumThreshold() external view onlyAdmin returns (uint16) {
+        return _minimumThreshold;
+    }
+
+    function getSignerCount() external view onlyAdmin returns (uint16) {
+        return _signerCount;
+    }
+
     function setTSSCommitment(bytes32 commitment) external onlyAdmin {
         tssCommitment = commitment;
     }
