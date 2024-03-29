@@ -19,6 +19,9 @@ const mockSigs = [
     ethers.utils.arrayify(mockSig),
 ];
 
+const mockTaprootPubkey =
+    '0x1234567890123456789012345678901234567890123456789012345678901234';
+
 const Status = {
     READY: 0,
     FUNDED: 1,
@@ -97,43 +100,6 @@ describe('TokenManager', function () {
             it('should set maximum deposit', async () => {
                 await tokenManager.connect(deployer).setMaximumDeposit(1000);
                 expect(await tokenManager.maximumDeposit()).to.equal(1000);
-            });
-        });
-
-        describe('setMintFeeRate', async () => {
-            it('reverts on unauthorized calls', async () => {
-                await expect(
-                    tokenManager
-                        .connect(someRandomAccount)
-                        .setMintFeeRate(someRandomAccount.address)
-                ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
-            });
-            it('reverts on invalid fee rate', async () => {
-                await expect(
-                    tokenManager.connect(deployer).setMintFeeRate(10001)
-                ).to.be.revertedWithCustomError(
-                    tokenManager,
-                    'FeeRateOutOfBounds'
-                );
-            });
-            it('should set mint fee rate', async () => {
-                await tokenManager.connect(deployer).setMintFeeRate(1000);
-                expect(await tokenManager.mintFeeRate()).to.equal(1000);
-            });
-            it('should change the amount of tokens minted', async () => {
-                await tokenManager.connect(deployer).setMintFeeRate(1000);
-                expect(
-                    await tokenManager
-                        .connect(user)
-                        .previewFeeAdjustedAmount(deposit)
-                ).to.equal(deposit * 0.9);
-
-                await tokenManager.connect(deployer).setMintFeeRate(2000);
-                expect(
-                    await tokenManager
-                        .connect(user)
-                        .previewFeeAdjustedAmount(deposit)
-                ).to.equal(deposit * 0.8);
             });
         });
 
@@ -255,7 +221,8 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx2.wait();
             expect(await dlcBtc.balanceOf(user.address)).to.equal(
@@ -272,7 +239,8 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx2.wait();
         });
@@ -329,7 +297,8 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx2.wait();
 
@@ -338,7 +307,8 @@ describe('TokenManager', function () {
             const tx4 = await mockDLCManager.setStatusFunded(
                 mockUUID1,
                 'someOtherTx',
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx4.wait();
         });

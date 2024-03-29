@@ -36,8 +36,8 @@ module.exports = async function setWhitelisting(whitelistingEnabled, version) {
         const tx = await tokenManager
             .connect(admin)
             .setWhitelistingEnabled(false);
-        await tx.wait();
-        console.log(tx);
+        const receipt = await tx.wait();
+        console.log(receipt);
         return;
     } else {
         const txRequest = await tokenManager

@@ -54,6 +54,7 @@ contract DLCManager is
     uint16 private _signerCount;
     mapping(bytes32 => uint256) private _signatureCounts;
     bytes32 public tssCommitment;
+    string public attestorGroupPubKey;
     uint256[50] __gap;
 
     ////////////////////////////////////////////////////////////////
@@ -235,7 +236,8 @@ contract DLCManager is
             closingTxId: "",
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeBasisPoints,
-            btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints
+            btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints,
+            taprootPubKey: ""
         });
 
         emit CreateDLC(
@@ -262,7 +264,8 @@ contract DLCManager is
     function setStatusFunded(
         bytes32 uuid,
         string calldata btcTxId,
-        bytes[] calldata signatures
+        bytes[] calldata signatures,
+        string calldata taprootPubKey
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(abi.encode(uuid, btcTxId), signatures);
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
@@ -272,6 +275,7 @@ contract DLCManager is
 
         dlc.fundingTxId = btcTxId;
         dlc.status = DLCLink.DLCStatus.FUNDED;
+        dlc.taprootPubKey = taprootPubKey;
 
         DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
 
@@ -343,22 +347,25 @@ contract DLCManager is
         return dlcs[index];
     }
 
-    function getFundedTxIds(
+    function getFundedDLCs(
         uint256 startIndex,
         uint256 endIndex
-    ) public view returns (string[] memory) {
+    ) public view returns (DLCLink.DLC[] memory) {
         if (startIndex >= endIndex) revert InvalidRange();
-        if (endIndex > _index) revert InvalidRange();
+        if (endIndex > _index) endIndex = _index;
+
         uint256 _indexRange = endIndex - startIndex;
-        string[] memory _fundedTxIds = new string[](_indexRange);
-        uint256 _fundedTxIdsCount = 0;
+        DLCLink.DLC[] memory fundedDLCs = new DLCLink.DLC[](_indexRange);
+
+        uint256 _fundedCount = 0;
+
         for (uint256 i = startIndex; i < endIndex; i++) {
             if (dlcs[i].status == DLCLink.DLCStatus.FUNDED) {
-                _fundedTxIds[_fundedTxIdsCount] = dlcs[i].fundingTxId;
-                _fundedTxIdsCount++;
+                fundedDLCs[_fundedCount] = dlcs[i];
+                _fundedCount++;
             }
         }
-        return _fundedTxIds;
+        return fundedDLCs;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -415,7 +422,19 @@ contract DLCManager is
         emit SetThreshold(newThreshold);
     }
 
+    function getMinimumThreshold() external view onlyAdmin returns (uint16) {
+        return _minimumThreshold;
+    }
+
+    function getSignerCount() external view onlyAdmin returns (uint16) {
+        return _signerCount;
+    }
+
     function setTSSCommitment(bytes32 commitment) external onlyAdmin {
         tssCommitment = commitment;
+    }
+
+    function setAttestorGroupPubKey(string calldata pubKey) external onlyAdmin {
+        attestorGroupPubKey = pubKey;
     }
 }
