@@ -26,7 +26,6 @@ import "./DLCLinkLibrary.sol";
  * @dev     This contract is the owner of the dlcBTC contract
  * @dev     It is upgradable through the OpenZeppelin proxy pattern
  * @dev     Launched with Whitelisted useraddresses enabled first
- * @dev     It is extendable to allow taking fees during vault creation and/or during DLC closing.
  * @dev     It is governed by the DLC_ADMIN_ROLE, a multisig wallet
  * @custom:contact robert@dlc.link
  * @custom:website https://www.dlc.link
@@ -55,10 +54,8 @@ contract TokenManager is
     DLCBTC public dlcBTC; // dlcBTC contract
     IDLCManager public dlcManager; // DLCManager contract
     string private _btcFeeRecipient; // BTC address to send fees to
-    address public feeRecipient; // address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
-    uint256 public mintFeeRate; // in basis points (10000 = 100%) -- dlcBTC
     uint256 public btcMintFeeRate; // in basis points (100 = 1%) -- BTC
     uint256 public btcRedeemFeeRate; // in basis points (100 = 1%) -- BTC
     bool public whitelistingEnabled;
@@ -122,8 +119,6 @@ contract TokenManager is
         dlcBTC = tokenContract;
         minimumDeposit = 1e6; // 0.01 BTC
         maximumDeposit = 1e8; // 1 BTC
-        mintFeeRate = 0; // 0% dlcBTC fee for now
-        feeRecipient = adminAddress; // default to admin address
         whitelistingEnabled = true;
         btcMintFeeRate = 100; // 1% BTC fee for now
         btcRedeemFeeRate = 100; // 1% BTC fee for now
@@ -155,8 +150,6 @@ contract TokenManager is
     event UnwhitelistAddress(address addressToUnWhitelist);
     event SetMinimumDeposit(uint256 newMinimumDeposit);
     event SetMaximumDeposit(uint256 newMaximumDeposit);
-    event SetMintFeeRate(uint256 newMintFeeRate);
-    event SetFeeRecipient(address newFeeRecipient);
     event SetBtcMintFeeRate(uint256 newBtcMintFeeRate);
     event SetBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate);
     event SetBtcFeeRecipient(string btcFeeRecipient);
@@ -167,19 +160,6 @@ contract TokenManager is
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
     ////////////////////////////////////////////////////////////////
-
-    /**
-     * @notice  Calculates the amount of dlcBTC to mint to the user
-     * @dev     There are no plans to take ERC20 fees on mint, so the fee rate is 0
-     * @dev     mintFeeRate is in basis points, e.g. 100 = 1% fee
-     * @param   amount  amount in sats
-     * @return  uint256  amount reduced by the fee rate
-     */
-    function _getFeeAdjustedAmount(
-        uint256 amount
-    ) internal view returns (uint256) {
-        return (amount * (10000 - mintFeeRate)) / 10000;
-    }
 
     function _mintTokens(address to, uint256 amount) internal {
         dlcBTC.mint(to, amount);
@@ -233,14 +213,8 @@ contract TokenManager is
         string calldata btcTxId
     ) external override whenNotPaused onlyDLCManagerContract {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
-        uint256 _feeAdjustedAmount = _getFeeAdjustedAmount(dlc.valueLocked);
 
-        if (mintFeeRate > 0) {
-            uint256 _fee = dlc.valueLocked - _feeAdjustedAmount;
-            _mintTokens(feeRecipient, _fee);
-        }
-
-        _mintTokens(dlc.creator, _feeAdjustedAmount);
+        _mintTokens(dlc.creator, dlc.valueLocked);
         emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
@@ -298,12 +272,6 @@ contract TokenManager is
         return vaults;
     }
 
-    function previewFeeAdjustedAmount(
-        uint256 amount
-    ) public view returns (uint256) {
-        return _getFeeAdjustedAmount(amount);
-    }
-
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -334,17 +302,6 @@ contract TokenManager is
     ) external onlyDLCAdmin {
         maximumDeposit = newMaximumDeposit;
         emit SetMaximumDeposit(newMaximumDeposit);
-    }
-
-    function setMintFeeRate(uint256 newMintFeeRate) external onlyDLCAdmin {
-        if (newMintFeeRate > 10000) revert FeeRateOutOfBounds(newMintFeeRate);
-        mintFeeRate = newMintFeeRate;
-        emit SetMintFeeRate(newMintFeeRate);
-    }
-
-    function setFeeRecipient(address newFeeRecipient) external onlyDLCAdmin {
-        feeRecipient = newFeeRecipient;
-        emit SetFeeRecipient(newFeeRecipient);
     }
 
     function setBtcMintFeeRate(

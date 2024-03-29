@@ -103,43 +103,6 @@ describe('TokenManager', function () {
             });
         });
 
-        describe('setMintFeeRate', async () => {
-            it('reverts on unauthorized calls', async () => {
-                await expect(
-                    tokenManager
-                        .connect(someRandomAccount)
-                        .setMintFeeRate(someRandomAccount.address)
-                ).to.be.revertedWithCustomError(tokenManager, 'NotDLCAdmin');
-            });
-            it('reverts on invalid fee rate', async () => {
-                await expect(
-                    tokenManager.connect(deployer).setMintFeeRate(10001)
-                ).to.be.revertedWithCustomError(
-                    tokenManager,
-                    'FeeRateOutOfBounds'
-                );
-            });
-            it('should set mint fee rate', async () => {
-                await tokenManager.connect(deployer).setMintFeeRate(1000);
-                expect(await tokenManager.mintFeeRate()).to.equal(1000);
-            });
-            it('should change the amount of tokens minted', async () => {
-                await tokenManager.connect(deployer).setMintFeeRate(1000);
-                expect(
-                    await tokenManager
-                        .connect(user)
-                        .previewFeeAdjustedAmount(deposit)
-                ).to.equal(deposit * 0.9);
-
-                await tokenManager.connect(deployer).setMintFeeRate(2000);
-                expect(
-                    await tokenManager
-                        .connect(user)
-                        .previewFeeAdjustedAmount(deposit)
-                ).to.equal(deposit * 0.8);
-            });
-        });
-
         describe('pauseContract', async () => {
             it('is only callable by PAUSER_ROLE', async () => {
                 await expect(

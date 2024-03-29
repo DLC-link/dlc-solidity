@@ -63,7 +63,7 @@ describe('TokenManager Proxy', function () {
 
     describe('Upgrade through proxy', async () => {
         beforeEach(async () => {
-            await tokenManager.connect(deployer).setMintFeeRate(1000);
+            await tokenManager.connect(deployer).setBtcMintFeeRate(1000);
 
             // test that the newTestFunction does not exist yet
             expect(() => tokenManager.newTestFunction()).to.throw(
@@ -87,7 +87,7 @@ describe('TokenManager Proxy', function () {
             expect(await dlcBtc.owner()).to.equal(tokenManagerV2.address);
         });
         it('should have the same mint fee rate', async () => {
-            expect(await tokenManagerV2.mintFeeRate()).to.equal(1000);
+            expect(await tokenManagerV2.btcMintFeeRate()).to.equal(1000);
         });
         it('should have the new test function', async () => {
             expect(await tokenManagerV2.newTestFunction()).to.equal(1);
