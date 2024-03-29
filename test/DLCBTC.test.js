@@ -18,6 +18,9 @@ const mockSigs = [
     ethers.utils.arrayify(mockSig),
 ];
 
+const mockTaprootPubkey =
+    '0x1234567890123456789012345678901234567890123456789012345678901234';
+
 describe('DLCBTC', function () {
     let tokenManager, mockDLCManager, dlcBtc;
     let deployer, user, someRandomAccount;
@@ -120,7 +123,8 @@ describe('DLCBTC', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 mockBTCTxId,
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx2.wait();
             expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
@@ -133,7 +137,8 @@ describe('DLCBTC', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 mockBTCTxId,
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx2.wait();
 

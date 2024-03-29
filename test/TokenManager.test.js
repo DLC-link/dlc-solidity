@@ -19,6 +19,9 @@ const mockSigs = [
     ethers.utils.arrayify(mockSig),
 ];
 
+const mockTaprootPubkey =
+    '0x1234567890123456789012345678901234567890123456789012345678901234';
+
 const Status = {
     READY: 0,
     FUNDED: 1,
@@ -255,7 +258,8 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx2.wait();
             expect(await dlcBtc.balanceOf(user.address)).to.equal(
@@ -272,7 +276,8 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx2.wait();
         });
@@ -329,7 +334,8 @@ describe('TokenManager', function () {
             const tx2 = await mockDLCManager.setStatusFunded(
                 mockUUID,
                 'someTx',
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx2.wait();
 
@@ -338,7 +344,8 @@ describe('TokenManager', function () {
             const tx4 = await mockDLCManager.setStatusFunded(
                 mockUUID1,
                 'someOtherTx',
-                mockSigs
+                mockSigs,
+                mockTaprootPubkey
             );
             await tx4.wait();
         });

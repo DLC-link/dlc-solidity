@@ -14,7 +14,8 @@ interface IDLCManager {
     function setStatusFunded(
         bytes32 _uuid,
         string calldata _btcTxId,
-        bytes[] calldata _signatures
+        bytes[] calldata _signatures,
+        string calldata taprootPubKey
     ) external;
 
     function closeDLC(bytes32 _uuid) external;

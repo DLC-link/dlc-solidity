@@ -54,6 +54,7 @@ contract DLCManager is
     uint16 private _signerCount;
     mapping(bytes32 => uint256) private _signatureCounts;
     bytes32 public tssCommitment;
+    string public attestorGroupPubKey;
     uint256[50] __gap;
 
     ////////////////////////////////////////////////////////////////
@@ -235,7 +236,8 @@ contract DLCManager is
             closingTxId: "",
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeBasisPoints,
-            btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints
+            btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints,
+            taprootPubKey: ""
         });
 
         emit CreateDLC(
@@ -262,7 +264,8 @@ contract DLCManager is
     function setStatusFunded(
         bytes32 uuid,
         string calldata btcTxId,
-        bytes[] calldata signatures
+        bytes[] calldata signatures,
+        string calldata taprootPubKey
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(abi.encode(uuid, btcTxId), signatures);
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
@@ -272,6 +275,7 @@ contract DLCManager is
 
         dlc.fundingTxId = btcTxId;
         dlc.status = DLCLink.DLCStatus.FUNDED;
+        dlc.taprootPubKey = taprootPubKey;
 
         DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
 
@@ -420,5 +424,9 @@ contract DLCManager is
 
     function setTSSCommitment(bytes32 commitment) external onlyAdmin {
         tssCommitment = commitment;
+    }
+
+    function setAttestorGroupPubKey(string calldata pubKey) external onlyAdmin {
+        attestorGroupPubKey = pubKey;
     }
 }

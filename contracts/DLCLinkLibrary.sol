@@ -27,5 +27,6 @@ library DLCLink {
         string btcFeeRecipient;
         uint256 btcMintFeeBasisPoints;
         uint256 btcRedeemFeeBasisPoints;
+        string taprootPubKey;
     }
 }

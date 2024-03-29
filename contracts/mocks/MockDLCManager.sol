@@ -155,7 +155,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             closingTxId: "",
             btcFeeRecipient: "",
             btcMintFeeBasisPoints: 0,
-            btcRedeemFeeBasisPoints: 0
+            btcRedeemFeeBasisPoints: 0,
+            taprootPubKey: ""
         });
 
         emit CreateDLC(_uuid, _valueLocked, msg.sender, tx.origin);
@@ -169,7 +170,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     function setStatusFunded(
         bytes32 _uuid,
         string calldata _btcTxId,
-        bytes[] calldata /*_signatures*/
+        bytes[] calldata /*_signatures*/,
+        string calldata /*taprootPubKey*/
     ) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
         DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.FUNDED;
