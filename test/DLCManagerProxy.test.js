@@ -58,16 +58,6 @@ describe('DLCManager Proxy', function () {
         await mockProtocol.deployed();
 
         await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
-
-        const tx = await mockProtocol
-            .connect(user)
-            .requestCreateDLC(valueLocked);
-        const receipt = await tx.wait();
-        const event = receipt.events[0];
-
-        const decodedEvent = dlcManager.interface.parseLog(event);
-        UUID = decodedEvent.args.uuid;
-        console.log('UUID:', UUID);
     });
 
     it('should deploy', async () => {
@@ -76,6 +66,17 @@ describe('DLCManager Proxy', function () {
 
     describe('Upgrade through proxy', async () => {
         beforeEach(async () => {
+            const tx = await mockProtocol
+                .connect(user)
+                .requestCreateDLC(valueLocked);
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            UUID = decodedEvent.args.uuid;
+
+            // console.log('DLC before upgrade:', await dlcManager.getDLC(UUID));
+
             await dlcManager.connect(deployer).setThreshold(5);
 
             // test that the newTestFunction does not exist yet
@@ -112,6 +113,13 @@ describe('DLCManager Proxy', function () {
             const dlc = await dlcManagerV2.getDLC(UUID);
             console.log(dlc);
             expect(dlc.valueLocked).to.equal(valueLocked);
+            expect(dlc.creator).to.equal(user.address);
+            expect(dlc.status).to.equal(0);
+        });
+        it('should have all the same fields', async () => {
+            expect(await dlcManager.DLC_ADMIN_ROLE()).to.equal(
+                await dlcManagerV2.DLC_ADMIN_ROLE()
+            );
         });
     });
 });

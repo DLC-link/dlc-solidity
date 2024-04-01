@@ -54,6 +54,7 @@ contract DLCManagerV2Test is
     uint16 private _signerCount;
     mapping(bytes32 => uint256) private _signatureCounts;
     bytes32 public tssCommitment;
+    string public attestorGroupPubKey;
     string public testString;
     uint256[49] __gap;
 
