@@ -29,6 +29,7 @@ contract DLCBTC is
     mapping(address => bool) public blacklisted;
 
     error BlacklistedSender();
+    error BlacklistedRecipient();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -68,8 +69,7 @@ contract DLCBTC is
         uint256 amount
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
-        // Following best practices for blacklisting
-        require(!blacklisted[from], "DLCBTC: sender blacklisted");
-        require(!blacklisted[to], "DLCBTC: recipient blacklisted");
+        if (blacklisted[from]) revert BlacklistedSender();
+        if (blacklisted[to]) revert BlacklistedRecipient();
     }
 }
