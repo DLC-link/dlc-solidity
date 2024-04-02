@@ -144,6 +144,12 @@ describe('DLCBTC', function () {
                     .connect(user)
                     .transfer(someRandomAccount.address, deposit)
             ).to.be.revertedWith('DLCBTC: sender blacklisted');
+
+            await expect(
+                dlcBtc
+                    .connect(someRandomAccount)
+                    .transfer(user.address, deposit)
+            ).to.be.revertedWith('DLCBTC: recipient blacklisted');
         });
 
         it('TokenManager can burn tokens', async () => {

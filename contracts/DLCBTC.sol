@@ -70,5 +70,6 @@ contract DLCBTC is
         super._beforeTokenTransfer(from, to, amount);
         // Following best practices for blacklisting
         require(!blacklisted[from], "DLCBTC: sender blacklisted");
+        require(!blacklisted[to], "DLCBTC: recipient blacklisted");
     }
 }
