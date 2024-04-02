@@ -41,7 +41,7 @@ describe('DLCBTC', function () {
         await mockDLCManager.deployed();
 
         const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
-        dlcBtc = await DLCBTC.deploy();
+        dlcBtc = await upgrades.deployProxy(DLCBTC);
         await dlcBtc.deployed();
 
         const TokenManager = await ethers.getContractFactory(
@@ -97,6 +97,7 @@ describe('DLCBTC', function () {
 
     describe('after Ownership transfer', async () => {
         beforeEach(async () => {
+            await dlcBtc.mint(user.address, deposit);
             await dlcBtc.transferOwnership(tokenManager.address);
         });
 
@@ -117,6 +118,7 @@ describe('DLCBTC', function () {
         });
 
         it('TokenManager can mint tokens', async () => {
+            const existingBalance = await dlcBtc.balanceOf(user.address);
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
@@ -127,10 +129,25 @@ describe('DLCBTC', function () {
                 mockTaprootPubkey
             );
             await tx2.wait();
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
+            const expectedBalance = ethers.BigNumber.from(existingBalance).add(
+                ethers.BigNumber.from(deposit)
+            );
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+                expectedBalance
+            );
+        });
+
+        it('tokenManager can blacklist addresses', async () => {
+            await tokenManager.blacklistOnTokenContract(user.address);
+            await expect(
+                dlcBtc
+                    .connect(user)
+                    .transfer(someRandomAccount.address, deposit)
+            ).to.be.revertedWith('DLCBTC: sender blacklisted');
         });
 
         it('TokenManager can burn tokens', async () => {
+            const existingBalance = await dlcBtc.balanceOf(user.address);
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
@@ -142,11 +159,17 @@ describe('DLCBTC', function () {
             );
             await tx2.wait();
 
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+                ethers.BigNumber.from(existingBalance).add(
+                    ethers.BigNumber.from(deposit)
+                )
+            );
             const tx3 = await tokenManager.connect(user).closeVault(mockUUID);
             await tx3.wait();
 
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(0);
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+                existingBalance
+            );
         });
     });
 });

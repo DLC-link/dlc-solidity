@@ -36,7 +36,7 @@ describe('TokenManager Proxy', function () {
         await mockDLCManager.deployed();
 
         const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
-        dlcBtc = await DLCBTC.deploy();
+        dlcBtc = await upgrades.deployProxy(DLCBTC);
         await dlcBtc.deployed();
 
         const TokenManager = await ethers.getContractFactory(
