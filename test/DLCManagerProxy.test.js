@@ -19,6 +19,7 @@ const mockUUID =
 
 describe('DLCManager Proxy', function () {
     let dlcManager, mockProtocol;
+    let tokenManager, dlcBtc;
     let accounts, deployer, protocol, user, randomAccount, anotherAccount;
     let attestor1, attestor2, attestor3;
     let attestors;
@@ -28,6 +29,7 @@ describe('DLCManager Proxy', function () {
     const valueLocked = 100000000; // 1 BTC
     const btcTxId = '0x1234567890';
     const btcTxId2 = '0x1234567891';
+    const btcFeeRecipient = '0x000001';
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -142,6 +144,70 @@ describe('DLCManager Proxy', function () {
             expect(await dlcManagerV2.attestorGroupPubKey()).to.equal(
                 'someKey'
             );
+        });
+    });
+
+    describe('Upgrade through proxy with TokenManager and dlcBTC', async () => {
+        beforeEach(async () => {
+            const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
+            dlcBtc = await upgrades.deployProxy(DLCBTC);
+            await dlcBtc.deployed();
+
+            const TokenManager = await ethers.getContractFactory(
+                'TokenManager',
+                deployer
+            );
+            // we deploy the TokenManager contract with the DLCManager address
+            tokenManager = await upgrades.deployProxy(TokenManager, [
+                deployer.address,
+                dlcManager.address,
+                dlcBtc.address,
+                btcFeeRecipient,
+            ]);
+
+            await dlcBtc.transferOwnership(tokenManager.address);
+            await tokenManager.connect(deployer).whitelistAddress(user.address);
+
+            await whitelistProtocolContractAndAddress(dlcManager, tokenManager);
+        });
+        it('should work as expected before upgrade', async () => {
+            expect(tokenManager.address).to.not.equal(0);
+            expect(await dlcBtc.owner()).to.equal(tokenManager.address);
+            const tx = await tokenManager.connect(user).setupVault(valueLocked);
+            const receipt = await tx.wait();
+            const event = receipt.events.find(
+                (ev) => ev.event === 'SetupVault'
+            );
+            UUID = event.args.dlcUUID;
+            const vault = await tokenManager.getVault(UUID);
+            const DLC = await dlcManager.getDLC(UUID);
+            expect(DLC.creator).to.equal(vault.creator);
+            expect(vault.protocolContract).to.equal(tokenManager.address);
+        });
+        it('should work as expected after upgrades', async () => {
+            // Creating a new DLC
+            const tx = await tokenManager.connect(user).setupVault(valueLocked);
+            const receipt = await tx.wait();
+            const event = receipt.events.find(
+                (ev) => ev.event === 'SetupVault'
+            );
+            UUID = event.args.dlcUUID;
+
+            // Upgrade contract
+            const DLCManagerV2Test = await ethers.getContractFactory(
+                'DLCManagerV2Test',
+                deployer
+            );
+            dlcManagerV2 = await hardhat.upgrades.upgradeProxy(
+                dlcManager.address,
+                DLCManagerV2Test
+            );
+
+            // lets see if fetching data works
+            const vault = await tokenManager.getVault(UUID);
+            const DLC = await dlcManagerV2.getDLC(UUID);
+            expect(DLC.creator).to.equal(vault.creator);
+            expect(vault.protocolContract).to.equal(tokenManager.address);
         });
     });
 });

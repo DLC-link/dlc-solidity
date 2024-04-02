@@ -145,8 +145,6 @@ contract DLCManager is
 
     event SetThreshold(uint16 newThreshold);
 
-    event SetStatusConfirmed(bytes32 uuid, string btcTxId, address sender);
-
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
     ////////////////////////////////////////////////////////////////
