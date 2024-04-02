@@ -54,7 +54,6 @@ contract TokenManagerV2Test is
     DLCBTC public dlcBTC; // dlcBTC contract
     IDLCManager public dlcManager; // DLCManager contract
     string public btcFeeRecipient; // BTC address to send fees to
-    address public feeRecipient; // address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
     uint256 public btcMintFeeRate; // in basis points (100 = 1%) -- BTC
