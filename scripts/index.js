@@ -12,6 +12,7 @@ const addSigner = require('./05-add-signer');
 const removeSigner = require('./06-remove-signer');
 const setThreshold = require('./07-set-threshold');
 const setTSSCommitment = require('./08-set-tss-commitment');
+const setAttestorGroupPubKey = require('./09-set-attestor-gpk');
 
 // TokenManager
 const whitelistAccount = require('./10_whitelist-account');
@@ -130,6 +131,13 @@ async function main() {
         )
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(setTSSCommitment);
+
+    program
+        .command('set-attestor-gpk')
+        .description('[admin] set attestor group public key')
+        .argument('<attestorGPK>', 'attestor group public key')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(setAttestorGroupPubKey);
 
     program
         .command('whitelist-account')

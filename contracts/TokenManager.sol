@@ -350,6 +350,14 @@ contract TokenManager is
         emit TransferTokenContractOwnership(newOwner);
     }
 
+    function blacklistOnTokenContract(address account) external onlyDLCAdmin {
+        dlcBTC.blacklist(account);
+    }
+
+    function unblacklistOnTokenContract(address account) external onlyDLCAdmin {
+        dlcBTC.unblacklist(account);
+    }
+
     function pauseContract() external onlyPauser {
         _pause();
     }
