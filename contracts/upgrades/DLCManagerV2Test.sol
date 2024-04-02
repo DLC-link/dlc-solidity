@@ -429,6 +429,10 @@ contract DLCManagerV2Test is
         tssCommitment = commitment;
     }
 
+    function setAttestorGroupPubKey(string calldata pubKey) external onlyAdmin {
+        attestorGroupPubKey = pubKey;
+    }
+
     function newTestFunction() public pure returns (uint) {
         return 1;
     }

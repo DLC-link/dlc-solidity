@@ -1,0 +1,8 @@
+.env
+log.txt
+node_modules/
+coverage/
+cache/
+artifacts/
+.openzeppelin/
+.husky/

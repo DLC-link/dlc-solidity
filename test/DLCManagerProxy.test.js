@@ -78,6 +78,9 @@ describe('DLCManager Proxy', function () {
             // console.log('DLC before upgrade:', await dlcManager.getDLC(UUID));
 
             await dlcManager.connect(deployer).setThreshold(5);
+            await dlcManager
+                .connect(deployer)
+                .setAttestorGroupPubKey('someKey');
 
             // test that the newTestFunction does not exist yet
             expect(() => dlcManager.newTestFunction()).to.throw(
@@ -116,9 +119,28 @@ describe('DLCManager Proxy', function () {
             expect(dlc.creator).to.equal(user.address);
             expect(dlc.status).to.equal(0);
         });
+        it('should have the new field on the dlc', async () => {
+            const dlc = await dlcManagerV2.getDLC(UUID);
+            expect(dlc.someNewField).to.equal(ethers.constants.AddressZero);
+        });
         it('should have all the same fields', async () => {
             expect(await dlcManager.DLC_ADMIN_ROLE()).to.equal(
                 await dlcManagerV2.DLC_ADMIN_ROLE()
+            );
+            expect(
+                await dlcManagerV2.hasRole(
+                    ethers.utils.id('DLC_ADMIN_ROLE'),
+                    deployer.address
+                )
+            ).to.equal(true);
+            expect(
+                await dlcManagerV2.hasRole(
+                    ethers.utils.id('WHITELISTED_CONTRACT'),
+                    mockProtocol.address
+                )
+            ).to.equal(true);
+            expect(await dlcManagerV2.attestorGroupPubKey()).to.equal(
+                'someKey'
             );
         });
     });
