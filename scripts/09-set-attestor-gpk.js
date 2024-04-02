@@ -4,9 +4,8 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 const safeContractProposal = require('./helpers/safe-api-service');
-const { ethers } = require('ethers');
 
-module.exports = async function setTSSCommitment(secretIdentifier, version) {
+module.exports = async function setAttestorGroupPubKey(attestorGPK, version) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
 
@@ -22,30 +21,16 @@ module.exports = async function setTSSCommitment(secretIdentifier, version) {
         admin
     );
 
-    let secretIdentifierBytes;
-    if (secretIdentifier == null) {
-        secretIdentifierBytes = ethers.utils.randomBytes(32);
-    } else {
-        secretIdentifierBytes = ethers.utils.toUtf8Bytes(secretIdentifier);
-    }
-
-    console.log(
-        'Setting TSS commitment with secret identifier: ',
-        secretIdentifier
-    );
-
-    const commitment = ethers.utils.keccak256(secretIdentifierBytes);
-    console.log('Commitment: ', commitment.toString());
-
     if (
         hardhat.network.name === 'localhost' ||
         admin.address == (await dlcManager.defaultAdmin())
     ) {
-        console.log('admin has DEFAULT_ADMIN_ROLE, setting commitment');
+        console.log('admin has DEFAULT_ADMIN_ROLE, setting attestorGPK');
 
-        const tx = await dlcManager.setTSSCommitment(commitment);
+        const tx = await dlcManager.setAttestorGroupPubKey(attestorGPK);
         await tx.wait();
-        console.log('Changed to: ', await dlcManager.tssCommitment());
+
+        console.log('Changed to: ', await dlcManager.attestorGroupPubKey());
     } else {
         console.log(
             'admin does not have DEFAULT_ADMIN_ROLE, submitting multisig request...'
@@ -53,7 +38,7 @@ module.exports = async function setTSSCommitment(secretIdentifier, version) {
 
         const txRequest = await dlcManager
             .connect(admin)
-            .populateTransaction.setTSSCommitment(commitment);
+            .populateTransaction.setAttestorGroupPubKey(attestorGPK);
         await safeContractProposal(txRequest, admin);
     }
 };
