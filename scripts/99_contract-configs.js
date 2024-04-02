@@ -81,14 +81,14 @@ module.exports = function getContractConfigs(networkConfig) {
         {
             name: 'DLCBTC',
             deployer: deployer.address,
-            upgradeable: false,
+            upgradeable: true,
             requirements: [],
             deploy: async (requirementAddresses) => {
                 await beforeDeployment('DLCBTC', '', network);
 
                 const DLCBTC =
                     await hardhat.ethers.getContractFactory('DLCBTC');
-                const dlcBtc = await DLCBTC.deploy();
+                const dlcBtc = await hardhat.upgrades.deployProxy(DLCBTC);
                 await dlcBtc.deployed();
 
                 await afterDeployment('DLCBTC', dlcBtc, version);
