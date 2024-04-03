@@ -3,13 +3,22 @@ require('dotenv').config();
 const path = require('path');
 const { Command } = require('commander');
 const version = require('../package.json').version;
-const addRoleToManager = require('./00-grant-role-on-manager');
+
+// DLCManager
 const createV1 = require('./01-create-dlc');
 const closeV1 = require('./02-close-dlc');
 const setStatusFunded = require('./03-set-status-funded');
-const registerProtocol = require('./04-register-protocol');
-const addSigner = require('./05-add-signer');
-const removeSigner = require('./06-remove-signer');
+const {
+    grantRoleOnManager,
+    registerProtocol,
+    addSigner,
+} = require('./00-grant-role-on-manager');
+
+const {
+    revokeRoleOnManager,
+    removeSigner,
+} = require('./00-revoke-role-on-manager');
+const { pauseManager, unpauseManager } = require('./04-pausability-manager');
 const setThreshold = require('./07-set-threshold');
 const setTSSCommitment = require('./08-set-tss-commitment');
 const setAttestorGroupPubKey = require('./09-set-attestor-gpk');
@@ -20,9 +29,6 @@ const unwhitelistAccount = require('./11_unwhitelist-account');
 const tokenManagerSetupVault = require('./12_setup-vault');
 const whitelistingEnabled = require('./13_set-whitelisting');
 const setBtcFeeRecipient = require('./14_set-btc-fee-recipient');
-
-const burnUserTokens = require('./97_burn-user-tokens');
-const burnAllUserTokens = require('./98_burn-all-user-tokens');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -91,7 +97,7 @@ async function main() {
             '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9'
         )
         .argument('[version]', 'version of DLCManager contract', 'v1')
-        .action(addRoleToManager);
+        .action(grantRoleOnManager);
 
     program
         .command('register-protocol')
@@ -113,6 +119,18 @@ async function main() {
         .argument('<signer>', 'address of signer')
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(removeSigner);
+
+    program
+        .command('pause-manager')
+        .description('[admin] pause DLCManager')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(pauseManager);
+
+    program
+        .command('unpause-manager')
+        .description('[admin] unpause DLCManager')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(unpauseManager);
 
     program
         .command('set-threshold')
@@ -195,17 +213,6 @@ async function main() {
         .argument('<uuid>', 'uuid of DLC')
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(setStatusFunded);
-
-    program
-        .command('burn-user-tokens')
-        .description('[token-man] burn user tokens')
-        .argument('<address>', 'address to burn tokens for')
-        .action(burnUserTokens);
-
-    program
-        .command('burn-all-user-tokens')
-        .description('[token-man] burn all user tokens')
-        .action(burnAllUserTokens);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work

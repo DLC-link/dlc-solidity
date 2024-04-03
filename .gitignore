@@ -4,6 +4,7 @@
 .openzeppelin
 
 log.txt
+test.js
 
 local-setup.devnet.sh
 
