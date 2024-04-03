@@ -208,6 +208,20 @@ describe('DLCManager Proxy', function () {
             const DLC = await dlcManagerV2.getDLC(UUID);
             expect(DLC.creator).to.equal(vault.creator);
             expect(vault.protocolContract).to.equal(tokenManager.address);
+
+            const tx2 = await tokenManager
+                .connect(user)
+                .setupVault(valueLocked);
+            const receipt2 = await tx.wait();
+            const event2 = receipt.events.find(
+                (ev) => ev.event === 'SetupVault'
+            );
+            const uuid2 = event2.args.dlcUUID;
+            const vault2 = await tokenManager.getVault(uuid2);
+            console.log(vault2);
+            const DLC2 = await dlcManagerV2.getDLC(uuid2);
+            console.log(DLC2);
+            expect(DLC2.creator).to.equal(vault2.creator);
         });
     });
 });
