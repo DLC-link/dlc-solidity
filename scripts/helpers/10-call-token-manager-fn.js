@@ -22,7 +22,7 @@ async function callTokenManagerFunction(functionName, args, version) {
     console.log('calling function', functionName, 'with args', args, '...');
     if (
         hardhat.network.name === 'localhost' ||
-        (await tokenManager.hasRole(
+        (await contract.hasRole(
             hardhat.ethers.utils.id('DLC_ADMIN_ROLE'),
             admin.address
         ))
