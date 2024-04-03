@@ -4,6 +4,9 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 
 // For testing purposes only
+// NOTE: deprecated
+// set-status-funded requires multisig from the attestors now
+
 module.exports = async function setStatusFunded(uuid, version) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];

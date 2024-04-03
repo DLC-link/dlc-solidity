@@ -3,20 +3,22 @@ require('dotenv').config();
 const path = require('path');
 const { Command } = require('commander');
 const version = require('../package.json').version;
-const {
-    grantRoleOnManager,
-    registerProtocol,
-    addSigner,
-} = require('./00-grant-role-on-manager');
 
 // DLCManager
 const createV1 = require('./01-create-dlc');
 const closeV1 = require('./02-close-dlc');
 const setStatusFunded = require('./03-set-status-funded');
 const {
+    grantRoleOnManager,
+    registerProtocol,
+    addSigner,
+} = require('./00-grant-role-on-manager');
+
+const {
     revokeRoleOnManager,
     removeSigner,
 } = require('./00-revoke-role-on-manager');
+const { pauseManager, unpauseManager } = require('./04-pausability-manager');
 const setThreshold = require('./07-set-threshold');
 const setTSSCommitment = require('./08-set-tss-commitment');
 const setAttestorGroupPubKey = require('./09-set-attestor-gpk');
@@ -117,6 +119,18 @@ async function main() {
         .argument('<signer>', 'address of signer')
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(removeSigner);
+
+    program
+        .command('pause-manager')
+        .description('[admin] pause DLCManager')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(pauseManager);
+
+    program
+        .command('unpause-manager')
+        .description('[admin] unpause DLCManager')
+        .argument('[version]', 'version of DLCManager contract', 'v1')
+        .action(unpauseManager);
 
     program
         .command('set-threshold')

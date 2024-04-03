@@ -6,8 +6,10 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const { promptUser, loadContractAddress } = require('./helpers/utils');
 const getChainLinkBTCPriceFeedAddress = require('./helpers/chainlink-pricefeed-addresses');
-const grantRoleOnManager = require('./00-grant-role-on-manager');
-const registerProtocol = require('./04-register-protocol');
+const {
+    grantRoleOnManager,
+    registerProtocol,
+} = require('./00-grant-role-on-manager');
 
 // This is a pure function that just logs
 async function beforeDeployment(contractName, constructorArguments, network) {
@@ -202,131 +204,131 @@ module.exports = function getContractConfigs(networkConfig) {
                 });
             },
         },
-        {
-            name: 'USDC',
-            deployer: deployer.address,
-            upgradeable: false,
-            requirements: [],
-            deploy: async (requirementAddresses) => {
-                await beforeDeployment('USDC', '', network);
-                const USDC = await hardhat.ethers.getContractFactory(
-                    'USDStableCoinForDLCs'
-                );
-                const usdc = await USDC.deploy();
-                await usdc.deployed();
-                await afterDeployment('USDC', usdc, version);
-                return usdc.address;
-            },
-            verify: async () => {
-                const address = await loadContractAddress(
-                    'USDC',
-                    network,
-                    version
-                );
-                await hardhat.run('verify:verify', {
-                    address: address,
-                });
-            },
-        },
-        {
-            name: 'LendingContract',
-            deployer: deployer.address,
-            upgradeable: false,
-            requirements: ['USDC', 'DLCManager'],
-            deploy: async (requirementAddresses) => {
-                const dlcManagerAddress = requirementAddresses['DLCManager'];
-                if (!dlcManagerAddress)
-                    throw new Error('DLCManager deployment not found.');
-                const usdcAddress = requirementAddresses['USDC'];
-                if (!usdcAddress) throw new Error('USDC deployment not found.');
+        // {
+        //     name: 'USDC',
+        //     deployer: deployer.address,
+        //     upgradeable: false,
+        //     requirements: [],
+        //     deploy: async (requirementAddresses) => {
+        //         await beforeDeployment('USDC', '', network);
+        //         const USDC = await hardhat.ethers.getContractFactory(
+        //             'USDStableCoinForDLCs'
+        //         );
+        //         const usdc = await USDC.deploy();
+        //         await usdc.deployed();
+        //         await afterDeployment('USDC', usdc, version);
+        //         return usdc.address;
+        //     },
+        //     verify: async () => {
+        //         const address = await loadContractAddress(
+        //             'USDC',
+        //             network,
+        //             version
+        //         );
+        //         await hardhat.run('verify:verify', {
+        //             address: address,
+        //         });
+        //     },
+        // },
+        // {
+        //     name: 'LendingContract',
+        //     deployer: deployer.address,
+        //     upgradeable: false,
+        //     requirements: ['USDC', 'DLCManager'],
+        //     deploy: async (requirementAddresses) => {
+        //         const dlcManagerAddress = requirementAddresses['DLCManager'];
+        //         if (!dlcManagerAddress)
+        //             throw new Error('DLCManager deployment not found.');
+        //         const usdcAddress = requirementAddresses['USDC'];
+        //         if (!usdcAddress) throw new Error('USDC deployment not found.');
 
-                const pricefeedAddress =
-                    await getChainLinkBTCPriceFeedAddress(network);
+        //         const pricefeedAddress =
+        //             await getChainLinkBTCPriceFeedAddress(network);
 
-                await beforeDeployment(
-                    'LendingContract',
-                    `_dlcManager: ${dlcManagerAddress}, _usdc: ${usdcAddress}, _routerWallet: ${routerWallet.address}, _pricefeed: ${pricefeedAddress}`,
-                    network
-                );
+        //         await beforeDeployment(
+        //             'LendingContract',
+        //             `_dlcManager: ${dlcManagerAddress}, _usdc: ${usdcAddress}, _routerWallet: ${routerWallet.address}, _pricefeed: ${pricefeedAddress}`,
+        //             network
+        //         );
 
-                const LendingDemo =
-                    await hardhat.ethers.getContractFactory('LendingContract');
-                const lendingDemo = await LendingDemo.deploy(
-                    dlcManagerAddress,
-                    usdcAddress,
-                    routerWallet.address,
-                    pricefeedAddress
-                );
-                await lendingDemo.deployed();
+        //         const LendingDemo =
+        //             await hardhat.ethers.getContractFactory('LendingContract');
+        //         const lendingDemo = await LendingDemo.deploy(
+        //             dlcManagerAddress,
+        //             usdcAddress,
+        //             routerWallet.address,
+        //             pricefeedAddress
+        //         );
+        //         await lendingDemo.deployed();
 
-                await afterDeployment('LendingContract', lendingDemo, version);
+        //         await afterDeployment('LendingContract', lendingDemo, version);
 
-                if (network === 'localhost') {
-                    const shouldMintUsdc = await promptUser(
-                        `Would you like to mint 10M USDC to LendingContract @ ${lendingDemo.address}?`
-                    );
-                    if (shouldMintUsdc) {
-                        const usdc = await hardhat.ethers.getContractAt(
-                            'USDStableCoinForDLCs',
-                            usdcAddress
-                        );
-                        const tx = await usdc.mint(
-                            lendingDemo.address,
-                            hardhat.ethers.utils.parseUnits('10000000', 'ether')
-                        );
-                        const receipt = await tx.wait();
-                        console.log(`Done in tx: ${receipt}`);
-                    }
-                }
+        //         if (network === 'localhost') {
+        //             const shouldMintUsdc = await promptUser(
+        //                 `Would you like to mint 10M USDC to LendingContract @ ${lendingDemo.address}?`
+        //             );
+        //             if (shouldMintUsdc) {
+        //                 const usdc = await hardhat.ethers.getContractAt(
+        //                     'USDStableCoinForDLCs',
+        //                     usdcAddress
+        //                 );
+        //                 const tx = await usdc.mint(
+        //                     lendingDemo.address,
+        //                     hardhat.ethers.utils.parseUnits('10000000', 'ether')
+        //                 );
+        //                 const receipt = await tx.wait();
+        //                 console.log(`Done in tx: ${receipt}`);
+        //             }
+        //         }
 
-                const shouldWhitelistLendingDemo = await promptUser(
-                    `Would you like to whitelist LendingContract @ ${lendingDemo.address} in DLCManager @ ${dlcManagerAddress}?`
-                );
-                if (shouldWhitelistLendingDemo) {
-                    await grantRoleOnManager(
-                        'WHITELISTED_CONTRACT',
-                        lendingDemo.address,
-                        version
-                    );
-                    await grantRoleOnManager(
-                        'WHITELISTED_WALLET',
-                        routerWallet.address,
-                        version
-                    );
-                }
+        //         const shouldWhitelistLendingDemo = await promptUser(
+        //             `Would you like to whitelist LendingContract @ ${lendingDemo.address} in DLCManager @ ${dlcManagerAddress}?`
+        //         );
+        //         if (shouldWhitelistLendingDemo) {
+        //             await grantRoleOnManager(
+        //                 'WHITELISTED_CONTRACT',
+        //                 lendingDemo.address,
+        //                 version
+        //             );
+        //             await grantRoleOnManager(
+        //                 'WHITELISTED_WALLET',
+        //                 routerWallet.address,
+        //                 version
+        //             );
+        //         }
 
-                return lendingDemo.address;
-            },
-            verify: async () => {
-                const address = await loadContractAddress(
-                    'LendingContract',
-                    network,
-                    version
-                );
-                const dlcManagerAddress = await loadContractAddress(
-                    'DLCManager',
-                    network,
-                    version
-                );
-                const usdcAddress = await loadContractAddress(
-                    'USDC',
-                    network,
-                    version
-                );
-                const pricefeedAddress =
-                    await getChainLinkBTCPriceFeedAddress(network);
+        //         return lendingDemo.address;
+        //     },
+        //     verify: async () => {
+        //         const address = await loadContractAddress(
+        //             'LendingContract',
+        //             network,
+        //             version
+        //         );
+        //         const dlcManagerAddress = await loadContractAddress(
+        //             'DLCManager',
+        //             network,
+        //             version
+        //         );
+        //         const usdcAddress = await loadContractAddress(
+        //             'USDC',
+        //             network,
+        //             version
+        //         );
+        //         const pricefeedAddress =
+        //             await getChainLinkBTCPriceFeedAddress(network);
 
-                await hardhat.run('verify:verify', {
-                    address: address,
-                    constructorArguments: [
-                        dlcManagerAddress,
-                        usdcAddress,
-                        routerWallet.address,
-                        pricefeedAddress,
-                    ],
-                });
-            },
-        },
+        //         await hardhat.run('verify:verify', {
+        //             address: address,
+        //             constructorArguments: [
+        //                 dlcManagerAddress,
+        //                 usdcAddress,
+        //                 routerWallet.address,
+        //                 pricefeedAddress,
+        //             ],
+        //         });
+        //     },
+        // },
     ];
 };
 

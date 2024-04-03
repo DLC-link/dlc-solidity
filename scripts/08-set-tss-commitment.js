@@ -1,27 +1,9 @@
-const hardhat = require('hardhat');
-
 const {
-    loadDeploymentInfo,
-} = require('./helpers/deployment-handlers_versioned');
-const safeContractProposal = require('./helpers/safe-api-service');
+    callManagerContractFunction,
+} = require('./helpers/00-call-dlc-manager-fn');
 const { ethers } = require('ethers');
 
 module.exports = async function setTSSCommitment(secretIdentifier, version) {
-    const accounts = await hardhat.ethers.getSigners();
-    const admin = accounts[0];
-
-    const dlcManagerDeployInfo = await loadDeploymentInfo(
-        hardhat.network.name,
-        'DLCManager',
-        version
-    );
-
-    const dlcManager = new hardhat.ethers.Contract(
-        dlcManagerDeployInfo.contract.address,
-        dlcManagerDeployInfo.contract.abi,
-        admin
-    );
-
     let secretIdentifierBytes;
     if (secretIdentifier == null) {
         secretIdentifierBytes = ethers.utils.randomBytes(32);
@@ -37,23 +19,9 @@ module.exports = async function setTSSCommitment(secretIdentifier, version) {
     const commitment = ethers.utils.keccak256(secretIdentifierBytes);
     console.log('Commitment: ', commitment.toString());
 
-    if (
-        hardhat.network.name === 'localhost' ||
-        admin.address == (await dlcManager.defaultAdmin())
-    ) {
-        console.log('admin has DEFAULT_ADMIN_ROLE, setting commitment');
-
-        const tx = await dlcManager.setTSSCommitment(commitment);
-        await tx.wait();
-        console.log('Changed to: ', await dlcManager.tssCommitment());
-    } else {
-        console.log(
-            'admin does not have DEFAULT_ADMIN_ROLE, submitting multisig request...'
-        );
-
-        const txRequest = await dlcManager
-            .connect(admin)
-            .populateTransaction.setTSSCommitment(commitment);
-        await safeContractProposal(txRequest, admin);
-    }
+    await callManagerContractFunction(
+        'setTSSCommitment',
+        [commitment],
+        version
+    );
 };
