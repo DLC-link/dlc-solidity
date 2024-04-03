@@ -27,9 +27,13 @@ contract DLCBTC is
     OwnableUpgradeable
 {
     mapping(address => bool) public blacklisted;
+    uint256[50] __gap;
 
     error BlacklistedSender();
     error BlacklistedRecipient();
+
+    event Blacklisted(address account);
+    event Unblacklisted(address account);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -57,10 +61,12 @@ contract DLCBTC is
 
     function blacklist(address account) external onlyOwner {
         blacklisted[account] = true;
+        emit Blacklisted(account);
     }
 
     function unblacklist(address account) external onlyOwner {
         blacklisted[account] = false;
+        emit Unblacklisted(account);
     }
 
     function _beforeTokenTransfer(
