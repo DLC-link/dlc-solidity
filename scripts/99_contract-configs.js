@@ -39,7 +39,8 @@ async function afterDeployment(contractName, contractObject, version) {
 module.exports = function getContractConfigs(networkConfig) {
     const network = hardhat.network.name;
     const { version, deployer, routerWallet, dlcAdminSafe } = networkConfig;
-    const btcFeeRecipient = 'bcrt1qvgkz8m4m73kly4xhm28pcnv46n6u045lfq9ta3';
+    const btcFeeRecipient =
+        '031131cd88bcea8c1d84da8e034bb24c2f6e748c571922dc363e7e088f5df0436c';
     const threshold = 2;
 
     return [
@@ -80,14 +81,14 @@ module.exports = function getContractConfigs(networkConfig) {
         {
             name: 'DLCBTC',
             deployer: deployer.address,
-            upgradeable: false,
+            upgradeable: true,
             requirements: [],
             deploy: async (requirementAddresses) => {
                 await beforeDeployment('DLCBTC', '', network);
 
                 const DLCBTC =
                     await hardhat.ethers.getContractFactory('DLCBTC');
-                const dlcBtc = await DLCBTC.deploy();
+                const dlcBtc = await hardhat.upgrades.deployProxy(DLCBTC);
                 await dlcBtc.deployed();
 
                 await afterDeployment('DLCBTC', dlcBtc, version);

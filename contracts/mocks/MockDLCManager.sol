@@ -157,6 +157,13 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             btcMintFeeBasisPoints: 0,
             btcRedeemFeeBasisPoints: 0,
             taprootPubKey: ""
+            // reservedSlots: [
+            //     uint256(0),
+            //     uint256(0),
+            //     uint256(0),
+            //     uint256(0),
+            //     uint256(0)
+            // ]
         });
 
         emit CreateDLC(_uuid, _valueLocked, msg.sender, tx.origin);

@@ -15,6 +15,7 @@ import "./IDLCManager.sol";
 import "./DLCLinkCompatible.sol";
 import "./DLCBTC.sol";
 import "./DLCLinkLibrary.sol";
+import "./DLCManager.sol";
 
 /**
  * @author  DLC.Link 2024
@@ -52,8 +53,8 @@ contract TokenManager is
         0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a; // keccak256("PAUSER_ROLE");
 
     DLCBTC public dlcBTC; // dlcBTC contract
-    IDLCManager public dlcManager; // DLCManager contract
-    string private _btcFeeRecipient; // BTC address to send fees to
+    DLCManager public dlcManager; // DLCManager contract
+    string public btcFeeRecipient; // BTC address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
     uint256 public btcMintFeeRate; // in basis points (100 = 1%) -- BTC
@@ -109,20 +110,20 @@ contract TokenManager is
         address adminAddress,
         address dlcManagerAddress,
         DLCBTC tokenContract,
-        string memory btcFeeRecipient
+        string memory btcFeeRecipientToSet
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, adminAddress);
         _grantRole(DLC_ADMIN_ROLE, adminAddress);
         _grantRole(DLC_MANAGER_ROLE, dlcManagerAddress);
         _grantRole(PAUSER_ROLE, adminAddress);
-        dlcManager = IDLCManager(dlcManagerAddress);
+        dlcManager = DLCManager(dlcManagerAddress);
         dlcBTC = tokenContract;
         minimumDeposit = 1e6; // 0.01 BTC
         maximumDeposit = 1e8; // 1 BTC
         whitelistingEnabled = true;
         btcMintFeeRate = 100; // 1% BTC fee for now
         btcRedeemFeeRate = 100; // 1% BTC fee for now
-        _btcFeeRecipient = btcFeeRecipient;
+        btcFeeRecipient = btcFeeRecipientToSet;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -191,7 +192,7 @@ contract TokenManager is
 
         bytes32 _uuid = dlcManager.createDLC(
             btcDeposit,
-            _btcFeeRecipient,
+            btcFeeRecipient,
             btcMintFeeRate,
             btcRedeemFeeRate
         );
@@ -321,9 +322,9 @@ contract TokenManager is
     }
 
     function setBtcFeeRecipient(
-        string calldata btcFeeRecipient
+        string calldata btcFeeRecipientToSet
     ) external onlyDLCAdmin {
-        _btcFeeRecipient = btcFeeRecipient;
+        btcFeeRecipient = btcFeeRecipientToSet;
         emit SetBtcFeeRecipient(btcFeeRecipient);
     }
 
@@ -337,7 +338,7 @@ contract TokenManager is
     function updateDLCManagerContract(
         address newDLCManagerAddress
     ) external onlyDLCAdmin {
-        dlcManager = IDLCManager(newDLCManagerAddress);
+        dlcManager = DLCManager(newDLCManagerAddress);
         _grantRole(DLC_MANAGER_ROLE, newDLCManagerAddress);
         emit NewDLCManagerContract(newDLCManagerAddress);
     }
@@ -347,6 +348,14 @@ contract TokenManager is
     ) external onlyDLCAdmin {
         dlcBTC.transferOwnership(newOwner);
         emit TransferTokenContractOwnership(newOwner);
+    }
+
+    function blacklistOnTokenContract(address account) external onlyDLCAdmin {
+        dlcBTC.blacklist(account);
+    }
+
+    function unblacklistOnTokenContract(address account) external onlyDLCAdmin {
+        dlcBTC.unblacklist(account);
     }
 
     function pauseContract() external onlyPauser {
