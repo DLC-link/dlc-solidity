@@ -107,11 +107,12 @@ contract DLCManager is
     }
 
     function initialize(
-        address adminAddress,
+        address defaultAdmin,
+        address dlcAdminRole,
         uint16 threshold
     ) public initializer {
-        __AccessControlDefaultAdminRules_init(2 days, adminAddress);
-        _grantRole(DLC_ADMIN_ROLE, adminAddress);
+        __AccessControlDefaultAdminRules_init(2 days, defaultAdmin);
+        _grantRole(DLC_ADMIN_ROLE, dlcAdminRole);
         _minimumThreshold = 2;
         if (threshold < _minimumThreshold)
             revert ThresholdTooLow(_minimumThreshold);

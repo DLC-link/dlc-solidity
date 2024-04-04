@@ -107,15 +107,16 @@ contract TokenManager is
     }
 
     function initialize(
-        address adminAddress,
+        address defaultAdmin,
+        address dlcAdminRole,
         address dlcManagerAddress,
         DLCBTC tokenContract,
         string memory btcFeeRecipientToSet
     ) public initializer {
-        __AccessControlDefaultAdminRules_init(2 days, adminAddress);
-        _grantRole(DLC_ADMIN_ROLE, adminAddress);
+        __AccessControlDefaultAdminRules_init(2 days, defaultAdmin);
+        _grantRole(DLC_ADMIN_ROLE, dlcAdminRole);
         _grantRole(DLC_MANAGER_ROLE, dlcManagerAddress);
-        _grantRole(PAUSER_ROLE, adminAddress);
+        _grantRole(PAUSER_ROLE, dlcAdminRole);
         dlcManager = DLCManager(dlcManagerAddress);
         dlcBTC = tokenContract;
         minimumDeposit = 1e6; // 0.01 BTC
