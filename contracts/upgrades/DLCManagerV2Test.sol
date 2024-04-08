@@ -46,6 +46,7 @@ contract DLCManagerV2Test is
         0xc726b34d4e524d7255dc7e36b5dfca6bd2dcd2891ae8c75d511a7e82da8696e5; // keccak256("APPROVED_SIGNER")
 
     uint256 private _index;
+    uint256 private _fundedCount;
     mapping(uint256 => DLCLinkV2.DLC) public dlcs;
     mapping(bytes32 => uint256) public dlcIDsByUUID;
 
@@ -118,6 +119,7 @@ contract DLCManagerV2Test is
             revert ThresholdTooLow(_minimumThreshold);
         _threshold = threshold;
         _index = 0;
+        _fundedCount = 0;
         tssCommitment = 0x0;
     }
 
@@ -279,6 +281,8 @@ contract DLCManagerV2Test is
 
         dlc.fundingTxId = btcTxId;
         dlc.status = DLCLinkV2.DLCStatus.FUNDED;
+        dlc.taprootPubKey = taprootPubKey;
+        _fundedCount++;
 
         DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
 
@@ -298,6 +302,7 @@ contract DLCManagerV2Test is
         if (dlc.status != DLCLinkV2.DLCStatus.FUNDED) revert DLCNotFunded();
 
         dlc.status = DLCLinkV2.DLCStatus.CLOSING;
+        _fundedCount--;
 
         emit CloseDLC(uuid, msg.sender);
     }
@@ -357,15 +362,14 @@ contract DLCManagerV2Test is
         if (startIndex >= endIndex) revert InvalidRange();
         if (endIndex > _index) endIndex = _index;
 
-        uint256 _indexRange = endIndex - startIndex;
-        DLCLinkV2.DLC[] memory fundedDLCs = new DLCLinkV2.DLC[](_indexRange);
+        DLCLinkV2.DLC[] memory fundedDLCs = new DLCLinkV2.DLC[](_fundedCount);
 
-        uint256 _fundedCount = 0;
+        uint256 _fundedFound = 0;
 
         for (uint256 i = startIndex; i < endIndex; i++) {
             if (dlcs[i].status == DLCLinkV2.DLCStatus.FUNDED) {
-                fundedDLCs[_fundedCount] = dlcs[i];
-                _fundedCount++;
+                fundedDLCs[_fundedFound] = dlcs[i];
+                _fundedFound++;
             }
         }
         return fundedDLCs;
