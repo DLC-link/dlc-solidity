@@ -142,11 +142,6 @@ async function main() {
     program
         .command('set-tss-commitment')
         .description('[admin] set TSS commitment')
-        .argument(
-            '[secretIdentifier]',
-            'secret identifier to use for commitment',
-            null
-        )
         .argument('[version]', 'version of DLCManager contract', 'v1')
         .action(setTSSCommitment);
 
