@@ -45,6 +45,7 @@ describe('TokenManager Proxy', function () {
         );
         tokenManager = await upgrades.deployProxy(TokenManager, [
             deployer.address,
+            deployer.address,
             mockDLCManager.address,
             dlcBtc.address,
             btcFeeRecipient,

@@ -75,6 +75,7 @@ describe('DLCManager', () => {
         const DLCManager = await ethers.getContractFactory('DLCManager');
         dlcManager = await hardhat.upgrades.deployProxy(DLCManager, [
             deployer.address,
+            deployer.address,
             3,
         ]);
         await dlcManager.deployed();

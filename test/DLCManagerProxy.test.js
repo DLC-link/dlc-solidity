@@ -48,6 +48,7 @@ describe('DLCManager Proxy', function () {
         const DLCManager = await ethers.getContractFactory('DLCManager');
         dlcManager = await hardhat.upgrades.deployProxy(DLCManager, [
             deployer.address,
+            deployer.address,
             3,
         ]);
         await dlcManager.deployed();
@@ -159,6 +160,7 @@ describe('DLCManager Proxy', function () {
             );
             // we deploy the TokenManager contract with the DLCManager address
             tokenManager = await upgrades.deployProxy(TokenManager, [
+                deployer.address,
                 deployer.address,
                 dlcManager.address,
                 dlcBtc.address,
