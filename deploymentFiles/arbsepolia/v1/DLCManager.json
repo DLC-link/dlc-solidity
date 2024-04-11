@@ -1,10 +1,10 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-04-03T14:18:51.697Z",
-  "gitSHA": "8b72e3a",
+  "updatedAt": "2024-04-11T19:21:01.315Z",
+  "gitSHA": "c0dfd2f",
   "contract": {
     "name": "DLCManager",
-    "address": "0x4966e60990f8CdC183C814Da8a0F935B1205F20A",
+    "address": "0x334D9890b339A1B2e0f592F26b5374e22aFdfbDf",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
@@ -64,7 +64,7 @@
       "function getThreshold() view returns (uint16)",
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",
-      "function initialize(address adminAddress, uint16 threshold)",
+      "function initialize(address defaultAdmin, address dlcAdminRole, uint16 threshold)",
       "function owner() view returns (address)",
       "function pauseContract()",
       "function paused() view returns (bool)",
