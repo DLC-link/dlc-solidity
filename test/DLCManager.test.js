@@ -13,10 +13,11 @@ async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
 async function getSignatures(message, attestors, numberOfSignatures) {
     const hashedOriginalMessage = ethers.utils.keccak256(
         ethers.utils.defaultAbiCoder.encode(
-            ['bytes32', 'string'],
-            [message.uuid, message.btcTxId]
+            ['bytes32', 'string', 'string'],
+            [message.uuid, message.btcTxId, message.functionString]
         )
     );
+
     let signatureBytes = [];
     for (let i = 0; i < numberOfSignatures; i++) {
         const sig = await attestors[i].signMessage(
@@ -34,7 +35,7 @@ async function getSignatures(message, attestors, numberOfSignatures) {
         signatureBytes.push(ethers.utils.arrayify(sig));
     }
     // Convert signatures from strings to bytes
-    return { prefixedMessageHash: hashedOriginalMessage, signatureBytes };
+    return { signatureBytes };
 }
 
 async function setSigners(dlcManager, attestors) {
@@ -315,7 +316,7 @@ describe('DLCManager', () => {
         it('reverts if called without enough signatures', async () => {
             await setSigners(dlcManager, attestors);
             const { signatureBytes } = await getSignatures(
-                { uuid, btcTxId },
+                { uuid, btcTxId, functionString: 'set-status-funded' },
                 attestors,
                 1
             );
@@ -334,9 +335,29 @@ describe('DLCManager', () => {
         it('reverts if contains non-approved signer', async () => {
             await setSigners(dlcManager, attestors);
             const { signatureBytes } = await getSignatures(
-                { uuid, btcTxId },
+                { uuid, btcTxId, functionString: 'set-status-funded' },
                 [...attestors, randomAccount],
                 4
+            );
+
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        signatureBytes,
+                        mockTaprootPubkey
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        });
+
+        it('reverts if signature is for other function', async () => {
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId, functionString: 'post-close-dlc' },
+                attestors,
+                3
             );
 
             await expect(
@@ -354,7 +375,7 @@ describe('DLCManager', () => {
         it('reverts if DLC is not in the right state', async () => {
             await setSigners(dlcManager, attestors);
             const { signatureBytes } = await getSignatures(
-                { uuid, btcTxId },
+                { uuid, btcTxId, functionString: 'set-status-funded' },
                 attestors,
                 3
             );
@@ -372,7 +393,11 @@ describe('DLCManager', () => {
             await mockProtocol.connect(user).requestCloseDLC(uuid);
 
             const sigs = await getSignatures(
-                { uuid, btcTxId: btcTxId2 },
+                {
+                    uuid,
+                    btcTxId: btcTxId2,
+                    functionString: 'set-status-funded',
+                },
                 attestors,
                 3
             );
@@ -393,8 +418,12 @@ describe('DLCManager', () => {
             await setSigners(dlcManager, attestors);
             const wrongUUID =
                 '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid: wrongUUID, btcTxId },
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid: wrongUUID,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                },
                 attestors,
                 3
             );
@@ -414,8 +443,12 @@ describe('DLCManager', () => {
             await setSigners(dlcManager, attestors);
             const wrongBtcTxId =
                 '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid, btcTxId: wrongBtcTxId },
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId: wrongBtcTxId,
+                    functionString: 'set-status-funded',
+                },
                 attestors,
                 3
             );
@@ -433,8 +466,8 @@ describe('DLCManager', () => {
 
         it('reverts if signatures are not unique', async () => {
             await setSigners(dlcManager, attestors);
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid, btcTxId },
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId, functionString: 'set-status-funded' },
                 [attestor1, attestor1, attestor1],
                 3
             );
@@ -452,8 +485,8 @@ describe('DLCManager', () => {
 
         it('emits a StatusFunded event with the correct data', async () => {
             await setSigners(dlcManager, attestors);
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid, btcTxId },
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId, functionString: 'set-status-funded' },
                 attestors,
                 3
             );
@@ -492,8 +525,8 @@ describe('DLCManager', () => {
             uuid = decodedEvent.args.uuid;
 
             await setSigners(dlcManager, attestors);
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid, btcTxId },
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId, functionString: 'set-status-funded' },
                 attestors,
                 3
             );
@@ -556,8 +589,8 @@ describe('DLCManager', () => {
             uuid = decodedEvent.args.uuid;
 
             await setSigners(dlcManager, attestors);
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid, btcTxId },
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId, functionString: 'set-status-funded' },
                 attestors,
                 3
             );
@@ -585,8 +618,12 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             const newUuid = decodedEvent.args.uuid;
 
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid: newUuid, btcTxId: closingBtcTxId },
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid: newUuid,
+                    btcTxId: closingBtcTxId,
+                    functionString: 'post-close-dlc',
+                },
                 attestors,
                 3
             );
@@ -598,8 +635,12 @@ describe('DLCManager', () => {
         });
 
         it('reverts if called without enough signatures', async () => {
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid, btcTxId: closingBtcTxId },
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId: closingBtcTxId,
+                    functionString: 'post-close-dlc',
+                },
                 attestors,
                 1
             );
@@ -611,8 +652,12 @@ describe('DLCManager', () => {
         });
 
         it('reverts if contains non-approved signer', async () => {
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid, btcTxId: closingBtcTxId },
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId: closingBtcTxId,
+                    functionString: 'post-close-dlc',
+                },
                 [...attestors, randomAccount],
                 4
             );
@@ -627,8 +672,12 @@ describe('DLCManager', () => {
         it('reverts if attestors sign a different UUID', async () => {
             const wrongUUID =
                 '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid: wrongUUID, btcTxId: closingBtcTxId },
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid: wrongUUID,
+                    btcTxId: closingBtcTxId,
+                    functionString: 'post-close-dlc',
+                },
                 attestors,
                 3
             );
@@ -640,8 +689,12 @@ describe('DLCManager', () => {
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {
-            const { prefixedMessageHash, signatureBytes } = await getSignatures(
-                { uuid, btcTxId: closingBtcTxId },
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId: closingBtcTxId,
+                    functionString: 'post-close-dlc',
+                },
                 attestors,
                 3
             );
