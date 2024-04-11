@@ -4,6 +4,8 @@ const path = require('path');
 const { Command } = require('commander');
 const version = require('../package.json').version;
 
+const hardhat = require('hardhat');
+
 // DLCManager
 const createV1 = require('./01-create-dlc');
 const closeV1 = require('./02-close-dlc');
@@ -34,6 +36,7 @@ const contractAdmin = require('./50_contract-admin');
 
 const fs = require('fs');
 const util = require('util');
+const chalk = require('chalk');
 
 // Name of the file to save the log messages
 const logFileName = 'log.txt';
@@ -215,6 +218,10 @@ async function main() {
     const rootDir = path.join(__dirname, '..');
     process.chdir(rootDir);
 
+    console.log(
+        'Interacting with network:',
+        chalk.bgYellowBright(hardhat.network.name)
+    );
     await program.parseAsync(process.argv);
 }
 

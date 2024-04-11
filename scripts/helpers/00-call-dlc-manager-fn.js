@@ -7,7 +7,9 @@ const safeContractProposal = require('./safe-api-service');
 async function callManagerContractFunction(functionName, args, version) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
+    const keyForSafe = accounts[3];
     console.log('admin address:', admin.address);
+    console.log('keyForSafe address:', keyForSafe.address);
 
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
@@ -38,9 +40,9 @@ async function callManagerContractFunction(functionName, args, version) {
             )
         );
         const txRequest = await contract
-            .connect(admin)
+            .connect(keyForSafe)
             .populateTransaction[functionName](...args);
-        await safeContractProposal(txRequest, admin);
+        await safeContractProposal(txRequest, keyForSafe);
     }
 }
 
