@@ -166,14 +166,6 @@ contract DLCManagerV2Test is
             );
     }
 
-    /**
-     * @notice  Checks the 'signatures' of Attestors for a given 'message'.
-     * @dev     Recalculates the hash to make sure the signatures are for the same message.
-     * @dev     Uses OpenZeppelin's ECDSA library to recover the public keys from the signatures.
-     * @dev     Note how the same message can be signed multiple times, but only on successive calls.
-     * @param   message  Original message that was signed.
-     * @param   signatures  Byte array of at least 'threshold' number of signatures.
-     */
     function _attestorMultisigIsValid(
         bytes memory message,
         bytes[] memory signatures
@@ -196,22 +188,9 @@ contract DLCManagerV2Test is
         }
     }
 
-    /**
-     * @notice  Checks for duplicate values in an array.
-     * @dev     Used to check for duplicate signatures.
-     * @param   signatures  Array of signatures.
-     * @return  bool  True if there are duplicates, false otherwise.
-     */
     function _hasDuplicates(
-        bytes[] memory signatures
+        bytes[] memory /* signatures */
     ) internal pure returns (bool) {
-        for (uint i = 0; i < signatures.length; i++) {
-            for (uint j = i + 1; j < signatures.length; j++) {
-                if (keccak256(signatures[i]) == keccak256(signatures[j])) {
-                    return true;
-                }
-            }
-        }
         return false;
     }
 

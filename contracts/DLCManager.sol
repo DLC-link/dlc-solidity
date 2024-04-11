@@ -168,7 +168,7 @@ contract DLCManager is
      * @notice  Checks the 'signatures' of Attestors for a given 'message'.
      * @dev     Recalculates the hash to make sure the signatures are for the same message.
      * @dev     Uses OpenZeppelin's ECDSA library to recover the public keys from the signatures.
-     * @dev     Note how the same message can be signed multiple times, but only on distinct calls.
+     * @dev     Signatures must be unique.
      * @param   message  Original message that was signed.
      * @param   signatures  Byte array of at least 'threshold' number of signatures.
      */
@@ -203,7 +203,7 @@ contract DLCManager is
     function _hasDuplicates(
         bytes[] memory signatures
     ) internal pure returns (bool) {
-        for (uint i = 0; i < signatures.length; i++) {
+        for (uint i = 0; i < signatures.length - 1; i++) {
             for (uint j = i + 1; j < signatures.length; j++) {
                 if (keccak256(signatures[i]) == keccak256(signatures[j])) {
                     return true;
