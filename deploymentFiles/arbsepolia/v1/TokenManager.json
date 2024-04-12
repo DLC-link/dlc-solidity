@@ -1,10 +1,10 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-04-03T14:19:20.352Z",
-  "gitSHA": "8b72e3a",
+  "updatedAt": "2024-04-11T19:21:24.849Z",
+  "gitSHA": "c0dfd2f",
   "contract": {
     "name": "TokenManager",
-    "address": "0x7c33F31f417C61bCE90aA81f0Bfb45bea0Fe1165",
+    "address": "0xE36502FB5F95702E4409957d0B0B7f8B37712Dc9",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
@@ -67,7 +67,7 @@
       "function getVault(bytes32 uuid) view returns (tuple(bytes32 uuid, address protocolContract, uint256 timestamp, uint256 valueLocked, address creator, uint8 status, string fundingTxId, string closingTxId, string btcFeeRecipient, uint256 btcMintFeeBasisPoints, uint256 btcRedeemFeeBasisPoints, string taprootPubKey))",
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",
-      "function initialize(address adminAddress, address dlcManagerAddress, address tokenContract, string btcFeeRecipientToSet)",
+      "function initialize(address defaultAdmin, address dlcAdminRole, address dlcManagerAddress, address tokenContract, string btcFeeRecipientToSet)",
       "function maximumDeposit() view returns (uint256)",
       "function minimumDeposit() view returns (uint256)",
       "function owner() view returns (address)",

@@ -52,7 +52,6 @@ contract DLCManagerV2Test is
     uint16 private _minimumThreshold;
     uint16 private _threshold;
     uint16 private _signerCount;
-    mapping(bytes32 => uint256) private _signatureCounts;
     bytes32 public tssCommitment;
     string public attestorGroupPubKey;
     string public testString;
@@ -167,22 +166,17 @@ contract DLCManagerV2Test is
             );
     }
 
-    /**
-     * @notice  Checks the 'signatures' of Attestors for a given 'message'.
-     * @dev     Recalculates the hash to make sure the signatures are for the same message.
-     * @dev     Uses OpenZeppelin's ECDSA library to recover the public keys from the signatures.
-     * @param   message  Original message that was signed.
-     * @param   signatures  Byte array of at least 'threshold' number of signatures.
-     */
     function _attestorMultisigIsValid(
         bytes memory message,
         bytes[] memory signatures
-    ) internal {
+    ) internal view {
         if (signatures.length < _threshold) revert NotEnoughSignatures();
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
             keccak256(message)
         );
+
+        if (_hasDuplicates(signatures)) revert DuplicateSignature();
 
         for (uint256 i = 0; i < signatures.length; i++) {
             address attestorPubKey = ECDSAUpgradeable.recover(
@@ -191,14 +185,13 @@ contract DLCManagerV2Test is
             );
             if (!hasRole(APPROVED_SIGNER, attestorPubKey))
                 revert InvalidSigner();
-
-            // Prevent a signer from signing the same message multiple times
-            bytes32 signedHash = keccak256(
-                abi.encodePacked(prefixedMessageHash, attestorPubKey)
-            );
-            if (_signatureCounts[signedHash] != 0) revert DuplicateSignature();
-            _signatureCounts[signedHash] = 1;
         }
+    }
+
+    function _hasDuplicates(
+        bytes[] memory /* signatures */
+    ) internal pure returns (bool) {
+        return false;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -271,7 +264,10 @@ contract DLCManagerV2Test is
         bytes[] calldata signatures,
         string calldata taprootPubKey
     ) external whenNotPaused onlyApprovedSigners {
-        _attestorMultisigIsValid(abi.encode(uuid, btcTxId), signatures);
+        _attestorMultisigIsValid(
+            abi.encode(uuid, btcTxId, "set-status-funded"),
+            signatures
+        );
         DLCLinkV2.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
@@ -314,7 +310,10 @@ contract DLCManagerV2Test is
         string calldata btcTxId,
         bytes[] calldata signatures
     ) external whenNotPaused onlyApprovedSigners {
-        _attestorMultisigIsValid(abi.encode(uuid, btcTxId), signatures);
+        _attestorMultisigIsValid(
+            abi.encode(uuid, btcTxId, "post-close-dlc"),
+            signatures
+        );
         DLCLinkV2.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();

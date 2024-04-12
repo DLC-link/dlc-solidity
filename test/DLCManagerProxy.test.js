@@ -117,7 +117,7 @@ describe('DLCManager Proxy', function () {
         });
         it('should still have the created DLC', async () => {
             const dlc = await dlcManagerV2.getDLC(UUID);
-            console.log(dlc);
+            // console.log(dlc);
             expect(dlc.valueLocked).to.equal(valueLocked);
             expect(dlc.creator).to.equal(user.address);
             expect(dlc.status).to.equal(0);
@@ -220,9 +220,9 @@ describe('DLCManager Proxy', function () {
             );
             const uuid2 = event2.args.dlcUUID;
             const vault2 = await tokenManager.getVault(uuid2);
-            console.log(vault2);
+            // console.log(vault2);
             const DLC2 = await dlcManagerV2.getDLC(uuid2);
-            console.log(DLC2);
+            // console.log(DLC2);
             expect(DLC2.creator).to.equal(vault2.creator);
         });
     });
