@@ -38,15 +38,6 @@ module.exports = {
                 process.env['KEY_FOR_SAFE'],
             ],
         },
-        goerli: {
-            url: `https://goerli.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
-            accounts: [
-                process.env['KEY'],
-                process.env['KEY2'],
-                process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
-            ],
-        },
         arbsepolia: {
             // url: 'https://sepolia-rollup.arbitrum.io/rpc',
             url: process.env['ARB_SEPOLIA_NODE_ADDR'],
@@ -59,8 +50,15 @@ module.exports = {
             ],
         },
         arbitrum: {
-            url: 'https://arb1.arbitrum.io/rpc',
-            //accounts: [ARBITRUM_MAINNET_TEMPORARY_PRIVATE_KEY]
+            // url: 'https://arb1.arbitrum.io/rpc',
+            url: process.env['ARB_NODE_ADDR'],
+            chainId: 42161,
+            accounts: [
+                process.env['ARB_DEPLOYER'],
+                process.env['KEY2'],
+                process.env['KEY3'],
+                process.env['KEY_FOR_SAFE'],
+            ],
         },
         x1test: {
             url: 'https://testrpc.x1.tech',
@@ -100,6 +98,14 @@ module.exports = {
                 urls: {
                     apiURL: `https://api-sepolia.arbiscan.io/api?apikey=${process.env.ARBISCAN_API_KEY}`,
                     browserURL: 'https://sepolia.arbiscan.io',
+                },
+            },
+            {
+                network: 'arbitrum',
+                chainId: 42161,
+                urls: {
+                    apiURL: `https://api.arbiscan.io/api?apikey=${process.env.ARBISCAN_API_KEY}`,
+                    browserURL: 'https://arbiscan.io',
                 },
             },
         ],
