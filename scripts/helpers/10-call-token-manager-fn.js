@@ -10,7 +10,8 @@ async function callTokenManagerFunction(functionName, args, version) {
     console.log('Network', network);
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
-    const keyForSafe = accounts[3];
+    let keyForSafe = accounts[3];
+    if (!keyForSafe) keyForSafe = admin;
     const safeAddresses = dlcAdminSafes[network];
 
     console.log('admin address:', admin.address);
@@ -48,7 +49,7 @@ async function callTokenManagerFunction(functionName, args, version) {
         console.log(receipt);
     } else {
         console.log(
-            'admin does not have DLC_ADMIN_ROLE, submitting multisig request...'
+            'admin does not have DLC_ADMIN_ROLE, preparing multisig request...'
         );
         const response = await prompts({
             type: 'select',

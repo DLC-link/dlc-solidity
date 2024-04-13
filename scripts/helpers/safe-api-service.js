@@ -24,6 +24,7 @@ module.exports = async function safeContractProposal(
     const safeService = new SafeApiKit({ txServiceUrl, ethAdapter });
 
     let nonce = await safeService.getNextNonce(safeAddress);
+    console.log('nonce', nonce);
 
     const safeSdk = await Safe.create({
         ethAdapter,
@@ -60,4 +61,6 @@ module.exports = async function safeContractProposal(
         senderSignature: senderSignature.data,
         origin: 'script',
     });
+
+    console.log('Transaction proposed successfully!');
 };

@@ -3,7 +3,7 @@ const hardhat = require('hardhat');
 
 const prompts = require('prompts');
 const chalk = require('chalk');
-const dlcAdminSafes = require('./helpers/dlc-admin-safes');
+const dlcAdminSafesConfigs = require('./helpers/dlc-admin-safes');
 const getContractConfigs = require('./99_contract-configs');
 const { promptUser, loadContractAddress } = require('./helpers/utils');
 const {
@@ -18,8 +18,7 @@ module.exports = async function contractAdmin(_version) {
     const version = _version;
     const accounts = await hardhat.ethers.getSigners();
     const deployer = accounts[0];
-    const routerWallet = accounts[2];
-    const dlcAdminSafes = dlcAdminSafes[network];
+    const dlcAdminSafes = dlcAdminSafesConfigs[network];
     if (!dlcAdminSafes) throw new Error('DLC Admin Safe address not found.');
 
     const contractConfigs = getContractConfigs({
@@ -28,8 +27,9 @@ module.exports = async function contractAdmin(_version) {
         dlcAdminSafes,
     });
 
+    console.log('AdminSafes:', dlcAdminSafes);
     let response = await promptUser(
-        `You are about to interact with network: ${network}.\nDeployer account: ${deployer.address}\nRouter-wallet account: ${routerWallet.address}\nDLCAdminSafes: ${dlcAdminSafes}\nContinue?`
+        `You are about to interact with network: ${network}.\nDeployer account: ${deployer.address}\nContinue?`
     );
     if (!response) {
         return;
@@ -277,7 +277,7 @@ module.exports = async function contractAdmin(_version) {
             console.log(
                 chalk.bgYellow('Current ProxyAdmin owner:', currentAdmin)
             );
-            if (currentAdmin == dlcAdminSafe) return;
+            if (currentAdmin == dlcAdminSafes.critical) return;
 
             const newAdmin = await prompts({
                 type: 'text',

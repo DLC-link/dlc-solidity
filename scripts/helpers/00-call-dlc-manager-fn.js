@@ -12,7 +12,8 @@ async function callManagerContractFunction(functionName, args, version) {
     console.log('Network', network);
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
-    const keyForSafe = accounts[3];
+    let keyForSafe = accounts[3];
+    if (!keyForSafe) keyForSafe = admin;
     const safeAddresses = dlcAdminSafes[network];
 
     console.log('admin address:', admin.address);
@@ -50,7 +51,7 @@ async function callManagerContractFunction(functionName, args, version) {
     } else {
         console.log(
             chalk.bgYellow(
-                'admin does not have DEFAULT_ADMIN_ROLE, submitting multisig request...'
+                'admin does not have DEFAULT_ADMIN_ROLE, preparing multisig request...'
             )
         );
         const response = await prompts({

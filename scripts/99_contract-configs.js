@@ -41,8 +41,7 @@ async function afterDeployment(contractName, contractObject, version) {
 module.exports = function getContractConfigs(networkConfig) {
     const network = hardhat.network.name;
     const { version, deployer, dlcAdminSafes } = networkConfig;
-    const btcFeeRecipient =
-        '031131cd88bcea8c1d84da8e034bb24c2f6e748c571922dc363e7e088f5df0436c';
+    const btcFeeRecipient = '0014e60f61fa2f2941217934d5f9976bf27381b3b036';
     const threshold = 2;
 
     return [
