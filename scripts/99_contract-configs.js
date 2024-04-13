@@ -40,7 +40,7 @@ async function afterDeployment(contractName, contractObject, version) {
 
 module.exports = function getContractConfigs(networkConfig) {
     const network = hardhat.network.name;
-    const { version, deployer, routerWallet, dlcAdminSafe } = networkConfig;
+    const { version, deployer, dlcAdminSafes } = networkConfig;
     const btcFeeRecipient =
         '031131cd88bcea8c1d84da8e034bb24c2f6e748c571922dc363e7e088f5df0436c';
     const threshold = 2;
@@ -52,16 +52,18 @@ module.exports = function getContractConfigs(networkConfig) {
             upgradeable: true,
             requirements: [],
             deploy: async (requirementAddresses) => {
+                const defaultAdmin = dlcAdminSafes.critical;
+                const dlcAdmin = dlcAdminSafes.medium;
                 await beforeDeployment(
                     'DLCManager',
-                    `defaultAdmin: ${dlcAdminSafe}, dlcAdminRole: ${dlcAdminSafe}, threshold: ${threshold}`,
+                    `defaultAdmin: ${defaultAdmin}, dlcAdminRole: ${dlcAdmin}, threshold: ${threshold}`,
                     network
                 );
                 const DLCManager =
                     await hardhat.ethers.getContractFactory('DLCManager');
                 const dlcManager = await hardhat.upgrades.deployProxy(
                     DLCManager,
-                    [dlcAdminSafe, dlcAdminSafe, threshold]
+                    [defaultAdmin, dlcAdmin, threshold]
                 );
                 await dlcManager.deployed();
 
@@ -114,6 +116,8 @@ module.exports = function getContractConfigs(networkConfig) {
             upgradeable: true,
             requirements: ['DLCBTC', 'DLCManager'],
             deploy: async (requirementAddresses) => {
+                const defaultAdmin = dlcAdminSafes.critical;
+                const dlcAdmin = dlcAdminSafes.medium;
                 const DLCBTCAddress = requirementAddresses['DLCBTC'];
                 if (!DLCBTCAddress)
                     throw new Error('DLCBTC deployment not found.');
@@ -123,7 +127,7 @@ module.exports = function getContractConfigs(networkConfig) {
 
                 await beforeDeployment(
                     'TokenManager',
-                    `defaultAdmin: ${dlcAdminSafe}, _adminAddress: ${dlcAdminSafe}, _dlcManager: ${DLCManagerAddress}, _dlcBtc: ${DLCBTCAddress}, _btcFeeRecipient: ${btcFeeRecipient}`,
+                    `defaultAdmin: ${defaultAdmin}, _adminAddress: ${dlcAdmin}, _dlcManager: ${DLCManagerAddress}, _dlcBtc: ${DLCBTCAddress}, _btcFeeRecipient: ${btcFeeRecipient}`,
                     network
                 );
 
@@ -134,8 +138,8 @@ module.exports = function getContractConfigs(networkConfig) {
                 const tokenManager = await hardhat.upgrades.deployProxy(
                     TokenManager,
                     [
-                        dlcAdminSafe,
-                        dlcAdminSafe,
+                        defaultAdmin,
+                        dlcAdmin,
                         DLCManagerAddress,
                         DLCBTCAddress,
                         btcFeeRecipient,

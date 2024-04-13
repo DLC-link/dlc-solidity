@@ -19,18 +19,17 @@ module.exports = async function contractAdmin(_version) {
     const accounts = await hardhat.ethers.getSigners();
     const deployer = accounts[0];
     const routerWallet = accounts[2];
-    const dlcAdminSafe = dlcAdminSafes[network];
-    if (!dlcAdminSafe) throw new Error('DLC Admin Safe address not found.');
+    const dlcAdminSafes = dlcAdminSafes[network];
+    if (!dlcAdminSafes) throw new Error('DLC Admin Safe address not found.');
 
     const contractConfigs = getContractConfigs({
         version,
         deployer,
-        routerWallet,
-        dlcAdminSafe,
+        dlcAdminSafes,
     });
 
     let response = await promptUser(
-        `You are about to interact with network: ${network}.\nDeployer account: ${deployer.address}\nRouter-wallet account: ${routerWallet.address}\nDLCAdminSafe: ${dlcAdminSafe}\nContinue?`
+        `You are about to interact with network: ${network}.\nDeployer account: ${deployer.address}\nRouter-wallet account: ${routerWallet.address}\nDLCAdminSafes: ${dlcAdminSafes}\nContinue?`
     );
     if (!response) {
         return;
@@ -249,15 +248,19 @@ module.exports = async function contractAdmin(_version) {
                 ))
             ) {
                 console.log('deployer has DLC_ADMIN_ROLE, continuing...');
-                console.log('Transferring ownership of DLCBTC...', newAdmin.value);
-            await oldTokenManager
-                .connect(deployer)
-                .transferTokenContractOwnership(newAdmin.value);
+                console.log(
+                    'Transferring ownership of DLCBTC...',
+                    newAdmin.value
+                );
+                await oldTokenManager
+                    .connect(deployer)
+                    .transferTokenContractOwnership(newAdmin.value);
             } else {
                 const txRequest = await oldTokenManager
                     .connect(deployer)
-                    .populateTransaction.
-                    transferTokenContractOwnership(newAdmin.value);
+                    .populateTransaction.transferTokenContractOwnership(
+                        newAdmin.value
+                    );
                 await safeContractProposal(txRequest, deployer);
             }
             break;
