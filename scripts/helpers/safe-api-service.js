@@ -1,7 +1,5 @@
 const hardhat = require('hardhat');
 const { ethers } = require('hardhat');
-const dlcAdminSafes = require('./dlc-admin-safes');
-
 const Safe = require('@safe-global/protocol-kit').default;
 const EthersAdapter = require('@safe-global/protocol-kit').EthersAdapter;
 const SafeApiKit = require('@safe-global/api-kit').default;
@@ -9,10 +7,13 @@ const SafeApiKit = require('@safe-global/api-kit').default;
 // This script allows us to wrap txs in a safe contract proposal
 // ready to be signed by the safe owners
 
-module.exports = async function safeContractProposal(txRequest, signer) {
+module.exports = async function safeContractProposal(
+    txRequest,
+    signer,
+    safeAddress
+) {
     const network = hardhat.network.name;
     console.log('Network', network);
-    const safeAddress = dlcAdminSafes[network];
 
     const ethAdapter = new EthersAdapter({
         ethers,
@@ -23,6 +24,7 @@ module.exports = async function safeContractProposal(txRequest, signer) {
     const safeService = new SafeApiKit({ txServiceUrl, ethAdapter });
 
     let nonce = await safeService.getNextNonce(safeAddress);
+    console.log('nonce', nonce);
 
     const safeSdk = await Safe.create({
         ethAdapter,
@@ -59,4 +61,6 @@ module.exports = async function safeContractProposal(txRequest, signer) {
         senderSignature: senderSignature.data,
         origin: 'script',
     });
+
+    console.log('Transaction proposed successfully!');
 };

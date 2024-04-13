@@ -1,12 +1,28 @@
 const hardhat = require('hardhat');
-
+const { promptUser } = require('./utils');
 const { loadDeploymentInfo } = require('./deployment-handlers_versioned');
 const safeContractProposal = require('./safe-api-service');
+const dlcAdminSafes = require('./dlc-admin-safes');
+const prompts = require('prompts');
 
 async function callTokenManagerFunction(functionName, args, version) {
+    const network = hardhat.network.name;
+    console.log('Network', network);
     const accounts = await hardhat.ethers.getSigners();
-    // NOTE: should be key_for_safe
     const admin = accounts[0];
+    let keyForSafe = accounts[3];
+    if (!keyForSafe) keyForSafe = admin;
+    const safeAddresses = dlcAdminSafes[network];
+
+    console.log('admin address:', admin.address);
+    console.log('keyForSafe address:', keyForSafe.address);
+    console.log('safeAddresses:', safeAddresses);
+    console.log('functionName:', functionName);
+
+    if (!(await promptUser('Are you sure you want to proceed? (y/n)'))) {
+        console.log('Aborted by user.');
+        return;
+    }
 
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
@@ -33,12 +49,27 @@ async function callTokenManagerFunction(functionName, args, version) {
         console.log(receipt);
     } else {
         console.log(
-            'admin does not have DLC_ADMIN_ROLE, submitting multisig request...'
+            'admin does not have DLC_ADMIN_ROLE, preparing multisig request...'
         );
+        const response = await prompts({
+            type: 'select',
+            name: 'safeAccount',
+            message: 'Select a SAFE Account',
+            choices: [
+                {
+                    title: `Medium: ${safeAddresses.medium}`,
+                    value: safeAddresses.medium,
+                },
+                {
+                    title: `Critical: ${safeAddresses.critical}`,
+                    value: safeAddresses.critical,
+                },
+            ],
+        });
         const txRequest = await contract
-            .connect(admin)
+            .connect(keyForSafe)
             .populateTransaction[functionName](...args);
-        await safeContractProposal(txRequest, admin);
+        await safeContractProposal(txRequest, keyForSafe, response.safeAccount);
     }
 }
 

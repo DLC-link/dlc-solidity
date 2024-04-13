@@ -38,15 +38,6 @@ module.exports = {
                 process.env['KEY_FOR_SAFE'],
             ],
         },
-        goerli: {
-            url: `https://goerli.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
-            accounts: [
-                process.env['KEY'],
-                process.env['KEY2'],
-                process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
-            ],
-        },
         arbsepolia: {
             // url: 'https://sepolia-rollup.arbitrum.io/rpc',
             url: process.env['ARB_SEPOLIA_NODE_ADDR'],
@@ -59,8 +50,15 @@ module.exports = {
             ],
         },
         arbitrum: {
-            url: 'https://arb1.arbitrum.io/rpc',
-            //accounts: [ARBITRUM_MAINNET_TEMPORARY_PRIVATE_KEY]
+            // url: 'https://arb1.arbitrum.io/rpc',
+            url: process.env['ARB_NODE_ADDR'],
+            chainId: 42161,
+            accounts: [
+                process.env['ARB_DEPLOYER'],
+                process.env['KEY2'],
+                process.env['KEY3'],
+                process.env['KEY_FOR_SAFE'],
+            ],
         },
         x1test: {
             url: 'https://testrpc.x1.tech',
@@ -84,7 +82,10 @@ module.exports = {
     etherscan: {
         // Your API key for Etherscan
         // Obtain one at https://etherscan.io/
-        apiKey: process.env['ETHERSCAN_API_KEY'],
+        // apiKey: process.env['ETHERSCAN_API_KEY'],
+        apiKey: {
+            arbitrum: process.env['ARBISCAN_API_KEY'],
+        },
         customChains: [
             {
                 network: 'bobtest',
@@ -102,12 +103,23 @@ module.exports = {
                     browserURL: 'https://sepolia.arbiscan.io',
                 },
             },
+            {
+                network: 'arbitrum',
+                chainId: 42161,
+                urls: {
+                    apiURL: `https://api.arbiscan.io/api?apikey=${process.env.ARBISCAN_API_KEY}`,
+                    browserURL: 'https://arbiscan.io',
+                },
+            },
         ],
     },
     gasReporter: {
         currency: 'USD',
         enabled: process.env.REPORT_GAS ? true : false,
         coinmarketcap: process.env['COINMARKETCAP_API_KEY'],
+        L2: 'arbitrum',
+        L2Etherscan: process.env['ARBISCAN_API_KEY'],
+        L1Etherscan: process.env['ETHERSCAN_API_KEY'],
         // gasPriceApi: gasPriceApi,
         // gasPrice: 1,
     },
