@@ -51,6 +51,7 @@ module.exports = {
         },
         arbitrum: {
             // url: 'https://arb1.arbitrum.io/rpc',
+            // url: `https://arbitrum-mainnet.infura.io/v3/ed8c014d7cdb486880718a5777ab0ff5`,
             url: process.env['ARB_NODE_ADDR'],
             chainId: 42161,
             accounts: [
@@ -85,6 +86,7 @@ module.exports = {
         // apiKey: process.env['ETHERSCAN_API_KEY'],
         apiKey: {
             arbitrum: process.env['ARBISCAN_API_KEY'],
+            arbsepolia: process.env['ARBISCAN_API_KEY'],
         },
         customChains: [
             {
