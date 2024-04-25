@@ -5,7 +5,7 @@ const safeContractProposal = require('./safe-api-service');
 const dlcAdminSafes = require('./dlc-admin-safes');
 const prompts = require('prompts');
 
-async function callTokenManagerFunction(functionName, args, version) {
+async function callTokenManagerFunction(functionName, args) {
     const network = hardhat.network.name;
     console.log('Network', network);
     const accounts = await hardhat.ethers.getSigners();
@@ -26,8 +26,7 @@ async function callTokenManagerFunction(functionName, args, version) {
 
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'TokenManager',
-        version
+        'TokenManager'
     );
     const contract = new hardhat.ethers.Contract(
         deployInfo.contract.address,

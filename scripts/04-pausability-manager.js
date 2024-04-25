@@ -2,17 +2,17 @@ const {
     callManagerContractFunction,
 } = require('./helpers/00-call-dlc-manager-fn');
 
-async function pauseOrUnpauseManager(pause, version) {
+async function pauseOrUnpauseManager(pause) {
     const fn = pause ? 'pauseContract' : 'unpauseContract';
-    await callManagerContractFunction(fn, [], version);
+    await callManagerContractFunction(fn, []);
 }
 
-async function pauseManager(version) {
-    await pauseOrUnpauseManager(true, version);
+async function pauseManager() {
+    await pauseOrUnpauseManager(true);
 }
 
-async function unpauseManager(version) {
-    await pauseOrUnpauseManager(false, version);
+async function unpauseManager() {
+    await pauseOrUnpauseManager(false);
 }
 
 module.exports = { pauseManager, unpauseManager };
