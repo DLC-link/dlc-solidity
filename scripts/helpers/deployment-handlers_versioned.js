@@ -17,9 +17,9 @@ function deploymentInfo(hardhat, contract, contractName) {
     return deployInfo;
 }
 
-async function saveDeploymentInfo(info, version, filename = undefined) {
+async function saveDeploymentInfo(info, filename = undefined) {
     if (!filename) {
-        filename = `deploymentFiles/${info.network}/${version}/${info.contract.name}.json`;
+        filename = `deploymentFiles/${info.network}/${info.contract.name}.json`;
     }
     console.log(`Writing deployment info to ${filename}`);
     const content = JSON.stringify(info, null, 2) + '\n';
@@ -47,8 +47,8 @@ function validateDeploymentInfo(deployInfo) {
     required('abi');
 }
 
-async function loadDeploymentInfo(networkName, contractName, version) {
-    const deploymentConfigFile = `deploymentFiles/${networkName}/${version}/${contractName}.json`;
+async function loadDeploymentInfo(networkName, contractName) {
+    const deploymentConfigFile = `deploymentFiles/${networkName}/${contractName}.json`;
     const content = await fs.readFile(deploymentConfigFile, {
         encoding: 'utf8',
     });

@@ -8,13 +8,12 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-module.exports = async function setTSSCommitment(version) {
+module.exports = async function setTSSCommitment() {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'DLCManager',
-        version
+        'DLCManager'
     );
     const contract = new hardhat.ethers.Contract(
         deployInfo.contract.address,
@@ -59,9 +58,5 @@ module.exports = async function setTSSCommitment(version) {
     console.log('Commitment: ', commitment.toString());
     console.log('Commitment (bytes32): ', commitmentBytes32);
 
-    await callManagerContractFunction(
-        'setTSSCommitment',
-        [commitmentBytes32],
-        version
-    );
+    await callManagerContractFunction('setTSSCommitment', [commitmentBytes32]);
 };

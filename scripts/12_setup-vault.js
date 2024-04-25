@@ -3,14 +3,10 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-module.exports = async function tokenManagerSetupVault(
-    btcDeposit = 1000000,
-    version = 'v1'
-) {
+module.exports = async function tokenManagerSetupVault(btcDeposit = 1000000) {
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'TokenManager',
-        version
+        'TokenManager'
     );
     const accounts = await hardhat.ethers.getSigners();
 

@@ -11,8 +11,8 @@ async function promptUser(message) {
     return response.continue;
 }
 
-async function loadContractAddress(requirement, network, version) {
-    const deployment = await loadDeploymentInfo(network, requirement, version);
+async function loadContractAddress(requirement, network) {
+    const deployment = await loadDeploymentInfo(network, requirement);
     if (!deployment) {
         const shouldContinue = await promptUser(
             `Deployment "${requirement}" not found. Continue?`

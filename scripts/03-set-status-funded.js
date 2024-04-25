@@ -7,15 +7,14 @@ const {
 // NOTE: deprecated
 // set-status-funded requires multisig from the attestors now
 
-module.exports = async function setStatusFunded(uuid, version) {
+module.exports = async function setStatusFunded(uuid) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
     const protocol = accounts[2];
 
     const dlcManagerDeployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'DlcManager',
-        version
+        'DlcManager'
     );
 
     const dlcManager = new hardhat.ethers.Contract(

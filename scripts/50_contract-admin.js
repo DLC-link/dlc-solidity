@@ -13,16 +13,14 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const safeContractProposal = require('./helpers/safe-api-service');
 
-module.exports = async function contractAdmin(_version) {
+module.exports = async function contractAdmin() {
     const network = hardhat.network.name;
-    const version = _version;
     const accounts = await hardhat.ethers.getSigners();
     const deployer = accounts[0];
     const dlcAdminSafes = dlcAdminSafesConfigs[network];
     if (!dlcAdminSafes) throw new Error('DLC Admin Safe address not found.');
 
     const contractConfigs = getContractConfigs({
-        version,
         deployer,
         dlcAdminSafes,
     });
@@ -100,11 +98,7 @@ module.exports = async function contractAdmin(_version) {
                                 )
                             );
                             deployedContracts[requirement] =
-                                await loadContractAddress(
-                                    requirement,
-                                    network,
-                                    version
-                                );
+                                await loadContractAddress(requirement, network);
                         }
 
                         fulfilledRequirements[requirement] =
@@ -176,8 +170,7 @@ module.exports = async function contractAdmin(_version) {
             const contractName = contractSelectPrompt.contracts;
             const proxyAddress = await loadContractAddress(
                 contractName,
-                network,
-                version
+                network
             );
             const newImplementation =
                 await hardhat.ethers.getContractFactory(contractName);
@@ -201,8 +194,7 @@ module.exports = async function contractAdmin(_version) {
                         proxyAddress
                     );
                     await saveDeploymentInfo(
-                        deploymentInfo(hardhat, contractObject, contractName),
-                        version
+                        deploymentInfo(hardhat, contractObject, contractName)
                     );
                 } catch (error) {
                     console.error(error);
@@ -218,11 +210,7 @@ module.exports = async function contractAdmin(_version) {
             break;
         }
         case 'transfer-dlcbtc': {
-            const dlcBTCAddress = await loadContractAddress(
-                'DLCBTC',
-                network,
-                version
-            );
+            const dlcBTCAddress = await loadContractAddress('DLCBTC', network);
             const dlcBTC = await hardhat.ethers.getContractAt(
                 'DLCBTC',
                 dlcBTCAddress
