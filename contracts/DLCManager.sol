@@ -54,7 +54,8 @@ contract DLCManager is
     uint16 private _signerCount;
     bytes32 public tssCommitment;
     string public attestorGroupPubKey;
-    uint256[50] __gap;
+    uint256 public fundedDLCCount;
+    uint256[49] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -295,6 +296,8 @@ contract DLCManager is
         dlc.status = DLCLink.DLCStatus.FUNDED;
         dlc.taprootPubKey = taprootPubKey;
 
+        fundedDLCCount++;
+
         DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
 
         emit SetStatusFunded(uuid, btcTxId, msg.sender);
@@ -313,6 +316,8 @@ contract DLCManager is
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
         dlc.status = DLCLink.DLCStatus.CLOSING;
+
+        fundedDLCCount--;
 
         emit CloseDLC(uuid, msg.sender);
     }
@@ -368,19 +373,18 @@ contract DLCManager is
         return dlcs[index];
     }
 
-    function getFundedDLCs(
-        uint256 startIndex,
-        uint256 endIndex
-    ) public view returns (DLCLink.DLC[] memory) {
-        if (startIndex >= endIndex) revert InvalidRange();
-        if (endIndex > _index) endIndex = _index;
-
-        uint256 _indexRange = endIndex - startIndex;
-        DLCLink.DLC[] memory fundedDLCs = new DLCLink.DLC[](_indexRange);
+    /**
+     * @notice  Returns all Funded DLCs.
+     * @dev     Not recommended to be called from functions or other contracts,
+     * as it will become very expensive with time.
+     * @return  DLCLink.DLC[]  All DLCs in State 'FUNDED'.
+     */
+    function getFundedDLCs() external view returns (DLCLink.DLC[] memory) {
+        DLCLink.DLC[] memory fundedDLCs = new DLCLink.DLC[](fundedDLCCount);
 
         uint256 _fundedCount = 0;
 
-        for (uint256 i = startIndex; i < endIndex; i++) {
+        for (uint256 i = 0; i < _index; i++) {
             if (dlcs[i].status == DLCLink.DLCStatus.FUNDED) {
                 fundedDLCs[_fundedCount] = dlcs[i];
                 _fundedCount++;

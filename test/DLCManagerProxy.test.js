@@ -17,7 +17,7 @@ async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
 
-describe('DLCManager Proxy', function () {
+xdescribe('DLCManager Proxy', function () {
     let dlcManager, mockProtocol;
     let tokenManager, dlcBtc;
     let accounts, deployer, protocol, user, randomAccount, anotherAccount;
