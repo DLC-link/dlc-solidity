@@ -51,10 +51,6 @@ contract TokenManager is
         0xc0e7a011e039a863dc1cb785a717324b6601de5d97f6687eae961f972d1472fd; // keccak256("DLC_MANAGER_ROLE");
     bytes32 public constant PAUSER_ROLE =
         0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a; // keccak256("PAUSER_ROLE");
-    bytes32 public constant MINTER_ROLE =
-        0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6; // keccak256("MINTER_ROLE");
-    bytes32 public constant BURNER_ROLE =
-        0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848; // keccak256("BURNER_ROLE");
 
     DLCBTC public dlcBTC; // dlcBTC contract
     DLCManager public dlcManager; // DLCManager contract
@@ -77,8 +73,6 @@ contract TokenManager is
     error NotDLCManagerContract();
     error NotPauser();
     error NotOwner();
-    error NotMinter();
-    error NotBurner();
     error NotWhitelisted();
     error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
     error DepositTooLarge(uint256 deposit, uint256 maximumDeposit);
@@ -109,16 +103,6 @@ contract TokenManager is
     modifier onlyWhitelisted() {
         if (whitelistingEnabled && !_whitelistedAddresses[msg.sender])
             revert NotWhitelisted();
-        _;
-    }
-
-    modifier onlyMinter() {
-        if (!hasRole(MINTER_ROLE, msg.sender)) revert NotMinter();
-        _;
-    }
-
-    modifier onlyBurner() {
-        if (!hasRole(BURNER_ROLE, msg.sender)) revert NotBurner();
         _;
     }
 
@@ -383,11 +367,11 @@ contract TokenManager is
         _unpause();
     }
 
-    function externalMint(address to, uint256 amount) external onlyMinter {
-        _mintTokens(to, amount);
+    function setMinterOnTokenContract(address minter) external onlyDLCAdmin {
+        dlcBTC.setMinter(minter);
     }
 
-    function externalBurn(address from, uint256 amount) external onlyBurner {
-        _burnTokens(from, amount);
+    function setBurnerOnTokenContract(address burner) external onlyDLCAdmin {
+        dlcBTC.setBurner(burner);
     }
 }
