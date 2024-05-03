@@ -366,4 +366,12 @@ contract TokenManager is
     function unpauseContract() external onlyPauser {
         _unpause();
     }
+
+    function setMinterOnTokenContract(address minter) external onlyDLCAdmin {
+        dlcBTC.setMinter(minter);
+    }
+
+    function setBurnerOnTokenContract(address burner) external onlyDLCAdmin {
+        dlcBTC.setBurner(burner);
+    }
 }

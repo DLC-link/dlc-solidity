@@ -43,7 +43,8 @@ module.exports = async function contractAdmin() {
                 description: 'Deploy contracts',
                 value: 'deploy',
             },
-            { title: 'Verify Contract', value: 'verify' },
+            { title: 'Verify Contract On Etherscan', value: 'verify' },
+            { title: 'Validate an Upgrade', value: 'validate-upgrade' },
             { title: 'Upgrade Proxy Implementation', value: 'upgrade' },
             {
                 title: 'Transfer DLCBTC Ownership',
@@ -152,6 +153,37 @@ module.exports = async function contractAdmin() {
                 console.error(error);
             }
 
+            break;
+        }
+        case 'validate-upgrade': {
+            const contractSelectPrompt = await prompts({
+                type: 'select',
+                name: 'contracts',
+                message: `Select contract to upgrade on ${network}`,
+                choices: contractConfigs
+                    .filter((config) => config.upgradeable)
+                    .map((config) => ({
+                        title: `${config.name}`,
+                        value: config.name,
+                    })),
+            });
+            await hardhat.run('compile');
+            const contractName = contractSelectPrompt.contracts;
+            const proxyAddress = await loadContractAddress(
+                contractName,
+                network
+            );
+            const newImplementation =
+                await hardhat.ethers.getContractFactory(contractName);
+            const validation = await hardhat.upgrades.validateUpgrade(
+                proxyAddress,
+                newImplementation
+            );
+            if (!validation) {
+                console.log('Upgrade is valid');
+                return;
+            }
+            console.log(validation);
             break;
         }
         case 'upgrade': {

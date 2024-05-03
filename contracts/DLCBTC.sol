@@ -27,13 +27,18 @@ contract DLCBTC is
     OwnableUpgradeable
 {
     mapping(address => bool) public blacklisted;
-    uint256[50] __gap;
+    address private _minter;
+    address private _burner;
+    uint256[48] __gap;
 
     error BlacklistedSender();
     error BlacklistedRecipient();
+    error NotAuthorized();
 
     event Blacklisted(address account);
     event Unblacklisted(address account);
+    event MinterSet(address minter);
+    event BurnerSet(address burner);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -46,16 +51,28 @@ contract DLCBTC is
         __ERC20Permit_init("dlcBTC");
     }
 
+    modifier onlyMinterOrOwner() {
+        if (msg.sender != _minter && this.owner() != msg.sender)
+            revert NotAuthorized();
+        _;
+    }
+
+    modifier onlyBurnerOrOwner() {
+        if (msg.sender != _burner && this.owner() != msg.sender)
+            revert NotAuthorized();
+        _;
+    }
+
     // Representing Satoshis
     function decimals() public view virtual override returns (uint8) {
         return 8;
     }
 
-    function mint(address to, uint256 amount) external onlyOwner {
+    function mint(address to, uint256 amount) external onlyMinterOrOwner {
         _mint(to, amount);
     }
 
-    function burn(address from, uint256 amount) external onlyOwner {
+    function burn(address from, uint256 amount) external onlyBurnerOrOwner {
         _burn(from, amount);
     }
 
@@ -77,5 +94,15 @@ contract DLCBTC is
         super._beforeTokenTransfer(from, to, amount);
         if (blacklisted[from]) revert BlacklistedSender();
         if (blacklisted[to]) revert BlacklistedRecipient();
+    }
+
+    function setMinter(address minter) external onlyOwner {
+        _minter = minter;
+        emit MinterSet(minter);
+    }
+
+    function setBurner(address burner) external onlyOwner {
+        _burner = burner;
+        emit BurnerSet(burner);
     }
 }

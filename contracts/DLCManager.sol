@@ -368,25 +368,28 @@ contract DLCManager is
         return dlcs[index];
     }
 
-    function getFundedDLCs(
+    /**
+     * @notice  Fetch DLCs, paginated.
+     * @param   startIndex  index to start from.
+     * @param   endIndex  end index (not inclusive).
+     * @return  DLCLink.DLC[]  list of DLCs.
+     */
+    function getAllDLCs(
         uint256 startIndex,
         uint256 endIndex
-    ) public view returns (DLCLink.DLC[] memory) {
+    ) external view returns (DLCLink.DLC[] memory) {
         if (startIndex >= endIndex) revert InvalidRange();
         if (endIndex > _index) endIndex = _index;
 
-        uint256 _indexRange = endIndex - startIndex;
-        DLCLink.DLC[] memory fundedDLCs = new DLCLink.DLC[](_indexRange);
-
-        uint256 _fundedCount = 0;
+        DLCLink.DLC[] memory dlcSubset = new DLCLink.DLC[](
+            endIndex - startIndex
+        );
 
         for (uint256 i = startIndex; i < endIndex; i++) {
-            if (dlcs[i].status == DLCLink.DLCStatus.FUNDED) {
-                fundedDLCs[_fundedCount] = dlcs[i];
-                _fundedCount++;
-            }
+            dlcSubset[i - startIndex] = dlcs[i];
         }
-        return fundedDLCs;
+
+        return dlcSubset;
     }
 
     ////////////////////////////////////////////////////////////////
