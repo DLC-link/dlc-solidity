@@ -1,10 +1,10 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-05-03T09:25:49.010Z",
-  "gitSHA": "4b9a9d3",
+  "updatedAt": "2024-05-07T13:26:30.083Z",
+  "gitSHA": "3e041b2",
   "contract": {
     "name": "DLCBTC",
-    "address": "0x057e5597d6D3a0A2507187EcE2b008100A33CE84",
+    "address": "0x685437f025c5f33A94818408C286bc1F023201Fc",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
