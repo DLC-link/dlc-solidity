@@ -4,7 +4,7 @@
   "gitSHA": "2e422e6",
   "contract": {
     "name": "DLCManager",
-    "address": "0xE8FA6399d1b60968f04888F23Ed13Ed499C1Fd51",
+    "address": "0xe29d3648a1256F015D7A60F9aAC690187e156740",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
