@@ -39,7 +39,7 @@ const util = require('util');
 const chalk = require('chalk');
 
 // Name of the file to save the log messages
-const logFileName = 'log.txt';
+const logFileName = 'log.log';
 
 // Save the reference to the original console.log function
 const originalConsoleLog = console.log;
