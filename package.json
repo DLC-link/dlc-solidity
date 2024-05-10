@@ -22,7 +22,7 @@
         "@safe-global/protocol-kit": "^1.3.0",
         "@safe-global/safe-core-sdk-types": "^2.3.0",
         "chalk": "^4.1.2",
-        "commander": "^10.0.0",
+        "commander": "^12.0.0",
         "dotenv": "^16.0.3",
         "prompts": "^2.4.2",
         "solmate": "^6.2.0"
@@ -42,12 +42,9 @@
         "@types/mocha": "^9.1.1",
         "@types/prompts": "^2.4.4",
         "ethers": "^5.7.2",
-        "getconfig": "^4.5.0",
         "hardhat": "^2.12.5",
-        "hardhat-gas-reporter": "^2.1.1",
         "husky": "^8.0.0",
         "mime-types": "^2.1.35",
-        "nft.storage": "^7.0.0",
         "prettier": "^3.0.3",
         "prettier-plugin-solidity": "^1.1.3",
         "solhint": "^3.3.7",
@@ -57,7 +54,6 @@
         "solidity-docgen": "^0.6.0-beta.36",
         "ts-node": "^10.9.1",
         "typechain": "^8.1.1",
-        "typescript": "^4.9.4",
-        "web3": "^1.8.2"
+        "typescript": "^4.9.4"
     }
 }
