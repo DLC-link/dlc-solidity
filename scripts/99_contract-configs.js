@@ -30,17 +30,26 @@ async function afterDeployment(contractName, contractObject) {
     );
     try {
         await saveDeploymentInfo(
-            deploymentInfo(hardhat, contractObject, contractName)
+            deploymentInfo(
+                hardhat,
+                contractObject,
+                contractName,
+                process.env.GITSHA
+            ),
+            process.env.DEPLOYMENTPATH
+                ? `${process.env.DEPLOYMENTPATH}/${contractName}.json`
+                : undefined
         );
     } catch (error) {
         console.error(error);
     }
 }
 
-module.exports = function getContractConfigs(networkConfig) {
+module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
     const network = hardhat.network.name;
     const { deployer, dlcAdminSafes } = networkConfig;
-    const btcFeeRecipient = '0014e60f61fa2f2941217934d5f9976bf27381b3b036';
+    const btcFeeRecipient =
+        _btcFeeRecipient ?? '0014e60f61fa2f2941217934d5f9976bf27381b3b036';
     const threshold = 2;
 
     return [
