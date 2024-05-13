@@ -6,7 +6,13 @@ require('@nomiclabs/hardhat-solhint');
 require('solidity-coverage');
 require('dotenv').config();
 
-if (!process.env.KEY_FOR_SAFE) process.env.KEY_FOR_SAFE = process.env.KEY;
+const arbitrumURL = process.env.ARB_NODE_ADDR ?? 'https://arb1.arbitrum.io/rpc';
+const arbSepoliaURL =
+    process.env.ARB_SEPOLIA_NODE_ADDR ??
+    'https://sepolia-rollup.arbitrum.io/rpc';
+
+const arbDeployerKey = process.env.ARB_DEPLOYER ?? process.env.KEY;
+const keyForSafe = process.env.KEY_FOR_SAFE ?? process.env.KEY;
 
 module.exports = {
     defaultNetwork: 'hardhat',
@@ -32,30 +38,27 @@ module.exports = {
                 process.env['KEY'],
                 process.env['KEY2'],
                 process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
+                keyForSafe,
             ],
         },
         arbsepolia: {
-            // url: 'https://sepolia-rollup.arbitrum.io/rpc',
-            url: process.env['ARB_SEPOLIA_NODE_ADDR'],
+            url: arbSepoliaURL,
             chainId: 421614,
             accounts: [
                 process.env['KEY'],
                 process.env['KEY2'],
                 process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
+                keyForSafe,
             ],
         },
         arbitrum: {
-            // url: 'https://arb1.arbitrum.io/rpc',
-            // url: `https://arbitrum-mainnet.infura.io/v3/ed8c014d7cdb486880718a5777ab0ff5`,
-            url: process.env['ARB_NODE_ADDR'],
+            url: arbitrumURL,
             chainId: 42161,
             accounts: [
-                process.env['ARB_DEPLOYER'],
+                arbDeployerKey,
                 process.env['KEY2'],
                 process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
+                keyForSafe,
             ],
         },
     },
