@@ -2,6 +2,7 @@ require('dotenv').config();
 const prompts = require('prompts');
 const hardhat = require('hardhat');
 const getContractConfigs = require('../99_contract-configs');
+const dlcAdminSafesConfigs = require('../helpers/dlc-admin-safes');
 const { loadContractAddress } = require('../helpers/utils');
 
 prompts.inject([true, true, true, true, true, true]);
@@ -10,10 +11,7 @@ async function main() {
     const network = hardhat.network.name;
     const accounts = await hardhat.ethers.getSigners();
     const deployer = accounts[0];
-    const dlcAdminSafes = {
-        medium: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-        critical: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-    };
+    const dlcAdminSafes = dlcAdminSafesConfigs[network];
 
     console.log(network, dlcAdminSafes);
 

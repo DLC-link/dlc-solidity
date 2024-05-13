@@ -5,5 +5,3 @@ services:
       - "8545:8545"
     volumes:
       - ./docker/deploymentFiles:/app/dlc-solidity/deploymentFiles
-    environment:
-      - GITSHA=N/A

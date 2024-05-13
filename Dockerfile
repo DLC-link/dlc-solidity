@@ -21,4 +21,6 @@ COPY --from=dlc-solidity-build /app/dlc-solidity /app/dlc-solidity
 
 WORKDIR /app/dlc-solidity
 
+RUN npx hardhat compile
+
 ENTRYPOINT [ "/app/dlc-solidity/entrypoint.sh" ]
