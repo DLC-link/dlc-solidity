@@ -8,3 +8,10 @@ artifacts/
 .husky/
 contracts/mocks/
 contracts/upgrades/
+
+scripts/log.txt
+scripts/log.log
+scripts/test.js
+
+scripts/helpers/local-setup.devnet.sh
+.DS_Store

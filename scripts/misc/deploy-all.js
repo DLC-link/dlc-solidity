@@ -2,12 +2,6 @@ require('dotenv').config();
 const prompts = require('prompts');
 const hardhat = require('hardhat');
 const getContractConfigs = require('../99_contract-configs');
-const dlcAdminSafesConfigs = require('../helpers/dlc-admin-safes');
-const {
-    saveDeploymentInfo,
-    deploymentInfo,
-    loadDeploymentInfo,
-} = require('../helpers/deployment-handlers_versioned');
 const { loadContractAddress } = require('../helpers/utils');
 
 prompts.inject([true, true, true, true, true, true]);

@@ -1,12 +1,9 @@
-version: '3.9'
 services:
   hardhat:
     build: .
-    network_mode: "host"
     ports:
       - "8545:8545"
     volumes:
       - ./docker/deploymentFiles:/app/dlc-solidity/deploymentFiles
     environment:
       - GITSHA=N/A
-      - DEPLOYMENTPATH=/app/dlc-solidity/deploymentFiles/hardhat

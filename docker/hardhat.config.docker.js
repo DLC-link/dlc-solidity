@@ -2,12 +2,6 @@
 
 require('@nomicfoundation/hardhat-toolbox');
 require('@openzeppelin/hardhat-upgrades');
-require('@nomicfoundation/hardhat-chai-matchers');
-require('@nomiclabs/hardhat-solhint');
-require('hardhat-gas-reporter');
-require('solidity-coverage');
-require('solidity-docgen');
-
 require('dotenv').config();
 
 module.exports = {

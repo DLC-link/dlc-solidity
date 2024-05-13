@@ -6,10 +6,7 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const { promptUser, loadContractAddress } = require('./helpers/utils');
 const getChainLinkBTCPriceFeedAddress = require('./helpers/chainlink-pricefeed-addresses');
-const {
-    grantRoleOnManager,
-    registerProtocol,
-} = require('./00-grant-role-on-manager');
+const { registerProtocol } = require('./00-grant-role-on-manager');
 
 // This is a pure function that just logs
 async function beforeDeployment(contractName, constructorArguments, network) {
@@ -30,15 +27,7 @@ async function afterDeployment(contractName, contractObject) {
     );
     try {
         await saveDeploymentInfo(
-            deploymentInfo(
-                hardhat,
-                contractObject,
-                contractName,
-                process.env.GITSHA
-            ),
-            process.env.DEPLOYMENTPATH
-                ? `${process.env.DEPLOYMENTPATH}/${contractName}.json`
-                : undefined
+            deploymentInfo(hardhat, contractObject, contractName)
         );
     } catch (error) {
         console.error(error);

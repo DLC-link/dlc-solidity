@@ -4,8 +4,6 @@ require('@nomicfoundation/hardhat-toolbox');
 require('@openzeppelin/hardhat-upgrades');
 require('@nomiclabs/hardhat-solhint');
 require('solidity-coverage');
-require('solidity-docgen');
-
 require('dotenv').config();
 
 if (!process.env.KEY_FOR_SAFE) process.env.KEY_FOR_SAFE = process.env.KEY;
@@ -60,42 +58,13 @@ module.exports = {
                 process.env['KEY_FOR_SAFE'],
             ],
         },
-        x1test: {
-            url: 'https://testrpc.x1.tech',
-            accounts: [
-                process.env['KEY'],
-                process.env['KEY2'],
-                process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
-            ],
-        },
-        bobtest: {
-            url: 'https://testnet.rpc.gobob.xyz',
-            accounts: [
-                process.env['KEY'],
-                process.env['KEY2'],
-                process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
-            ],
-        },
     },
     etherscan: {
-        // Your API key for Etherscan
-        // Obtain one at https://etherscan.io/
-        // apiKey: process.env['ETHERSCAN_API_KEY'],
         apiKey: {
             arbitrum: process.env['ARBISCAN_API_KEY'],
             arbsepolia: process.env['ARBISCAN_API_KEY'],
         },
         customChains: [
-            {
-                network: 'bobtest',
-                chainId: 111,
-                urls: {
-                    apiURL: 'https://testnet-explorer.gobob.xyz/api',
-                    browserURL: 'https://testnet-explorer.gobob.xyz',
-                },
-            },
             {
                 network: 'arbsepolia',
                 chainId: 421614,
@@ -121,11 +90,5 @@ module.exports = {
         L2: 'arbitrum',
         L2Etherscan: process.env['ARBISCAN_API_KEY'],
         L1Etherscan: process.env['ETHERSCAN_API_KEY'],
-        // gasPriceApi: gasPriceApi,
-        // gasPrice: 1,
-    },
-    docgen: {
-        pages: 'files',
-        exclude: ['mocks', 'test', 'examples'],
     },
 };

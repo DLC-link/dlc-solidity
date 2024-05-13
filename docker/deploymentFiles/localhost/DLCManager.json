@@ -1,10 +1,10 @@
 {
   "network": "localhost",
-  "updatedAt": "2024-05-13T13:29:00.382Z",
-  "gitSHA": "45a6ee8",
+  "updatedAt": "2024-05-13T14:20:32.578Z",
+  "gitSHA": "N/A",
   "contract": {
     "name": "DLCManager",
-    "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
     "signerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "abi": [
       "constructor()",

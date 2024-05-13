@@ -7,7 +7,7 @@
     },
     "scripts": {
         "test": "npx hardhat test",
-        "coverage": "npx hardhat coverage",
+        "coverage": "hardhat coverage",
         "analyze": "slither . --filter-paths 'node_modules|contracts/examples/|contracts/mocks/'",
         "prepare": "husky install"
     },
