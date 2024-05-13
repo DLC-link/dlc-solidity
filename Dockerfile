@@ -11,6 +11,7 @@ WORKDIR /app/dlc-solidity
 
 RUN npm ci
 
+RUN npx hardhat compile
 # Copy the entrypoint script into the Docker image
 COPY ./docker/entrypoint.sh /app/dlc-solidity/entrypoint.sh
 RUN chmod +x /app/dlc-solidity/entrypoint.sh
@@ -21,6 +22,5 @@ COPY --from=dlc-solidity-build /app/dlc-solidity /app/dlc-solidity
 
 WORKDIR /app/dlc-solidity
 
-RUN npx hardhat compile
 
 ENTRYPOINT [ "/app/dlc-solidity/entrypoint.sh" ]

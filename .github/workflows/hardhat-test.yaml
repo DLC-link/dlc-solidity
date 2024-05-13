@@ -28,3 +28,34 @@ jobs:
               run: npm install
             - name: Run the tests
               run: npm run coverage
+
+    build:
+        name: Build and push Docker image
+        runs-on: ubuntu-latest
+        needs: [test]
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v4
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.TF_AWS_SECRET_ACCESS_KEY }}
+                  aws-region: us-east-1
+            - name: Login to Amazon ECR Public
+              id: login-ecr-public
+              uses: aws-actions/amazon-ecr-login@v2
+              with:
+                  registry-type: public
+            - name: Set outputs
+              id: vars
+              run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+            - name: Build and push Docker image
+              env:
+                  ECR_PUBLIC_REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+                  REGISTRY_ALIAS: dlc-link
+                  ECR_REPOSITORY: dlc-solidity
+                  IMAGE_TAG: test-${{ steps.vars.outputs.sha_short }}
+              run: |
+                  docker build -t $ECR_PUBLIC_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG .
+                  docker push $ECR_PUBLIC_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
