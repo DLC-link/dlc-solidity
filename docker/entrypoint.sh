@@ -10,6 +10,10 @@ while ! grep -q "Started HTTP and WebSocket JSON-RPC server" hardhat.log; do
   sleep 1
 done
 
-npx hardhat run --network localhost scripts/misc/deploy-all.js
+npx hardhat run --network localhost docker/scripts/deploy-all.js
+
+# push the message "Deployment Complete" into the log file
+echo "Deployment Complete" >>hardhat.log
+
 # Keep the script running so the Docker container doesn't exit
 tail -f hardhat.log
