@@ -1,11 +1,13 @@
-# Build and push docker image when tagged with v[0-9]*
+# Build and push docker image when tagged with v[0-9]* or when pushed to dev branch
 
-name: Build & Push Docker on Tag
+name: Build & Push Docker on Push
 
 on:
     push:
         tags:
             - v[0-9]*
+        branches:
+            - dev
 
 env:
     KEY: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'

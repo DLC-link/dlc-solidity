@@ -1,4 +1,4 @@
-name: hardhat-test
+name: Hardhat Tests & ECR Private
 
 on:
     pull_request:
@@ -29,6 +29,7 @@ jobs:
             - name: Run the tests
               run: npm run coverage
 
+    # This will push a temp image to ECR private
     build:
         name: Build and push Docker image
         runs-on: ubuntu-latest
@@ -43,19 +44,16 @@ jobs:
                   aws-secret-access-key: ${{ secrets.TF_AWS_SECRET_ACCESS_KEY }}
                   aws-region: us-east-1
             - name: Login to Amazon ECR Public
-              id: login-ecr-public
+              id: login-ecr
               uses: aws-actions/amazon-ecr-login@v2
-              with:
-                  registry-type: public
             - name: Set outputs
               id: vars
               run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
             - name: Build and push Docker image
               env:
-                  ECR_PUBLIC_REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-                  REGISTRY_ALIAS: dlc-link
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
                   ECR_REPOSITORY: dlc-solidity
                   IMAGE_TAG: test-${{ steps.vars.outputs.sha_short }}
               run: |
-                  docker build -t $ECR_PUBLIC_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG .
-                  docker push $ECR_PUBLIC_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
+                  docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+                  docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
