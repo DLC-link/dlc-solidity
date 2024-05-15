@@ -16,3 +16,9 @@ async function revokeRoleOnManager(role, revokeRoleFromAddress) {
 }
 
 module.exports = { revokeRoleOnManager, removeSigner };
+
+if (require.main === module) {
+    const role = process.argv[2];
+    const address = process.argv[3];
+    revokeRoleOnManager(role, address).catch(console.error);
+}

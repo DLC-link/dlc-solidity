@@ -8,7 +8,7 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-module.exports = async function setTSSCommitment() {
+async function setTSSCommitment() {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
     const deployInfo = await loadDeploymentInfo(
@@ -59,4 +59,10 @@ module.exports = async function setTSSCommitment() {
     console.log('Commitment (bytes32): ', commitmentBytes32);
 
     await callManagerContractFunction('setTSSCommitment', [commitmentBytes32]);
-};
+}
+
+module.exports = setTSSCommitment;
+
+if (require.main === module) {
+    setTSSCommitment().catch(console.error);
+}

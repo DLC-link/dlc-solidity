@@ -3,7 +3,7 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-module.exports = async function tokenManagerSetupVault(btcDeposit = 1000000) {
+async function tokenManagerSetupVault(btcDeposit = 1000000) {
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
         'TokenManager'
@@ -20,4 +20,11 @@ module.exports = async function tokenManagerSetupVault(btcDeposit = 1000000) {
     const receipt = await tx.wait();
     console.dir(tx, { depth: 4 });
     console.dir(receipt, { depth: 4 });
-};
+}
+
+module.exports = tokenManagerSetupVault;
+
+if (require.main === module) {
+    const deposit = process.argv[2];
+    tokenManagerSetupVault(deposit).catch(console.error);
+}
