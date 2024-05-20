@@ -1,10 +1,10 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-05-03T09:26:18.250Z",
-  "gitSHA": "4b9a9d3",
+  "updatedAt": "2024-05-20T12:56:53.522Z",
+  "gitSHA": "5afd44f",
   "contract": {
     "name": "TokenManager",
-    "address": "0xE36502FB5F95702E4409957d0B0B7f8B37712Dc9",
+    "address": "0x6e692DB944162f8b4250aA25eCEe80608457D7a7",
     "signerAddress": "0xBf7184178d610D7B0239a5CB8D64c1Df22d306a9",
     "abi": [
       "constructor()",
