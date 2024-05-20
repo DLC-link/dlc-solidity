@@ -77,8 +77,6 @@ console.error = function (...args) {
 async function main() {
     const program = new Command();
 
-    program.version(`${version}`);
-
     program
         .name('dlc-link-eth')
         .description('CLI scripts to help with DLC.Link utilities')
