@@ -1,11 +1,12 @@
-const hardhat = require('hardhat');
 const { task, types } = require('hardhat/config');
 const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-async function tokenManagerSetupVault(btcDeposit) {
+async function tokenManagerSetupVault(btcDeposit, hardhat) {
+    if (!hardhat || !hardhat.network) hardhat = require('hardhat');
     if (!btcDeposit) btcDeposit = 1000000;
+
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
         'TokenManager'
@@ -33,6 +34,6 @@ if (require.main === module) {
 
 task('tokenManager:setupVault', 'Setup vault for TokenManager')
     .addParam('btcDeposit', 'BTC deposit amount', 1000000, types.int)
-    .setAction(async (taskArgs) => {
-        await tokenManagerSetupVault(taskArgs.btcDeposit);
+    .setAction(async (taskArgs, hardhat) => {
+        await tokenManagerSetupVault(taskArgs.btcDeposit, hardhat);
     });

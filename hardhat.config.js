@@ -5,6 +5,7 @@ require('@openzeppelin/hardhat-upgrades');
 require('@nomiclabs/hardhat-solhint');
 require('solidity-coverage');
 require('dotenv').config();
+require('./scripts/tasks');
 
 const arbitrumURL = process.env.ARB_NODE_ADDR ?? 'https://arb1.arbitrum.io/rpc';
 const arbSepoliaURL =
