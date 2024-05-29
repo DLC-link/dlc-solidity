@@ -7,7 +7,7 @@ const addSigner = require('../../scripts/00-grant-role-on-manager').addSigner;
 const setWhitelisting = require('../../scripts/13_set-whitelisting');
 const { loadContractAddress } = require('../../scripts/helpers/utils');
 
-prompts.inject([true, true, true, true, true, true]);
+process.env.CLI_MODE = 'noninteractive';
 
 async function main() {
     const network = hardhat.network.name;
@@ -42,9 +42,9 @@ async function main() {
 
     // Adding signers
     const defaultSigners = [
-        '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
-        '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
-        '0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc',
+        '0x976EA74026E726554dB657fA54763abd0C3a0aa9', // account[6]
+        '0x14dC79964da2C08b23698B3D3cc7Ca32193d9955', // account[7]
+        '0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f', // account[8]
     ];
     for (const signer of defaultSigners) {
         await addSigner(signer);

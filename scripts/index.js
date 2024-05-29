@@ -135,6 +135,7 @@ async function main() {
     program
         .command('set-tss-commitment')
         .description('[admin] set TSS commitment')
+        .argument('[timestamp]', 'timestamp to set')
         .action(setTSSCommitment);
 
     program
