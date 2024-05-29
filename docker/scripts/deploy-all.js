@@ -3,6 +3,8 @@ const prompts = require('prompts');
 const hardhat = require('hardhat');
 const getContractConfigs = require('../../scripts/99_contract-configs');
 const dlcAdminSafesConfigs = require('../../scripts/helpers/dlc-admin-safes');
+const addSigner = require('../../scripts/00-grant-role-on-manager').addSigner;
+const setWhitelisting = require('../../scripts/13_set-whitelisting');
 const { loadContractAddress } = require('../../scripts/helpers/utils');
 
 prompts.inject([true, true, true, true, true, true]);
@@ -37,6 +39,19 @@ async function main() {
     }
 
     console.log('Deployment complete');
+
+    // Adding signers
+    const defaultSigners = [
+        '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+        '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
+        '0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc',
+    ];
+    for (const signer of defaultSigners) {
+        await addSigner(signer);
+    }
+
+    // Set whitelisting
+    await setWhitelisting('false');
 }
 
 // make sure we catch all errors
