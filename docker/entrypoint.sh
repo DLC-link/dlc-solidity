@@ -13,7 +13,8 @@ done
 CLI_MODE='noninteractive' npx hardhat run --network localhost docker/scripts/deploy-all.js
 
 # push the message "Deployment Complete" into the log file
-echo "Deployment Complete" >>hardhat.log
+# NOTE: This is important! It's how the health check finishes
+echo "Startup Complete" >>hardhat.log
 
 # Keep the script running so the Docker container doesn't exit
 tail -f hardhat.log

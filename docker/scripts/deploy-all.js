@@ -1,5 +1,4 @@
 require('dotenv').config();
-const prompts = require('prompts');
 const hardhat = require('hardhat');
 const getContractConfigs = require('../../scripts/99_contract-configs');
 const dlcAdminSafesConfigs = require('../../scripts/helpers/dlc-admin-safes');

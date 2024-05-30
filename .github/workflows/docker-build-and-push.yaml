@@ -45,15 +45,20 @@ jobs:
               uses: aws-actions/amazon-ecr-login@v2
               with:
                   registry-type: public
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
             - name: Set outputs
               id: vars
               run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
             - name: Build and push Docker image
               env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
                   ECR_PUBLIC_REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
                   REGISTRY_ALIAS: dlc-link
                   ECR_REPOSITORY: dlc-solidity
                   IMAGE_TAG: ${{ github.ref_name }}
               run: |
-                  docker build -t $ECR_PUBLIC_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG .
+                  docker build -t $ECR_PUBLIC_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
                   docker push $ECR_PUBLIC_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
+                  docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
