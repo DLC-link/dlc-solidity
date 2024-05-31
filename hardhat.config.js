@@ -3,13 +3,16 @@
 require('@nomicfoundation/hardhat-toolbox');
 require('@openzeppelin/hardhat-upgrades');
 require('@nomiclabs/hardhat-solhint');
-require('hardhat-gas-reporter');
 require('solidity-coverage');
-require('solidity-docgen');
-
 require('dotenv').config();
 
-if (!process.env.KEY_FOR_SAFE) process.env.KEY_FOR_SAFE = process.env.KEY;
+const arbitrumURL = process.env.ARB_NODE_ADDR ?? 'https://arb1.arbitrum.io/rpc';
+const arbSepoliaURL =
+    process.env.ARB_SEPOLIA_NODE_ADDR ??
+    'https://sepolia-rollup.arbitrum.io/rpc';
+
+const arbDeployerKey = process.env.ARB_DEPLOYER ?? process.env.KEY;
+const keyForSafe = process.env.KEY_FOR_SAFE ?? process.env.KEY;
 
 module.exports = {
     defaultNetwork: 'hardhat',
@@ -35,68 +38,36 @@ module.exports = {
                 process.env['KEY'],
                 process.env['KEY2'],
                 process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
+                keyForSafe,
             ],
         },
         arbsepolia: {
-            // url: 'https://sepolia-rollup.arbitrum.io/rpc',
-            url: process.env['ARB_SEPOLIA_NODE_ADDR'],
+            url: arbSepoliaURL,
             chainId: 421614,
             accounts: [
                 process.env['KEY'],
                 process.env['KEY2'],
                 process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
+                keyForSafe,
             ],
         },
         arbitrum: {
-            // url: 'https://arb1.arbitrum.io/rpc',
-            // url: `https://arbitrum-mainnet.infura.io/v3/ed8c014d7cdb486880718a5777ab0ff5`,
-            url: process.env['ARB_NODE_ADDR'],
+            url: arbitrumURL,
             chainId: 42161,
             accounts: [
-                process.env['ARB_DEPLOYER'],
+                arbDeployerKey,
                 process.env['KEY2'],
                 process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
-            ],
-        },
-        x1test: {
-            url: 'https://testrpc.x1.tech',
-            accounts: [
-                process.env['KEY'],
-                process.env['KEY2'],
-                process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
-            ],
-        },
-        bobtest: {
-            url: 'https://testnet.rpc.gobob.xyz',
-            accounts: [
-                process.env['KEY'],
-                process.env['KEY2'],
-                process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
+                keyForSafe,
             ],
         },
     },
     etherscan: {
-        // Your API key for Etherscan
-        // Obtain one at https://etherscan.io/
-        // apiKey: process.env['ETHERSCAN_API_KEY'],
         apiKey: {
             arbitrum: process.env['ARBISCAN_API_KEY'],
             arbsepolia: process.env['ARBISCAN_API_KEY'],
         },
         customChains: [
-            {
-                network: 'bobtest',
-                chainId: 111,
-                urls: {
-                    apiURL: 'https://testnet-explorer.gobob.xyz/api',
-                    browserURL: 'https://testnet-explorer.gobob.xyz',
-                },
-            },
             {
                 network: 'arbsepolia',
                 chainId: 421614,
@@ -122,11 +93,5 @@ module.exports = {
         L2: 'arbitrum',
         L2Etherscan: process.env['ARBISCAN_API_KEY'],
         L1Etherscan: process.env['ETHERSCAN_API_KEY'],
-        // gasPriceApi: gasPriceApi,
-        // gasPrice: 1,
-    },
-    docgen: {
-        pages: 'files',
-        exclude: ['mocks', 'test', 'examples'],
     },
 };

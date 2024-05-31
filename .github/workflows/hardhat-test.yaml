@@ -1,0 +1,59 @@
+name: Hardhat Tests & ECR Private
+
+on:
+    pull_request:
+        branches:
+            - dev
+            - master
+        types:
+            - opened
+            - reopened
+            - synchronize
+
+env:
+    KEY: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+    KEY2: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
+    KEY3: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        name: Hardhat unit tests
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name: Install Node.js
+              uses: actions/setup-node@v4
+            - name: Install the dependencies
+              run: npm install
+            - name: Run the tests
+              run: npm run coverage
+
+    # This will push a temp image to ECR private
+    build:
+        name: Build and push Docker image
+        runs-on: ubuntu-latest
+        needs: [test]
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v4
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.TF_AWS_SECRET_ACCESS_KEY }}
+                  aws-region: us-east-1
+            - name: Login to Amazon ECR Public
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+            - name: Set outputs
+              id: vars
+              run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+            - name: Build and push Docker image
+              env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                  ECR_REPOSITORY: dlc-solidity
+                  IMAGE_TAG: test-${{ steps.vars.outputs.sha_short }}
+              run: |
+                  docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+                  docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG

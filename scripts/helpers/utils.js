@@ -1,7 +1,11 @@
+require('dotenv').config();
 const prompts = require('prompts');
 const { loadDeploymentInfo } = require('./deployment-handlers_versioned');
 
 async function promptUser(message) {
+    if (process.env.CLI_MODE === 'noninteractive') {
+        return true;
+    }
     const response = await prompts({
         type: 'confirm',
         name: 'continue',

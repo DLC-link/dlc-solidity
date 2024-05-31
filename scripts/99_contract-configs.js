@@ -6,10 +6,7 @@ const {
 } = require('./helpers/deployment-handlers_versioned');
 const { promptUser, loadContractAddress } = require('./helpers/utils');
 const getChainLinkBTCPriceFeedAddress = require('./helpers/chainlink-pricefeed-addresses');
-const {
-    grantRoleOnManager,
-    registerProtocol,
-} = require('./00-grant-role-on-manager');
+const { registerProtocol } = require('./00-grant-role-on-manager');
 
 // This is a pure function that just logs
 async function beforeDeployment(contractName, constructorArguments, network) {
@@ -37,10 +34,11 @@ async function afterDeployment(contractName, contractObject) {
     }
 }
 
-module.exports = function getContractConfigs(networkConfig) {
+module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
     const network = hardhat.network.name;
     const { deployer, dlcAdminSafes } = networkConfig;
-    const btcFeeRecipient = '0014e60f61fa2f2941217934d5f9976bf27381b3b036';
+    const btcFeeRecipient =
+        _btcFeeRecipient ?? '0014e60f61fa2f2941217934d5f9976bf27381b3b036';
     const threshold = 2;
 
     return [

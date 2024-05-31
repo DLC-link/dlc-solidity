@@ -2,18 +2,12 @@
 
 require('@nomicfoundation/hardhat-toolbox');
 require('@openzeppelin/hardhat-upgrades');
-require('@nomicfoundation/hardhat-chai-matchers');
-require('@nomiclabs/hardhat-solhint');
-require('hardhat-gas-reporter');
-require('solidity-coverage');
-require('solidity-docgen');
-
 require('dotenv').config();
 
 module.exports = {
     defaultNetwork: 'hardhat',
     solidity: {
-        version: '0.8.17',
+        version: '0.8.18',
         settings: {
             optimizer: {
                 enabled: true,
@@ -22,6 +16,8 @@ module.exports = {
         },
     },
     networks: {
-        hardhat: {},
+        hardhat: {
+            chainId: 31337,
+        },
     },
 };

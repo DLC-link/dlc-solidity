@@ -8,7 +8,7 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-module.exports = async function setTSSCommitment() {
+async function setTSSCommitment(timestamp) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
     const deployInfo = await loadDeploymentInfo(
@@ -28,35 +28,46 @@ module.exports = async function setTSSCommitment() {
     );
     console.log('Current Commitment (string): ', currentCommitment);
 
-    const response = await prompts({
-        type: 'select',
-        name: 'set-unset',
-        message: 'Do you want to set or unset the TSS commitment?',
-        choices: [
-            { title: 'Set (to Timestamp)', value: 'set' },
-            { title: 'Unset (to HashZero)', value: 'unset' },
-        ],
-    });
-
     let commitment, commitmentBytes32;
 
-    if (response['set-unset'] === 'unset') {
-        commitment = ethers.constants.HashZero;
-        commitmentBytes32 = ethers.constants.HashZero;
-    } else if (response['set-unset'] === 'set') {
-        // lets make the commitment a UNIX timestamp in seconds
-        commitment = Math.floor(Date.now() / 1000);
-        // Convert the number to a string and then to bytes32
-        commitmentBytes32 = ethers.utils.formatBytes32String(
-            commitment.toString()
-        );
+    if (timestamp) {
+        commitment = timestamp;
     } else {
-        console.log('No action taken');
-        return;
+        const response = await prompts({
+            type: 'select',
+            name: 'set-unset',
+            message: 'Do you want to set or unset the TSS commitment?',
+            choices: [
+                { title: 'Set (to Timestamp)', value: 'set' },
+                { title: 'Unset (to HashZero)', value: 'unset' },
+            ],
+        });
+
+        if (response['set-unset'] === 'unset') {
+            commitment = ethers.constants.HashZero;
+            commitmentBytes32 = ethers.constants.HashZero;
+        } else if (response['set-unset'] === 'set') {
+            // lets make the commitment a UNIX timestamp in seconds
+            commitment = Math.floor(Date.now() / 1000);
+            // Convert the number to a string and then to bytes32
+            commitmentBytes32 = ethers.utils.formatBytes32String(
+                commitment.toString()
+            );
+        } else {
+            console.log('No action taken');
+            return;
+        }
     }
 
     console.log('Commitment: ', commitment.toString());
     console.log('Commitment (bytes32): ', commitmentBytes32);
 
     await callManagerContractFunction('setTSSCommitment', [commitmentBytes32]);
-};
+}
+
+module.exports = setTSSCommitment;
+
+if (require.main === module) {
+    const timestamp = process.argv[2];
+    setTSSCommitment(timestamp).catch(console.error);
+}

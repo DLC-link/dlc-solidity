@@ -4,7 +4,11 @@
 .openzeppelin
 
 log.txt
+log.log
 test.js
+
+docker/deploymentFiles
+deploymentFiles/localhost
 
 local-setup.devnet.sh
 

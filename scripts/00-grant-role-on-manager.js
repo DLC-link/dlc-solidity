@@ -20,3 +20,9 @@ async function grantRoleOnManager(role, grantRoleToAddress) {
 }
 
 module.exports = { grantRoleOnManager, registerProtocol, addSigner };
+
+if (require.main === module) {
+    const role = process.argv[2];
+    const address = process.argv[3];
+    grantRoleOnManager(role, address).catch(console.error);
+}

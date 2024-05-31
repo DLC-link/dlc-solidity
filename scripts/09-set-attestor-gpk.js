@@ -2,6 +2,13 @@ const {
     callManagerContractFunction,
 } = require('./helpers/00-call-dlc-manager-fn');
 
-module.exports = async function setAttestorGroupPubKey(attestorGPK) {
+async function setAttestorGroupPubKey(attestorGPK) {
     await callManagerContractFunction('setAttestorGroupPubKey', [attestorGPK]);
-};
+}
+
+module.exports = setAttestorGroupPubKey;
+
+if (require.main === module) {
+    const attestorGPK = process.argv[2];
+    setAttestorGroupPubKey(attestorGPK).catch(console.error);
+}
