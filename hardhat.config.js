@@ -35,10 +35,10 @@ module.exports = {
         mainnet: {
             url: `https://mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
             accounts: [
-                process.env['ARB_DEPLOYER'],
+                arbDeployerKey,
                 process.env['KEY2'],
                 process.env['KEY3'],
-                process.env['KEY_FOR_SAFE'],
+                keyForSafe,
             ],
         },
         sepolia: {
