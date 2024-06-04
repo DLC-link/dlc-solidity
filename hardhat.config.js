@@ -32,6 +32,15 @@ module.exports = {
             gas: 0xfffffffffff,
             gasPrice: 0x01,
         },
+        mainnet: {
+            url: `https://mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+            accounts: [
+                arbDeployerKey,
+                process.env['KEY2'],
+                process.env['KEY3'],
+                keyForSafe,
+            ],
+        },
         sepolia: {
             url: `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
             accounts: [
@@ -66,6 +75,7 @@ module.exports = {
         apiKey: {
             arbitrum: process.env['ARBISCAN_API_KEY'],
             arbsepolia: process.env['ARBISCAN_API_KEY'],
+            mainnet: process.env['ETHERSCAN_API_KEY'],
         },
         customChains: [
             {
@@ -82,6 +92,14 @@ module.exports = {
                 urls: {
                     apiURL: `https://api.arbiscan.io/api?apikey=${process.env.ARBISCAN_API_KEY}`,
                     browserURL: 'https://arbiscan.io',
+                },
+            },
+            {
+                network: 'mainnet',
+                chainId: 1,
+                urls: {
+                    apiURL: `https://api.etherscan.io/api?apikey=${process.env.ETHERSCAN_API_KEY}`,
+                    browserURL: 'https://etherscan.io',
                 },
             },
         ],

@@ -15,4 +15,8 @@ module.exports = DLCAdminSafeAddresses = {
         medium: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
         critical: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
     }, // Hardhat default deployer account
+    mainnet: {
+        medium: '0x442691Af617ce33878b0864501Ab74161870856f',
+        critical: '0x207d1Bb4e1162Fa97E8117552fefB250653Aaee7',
+    },
 };
