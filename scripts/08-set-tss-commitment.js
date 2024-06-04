@@ -32,6 +32,9 @@ async function setTSSCommitment(timestamp) {
 
     if (timestamp) {
         commitment = timestamp;
+        commitmentBytes32 = ethers.utils.formatBytes32String(
+            commitment.toString()
+        );
     } else {
         const response = await prompts({
             type: 'select',
