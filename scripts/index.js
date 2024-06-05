@@ -31,6 +31,7 @@ const unwhitelistAccount = require('./11_unwhitelist-account');
 const tokenManagerSetupVault = require('./12_setup-vault');
 const whitelistingEnabled = require('./13_set-whitelisting');
 const setBtcFeeRecipient = require('./14_set-btc-fee-recipient');
+const setBTCFee = require('./15_set-btc-fee');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -173,6 +174,13 @@ async function main() {
         .description('[token-man] set BTC fee recipient')
         .argument('<btcFeeRecipient>', 'BTC fee recipient')
         .action(setBtcFeeRecipient);
+
+    program
+        .command('set-btc-fee-rate')
+        .description('[token-man] set BTC fee rate')
+        .argument('<mintOrBurn>', 'mint or burn')
+        .argument('<newFee>', 'new fee')
+        .action(setBTCFee);
 
     program
         .command('create-dlc')
