@@ -63,24 +63,34 @@ contract DLCBTC is
         _;
     }
 
+    modifier onlyMinter() {
+        if (msg.sender != _minter) revert NotAuthorized();
+        _;
+    }
+
+    modifier onlyBurner() {
+        if (msg.sender != _burner) revert NotAuthorized();
+        _;
+    }
+
     // Representing Satoshis
     function decimals() public view virtual override returns (uint8) {
         return 8;
     }
 
-    function mint(address to, uint256 amount) external onlyMinterOrOwner {
+    function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
 
-    function mint(uint256 amount) external onlyMinterOrOwner {
+    function mint(uint256 amount) external onlyMinter {
         _mint(msg.sender, amount);
     }
 
-    function burn(address from, uint256 amount) external onlyBurnerOrOwner {
+    function burn(address from, uint256 amount) external onlyOwner {
         _burn(from, amount);
     }
 
-    function burn(uint256 amount) external onlyBurnerOrOwner {
+    function burn(uint256 amount) external onlyBurner {
         _burn(msg.sender, amount);
     }
 

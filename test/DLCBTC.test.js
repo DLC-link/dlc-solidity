@@ -76,13 +76,13 @@ describe('DLCBTC', function () {
     it('should revert on unauthorized mint', async () => {
         await expect(
             dlcBtc.connect(user)['mint(address,uint256)'](user.address, deposit)
-        ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
+        ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should revert on unauthorized burn', async () => {
         await expect(
             dlcBtc.connect(user)['burn(address,uint256)'](user.address, deposit)
-        ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
+        ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('owner can mint tokens', async () => {
@@ -111,7 +111,7 @@ describe('DLCBTC', function () {
                 dlcBtc
                     .connect(deployer)
                     ['mint(address,uint256)'](user.address, deposit)
-            ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
+            ).to.be.revertedWith('Ownable: caller is not the owner');
         });
 
         it('should revert on burn called by previous owner', async () => {
@@ -119,7 +119,7 @@ describe('DLCBTC', function () {
                 dlcBtc
                     .connect(deployer)
                     ['burn(address,uint256)'](user.address, deposit)
-            ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
+            ).to.be.revertedWith('Ownable: caller is not the owner');
         });
 
         it('TokenManager can mint tokens', async () => {
