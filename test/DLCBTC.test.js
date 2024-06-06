@@ -75,30 +75,30 @@ describe('DLCBTC', function () {
 
     it('should revert on unauthorized mint', async () => {
         await expect(
-            dlcBtc.connect(user).mint(user.address, deposit)
+            dlcBtc.connect(user)['mint(address,uint256)'](user.address, deposit)
         ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
     });
 
     it('should revert on unauthorized burn', async () => {
         await expect(
-            dlcBtc.connect(user).burn(user.address, deposit)
+            dlcBtc.connect(user)['burn(address,uint256)'](user.address, deposit)
         ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
     });
 
     it('owner can mint tokens', async () => {
-        await dlcBtc.mint(user.address, deposit);
+        await dlcBtc['mint(address,uint256)'](user.address, deposit);
         expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
     });
 
     it('owner can burn tokens', async () => {
-        await dlcBtc.mint(user.address, deposit);
-        await dlcBtc.burn(user.address, deposit);
+        await dlcBtc['mint(address,uint256)'](user.address, deposit);
+        await dlcBtc['burn(address,uint256)'](user.address, deposit);
         expect(await dlcBtc.balanceOf(user.address)).to.equal(0);
     });
 
     describe('after Ownership transfer', async () => {
         beforeEach(async () => {
-            await dlcBtc.mint(user.address, deposit);
+            await dlcBtc['mint(address,uint256)'](user.address, deposit);
             await dlcBtc.transferOwnership(tokenManager.address);
         });
 
@@ -108,13 +108,17 @@ describe('DLCBTC', function () {
 
         it('should revert on mint called by previous owner', async () => {
             await expect(
-                dlcBtc.connect(deployer).mint(user.address, deposit)
+                dlcBtc
+                    .connect(deployer)
+                    ['mint(address,uint256)'](user.address, deposit)
             ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
         });
 
         it('should revert on burn called by previous owner', async () => {
             await expect(
-                dlcBtc.connect(deployer).burn(user.address, deposit)
+                dlcBtc
+                    .connect(deployer)
+                    ['burn(address,uint256)'](user.address, deposit)
             ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
         });
 
