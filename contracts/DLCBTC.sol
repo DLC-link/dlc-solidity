@@ -72,8 +72,16 @@ contract DLCBTC is
         _mint(to, amount);
     }
 
+    function mint(uint256 amount) external onlyMinterOrOwner {
+        _mint(msg.sender, amount);
+    }
+
     function burn(address from, uint256 amount) external onlyBurnerOrOwner {
         _burn(from, amount);
+    }
+
+    function burn(uint256 amount) external onlyBurnerOrOwner {
+        _burn(msg.sender, amount);
     }
 
     function blacklist(address account) external onlyOwner {
