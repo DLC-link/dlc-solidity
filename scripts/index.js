@@ -32,6 +32,7 @@ const tokenManagerSetupVault = require('./12_setup-vault');
 const whitelistingEnabled = require('./13_set-whitelisting');
 const setBtcFeeRecipient = require('./14_set-btc-fee-recipient');
 const setBTCFee = require('./15_set-btc-fee');
+const setDepositLimit = require('./16_set-deposit-limit');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -181,6 +182,13 @@ async function main() {
         .argument('<mintOrBurn>', 'mint or burn')
         .argument('<newFee>', 'new fee')
         .action(setBTCFee);
+
+    program
+        .command('set-deposit-limit')
+        .description('[token-man] set Min/Max deposit limit')
+        .argument('<minOrMax>', 'min or max')
+        .argument('<newLimit>', 'new limit')
+        .action(setDepositLimit);
 
     program
         .command('create-dlc')
