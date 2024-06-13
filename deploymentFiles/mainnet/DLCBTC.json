@@ -1,7 +1,7 @@
 {
   "network": "mainnet",
-  "updatedAt": "2024-06-06T10:11:27.227Z",
-  "gitSHA": "cee21b3",
+  "updatedAt": "2024-06-13T17:27:24.120Z",
+  "gitSHA": "2453cea",
   "contract": {
     "name": "DLCBTC",
     "address": "0x20157DBAbb84e3BBFE68C349d0d44E48AE7B5AD2",

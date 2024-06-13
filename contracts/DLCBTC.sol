@@ -51,15 +51,13 @@ contract DLCBTC is
         __ERC20Permit_init("dlcBTC");
     }
 
-    modifier onlyMinterOrOwner() {
-        if (msg.sender != _minter && this.owner() != msg.sender)
-            revert NotAuthorized();
+    modifier onlyCCIPMinter() {
+        if (msg.sender != _minter) revert NotAuthorized();
         _;
     }
 
-    modifier onlyBurnerOrOwner() {
-        if (msg.sender != _burner && this.owner() != msg.sender)
-            revert NotAuthorized();
+    modifier onlyCCIPBurner() {
+        if (msg.sender != _burner) revert NotAuthorized();
         _;
     }
 
@@ -68,19 +66,19 @@ contract DLCBTC is
         return 8;
     }
 
-    function mint(address to, uint256 amount) external onlyMinterOrOwner {
+    function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
 
-    function mint(uint256 amount) external onlyMinterOrOwner {
+    function mint(uint256 amount) external onlyCCIPMinter {
         _mint(msg.sender, amount);
     }
 
-    function burn(address from, uint256 amount) external onlyBurnerOrOwner {
+    function burn(address from, uint256 amount) external onlyOwner {
         _burn(from, amount);
     }
 
-    function burn(uint256 amount) external onlyBurnerOrOwner {
+    function burn(uint256 amount) external onlyCCIPBurner {
         _burn(msg.sender, amount);
     }
 

@@ -1,7 +1,7 @@
 {
   "network": "arbitrum",
-  "updatedAt": "2024-06-06T10:14:16.956Z",
-  "gitSHA": "cee21b3",
+  "updatedAt": "2024-06-13T17:20:24.120Z",
+  "gitSHA": "2453cea",
   "contract": {
     "name": "DLCBTC",
     "address": "0x050C24dBf1eEc17babE5fc585F06116A259CC77A",
