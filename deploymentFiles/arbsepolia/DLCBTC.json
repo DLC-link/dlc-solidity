@@ -1,7 +1,7 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-06-13T17:34:21.535Z",
-  "gitSHA": "2453cea",
+  "updatedAt": "2024-06-17T13:33:28.663Z",
+  "gitSHA": "b0905e1",
   "contract": {
     "name": "DLCBTC",
     "address": "0xFfb72b5f195F18741101A732e7AfAE72b61D48a4",
@@ -34,7 +34,6 @@
       "function increaseAllowance(address spender, uint256 addedValue) returns (bool)",
       "function initialize()",
       "function mint(address to, uint256 amount)",
-      "function mint(uint256 amount)",
       "function name() view returns (string)",
       "function nonces(address owner) view returns (uint256)",
       "function owner() view returns (address)",
