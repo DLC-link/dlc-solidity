@@ -5,7 +5,6 @@ import "./DLCLinkLibrary.sol";
 
 interface IDLCManager {
     function createDLC(
-        uint256 _valueLocked,
         string calldata _btcFeeRecipient,
         uint256 _btcMintFeeBasisPoints,
         uint256 _btcRedeemFeeBasisPoints
@@ -15,7 +14,8 @@ interface IDLCManager {
         bytes32 _uuid,
         string calldata _btcTxId,
         bytes[] calldata _signatures,
-        string calldata taprootPubKey
+        string calldata taprootPubKey,
+        uint256 valueLocked
     ) external;
 
     function closeDLC(bytes32 _uuid) external;

@@ -22,6 +22,8 @@ const mockSigs = [
 const mockTaprootPubkey =
     '0x1234567890123456789012345678901234567890123456789012345678901234';
 
+const mockValueLocked = 100000000;
+
 const Status = {
     READY: 0,
     FUNDED: 1,
@@ -179,7 +181,8 @@ describe('TokenManager', function () {
             const vault = await tokenManager.getVault(mockUUID);
             expect(vault.uuid).to.equal(mockUUID);
             expect(vault.protocolContract).to.equal(tokenManager.address);
-            expect(vault.valueLocked).to.equal(BigNumber.from(deposit));
+            expect(vault.valueLocked).to.equal(0);
+            expect(vault.valueMinted).to.equal(0);
             expect(vault.creator).to.equal(user.address);
             expect(vault.status).to.equal(0);
             expect(vault.fundingTxId).to.equal('');
@@ -204,12 +207,14 @@ describe('TokenManager', function () {
         it('is only callable when contract is unpaused', async () => {
             await tokenManager.connect(deployer).pauseContract();
             await expect(
-                tokenManager.connect(user).setStatusFunded(mockUUID, 'someTx')
+                tokenManager
+                    .connect(user)
+                    .setStatusFunded(mockUUID, 'someTx', 0)
             ).to.be.revertedWith('Pausable: paused');
         });
         it('reverts when called unauthorized', async () => {
             await expect(
-                tokenManager.setStatusFunded(mockUUID, 'someTx')
+                tokenManager.setStatusFunded(mockUUID, 'someTx', 0)
             ).to.be.revertedWithCustomError(
                 tokenManager,
                 'NotDLCManagerContract'
@@ -223,7 +228,8 @@ describe('TokenManager', function () {
                 mockUUID,
                 'someTx',
                 mockSigs,
-                mockTaprootPubkey
+                mockTaprootPubkey,
+                mockValueLocked
             );
             await tx2.wait();
             expect(await dlcBtc.balanceOf(user.address)).to.equal(
@@ -241,7 +247,8 @@ describe('TokenManager', function () {
                 mockUUID,
                 'someTx',
                 mockSigs,
-                mockTaprootPubkey
+                mockTaprootPubkey,
+                mockValueLocked
             );
             await tx2.wait();
         });
@@ -299,7 +306,8 @@ describe('TokenManager', function () {
                 mockUUID,
                 'someTx',
                 mockSigs,
-                mockTaprootPubkey
+                mockTaprootPubkey,
+                mockValueLocked
             );
             await tx2.wait();
 
@@ -309,7 +317,8 @@ describe('TokenManager', function () {
                 mockUUID1,
                 'someOtherTx',
                 mockSigs,
-                mockTaprootPubkey
+                mockTaprootPubkey,
+                mockValueLocked
             );
             await tx4.wait();
         });

@@ -17,8 +17,8 @@ contract MockProtocol is DLCLinkCompatible {
         _dlcManager = DLCManager(_dlcManagerAddress);
     }
 
-    function requestCreateDLC(uint256 _valueLocked) external returns (bytes32) {
-        bytes32 uuid = _dlcManager.createDLC(_valueLocked, "", 0, 0);
+    function requestCreateDLC() external returns (bytes32) {
+        bytes32 uuid = _dlcManager.createDLC("", 0, 0);
         // console.log('[MockProtocol] requestCreateDLC called');
         // console.logBytes32(uuid);
         return (uuid);
@@ -32,7 +32,8 @@ contract MockProtocol is DLCLinkCompatible {
 
     function setStatusFunded(
         bytes32 uuid,
-        string calldata btcTxId
+        string calldata btcTxId,
+        uint256 valueMinted
     ) external view override {
         // console.log('[MockProtocol] setStatusFunded called');
         // console.logBytes32(uuid);

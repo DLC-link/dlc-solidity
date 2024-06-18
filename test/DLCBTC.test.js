@@ -131,7 +131,8 @@ describe('DLCBTC', function () {
                 mockUUID,
                 mockBTCTxId,
                 mockSigs,
-                mockTaprootPubkey
+                mockTaprootPubkey,
+                deposit
             );
             await tx2.wait();
             const expectedBalance = ethers.BigNumber.from(existingBalance).add(
@@ -166,7 +167,8 @@ describe('DLCBTC', function () {
                 mockUUID,
                 mockBTCTxId,
                 mockSigs,
-                mockTaprootPubkey
+                mockTaprootPubkey,
+                deposit
             );
             await tx2.wait();
 

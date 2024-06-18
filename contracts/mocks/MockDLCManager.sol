@@ -42,7 +42,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     error WrongDLCState();
     error DLCStateAlreadySet(DLCLink.DLCStatus status);
     error DLCNotFound();
-    error DLCNotReady();
+    error DLCNotReadyOrRedeemPending();
     error DLCNotFunded();
     error DLCNotClosing();
 
@@ -98,7 +98,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         address creator
     );
 
-    event SetStatusFunded(bytes32 uuid, address creator, address sender);
+    event SetStatusFunded(bytes32 uuid, string creator, address sender);
 
     event CloseDLC(bytes32 uuid, address creator, address sender);
 
@@ -137,7 +137,6 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     ////////////////////////////////////////////////////////////////
 
     function createDLC(
-        uint256 _valueLocked,
         string calldata /*_btcFeeRecipient*/,
         uint256 /*_btcMintFeeBasisPoints*/,
         uint256 /*_btcRedeemFeeBasisPoints*/
@@ -147,7 +146,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender,
-            valueLocked: _valueLocked,
+            valueLocked: 0,
+            valueMinted: 0,
             timestamp: block.timestamp,
             creator: tx.origin,
             status: DLCLink.DLCStatus.READY,
@@ -159,7 +159,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             taprootPubKey: ""
         });
 
-        emit CreateDLC(_uuid, _valueLocked, msg.sender, tx.origin);
+        emit CreateDLC(_uuid, 0, msg.sender, tx.origin);
 
         dlcIDsByUUID[_uuid] = _index;
         _index++;
@@ -168,26 +168,37 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     }
 
     function setStatusFunded(
-        bytes32 _uuid,
-        string calldata _btcTxId,
-        bytes[] calldata /*_signatures*/,
-        string calldata /*taprootPubKey*/
+        bytes32 uuid,
+        string calldata btcTxId,
+        bytes[] calldata signatures, // unused in the test
+        string calldata taprootPubKey,
+        uint256 newValueLocked
     ) external whenNotPaused {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[_uuid]];
-        DLCLink.DLCStatus _newStatus = DLCLink.DLCStatus.FUNDED;
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
+        if (
+            dlc.status != DLCLink.DLCStatus.READY &&
+            dlc.status != DLCLink.DLCStatus.REDEEM_PENDING
+        ) revert DLCNotReadyOrRedeemPending();
 
-        dlc.fundingTxId = _btcTxId;
-        dlc.status = _newStatus;
+        dlc.fundingTxId = btcTxId;
+        dlc.status = DLCLink.DLCStatus.FUNDED;
+        dlc.taprootPubKey = taprootPubKey;
 
+        if (newValueLocked < dlc.valueMinted) {
+            revert("New value locked is less than minted value"); // use a real error code
+        }
+        // better to use safeMath to avoid overflow?
+        uint256 amountToMint = newValueLocked - dlc.valueMinted;
+        dlc.valueLocked = newValueLocked;
+        dlc.valueMinted += amountToMint;
         DLCLinkCompatible(dlc.protocolContract).setStatusFunded(
-            _uuid,
-            _btcTxId
+            uuid,
+            btcTxId,
+            amountToMint
         );
-
-        emit SetStatusFunded(_uuid, dlc.creator, msg.sender);
+        emit SetStatusFunded(uuid, btcTxId, msg.sender);
     }
 
     function closeDLC(bytes32 _uuid) external whenNotPaused {

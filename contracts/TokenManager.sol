@@ -17,6 +17,8 @@ import "./DLCBTC.sol";
 import "./DLCLinkLibrary.sol";
 import "./DLCManager.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @author  DLC.Link 2024
  * @title   TokenManager
@@ -192,7 +194,6 @@ contract TokenManager is
             revert DepositTooLarge(btcDeposit, maximumDeposit);
 
         bytes32 _uuid = dlcManager.createDLC(
-            btcDeposit,
             btcFeeRecipient,
             btcMintFeeRate,
             btcRedeemFeeRate
@@ -209,15 +210,41 @@ contract TokenManager is
      * @notice  Callback function called by the DLCManager contract when a DLC is funded
      * @dev     It initiates the mint to the user
      * @param   uuid  uuid of the vault/DLC
+     * @param   btcTxId  BTC transaction ID
+     * @param   amountToMint  amount of tokens to mint
      */
     function setStatusFunded(
         bytes32 uuid,
-        string calldata btcTxId
+        string calldata btcTxId,
+        uint256 amountToMint
     ) external override whenNotPaused onlyDLCManagerContract {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
 
-        _mintTokens(dlc.creator, dlc.valueLocked);
+        _mintTokens(dlc.creator, amountToMint);
         emit SetStatusFunded(uuid, btcTxId, dlc.creator);
+    }
+
+    /**
+     * @notice  Burns the tokens and requests the closing of the vault
+     * @dev     User must have enough dlcBTC tokens to close the DLC fully
+     * @param   uuid  uuid of the vault/DLC
+     */
+    function withdraw(bytes32 uuid, uint256 amount) external whenNotPaused {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        if (dlc.creator != msg.sender) revert NotOwner();
+
+        if (amount > dlcBTC.balanceOf(dlc.creator))
+            revert InsufficientTokenBalance(
+                dlcBTC.balanceOf(dlc.creator),
+                amount
+            );
+        if (amount > dlc.valueMinted) {
+            revert InsufficientTokenBalance(dlc.valueMinted, amount); // use a different error here
+        }
+        _burnTokens(dlc.creator, amount);
+
+        dlcManager.userBurnedAmount(uuid, amount);
+        emit CloseVault(uuid, msg.sender);
     }
 
     /**
@@ -234,6 +261,9 @@ contract TokenManager is
                 dlcBTC.balanceOf(dlc.creator),
                 dlc.valueLocked
             );
+
+        // console.logUint(dlc.valueLocked);
+        // console.logUint(dlcBTC.balanceOf(dlc.creator));
 
         _burnTokens(dlc.creator, dlc.valueLocked);
 

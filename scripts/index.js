@@ -33,6 +33,8 @@ const whitelistingEnabled = require('./13_set-whitelisting');
 const setBtcFeeRecipient = require('./14_set-btc-fee-recipient');
 const setBTCFee = require('./15_set-btc-fee');
 const setDepositLimit = require('./16_set-deposit-limit');
+const setBurnerOrMinter = require('./17_set-minter-burner-role.js');
+const withdraw = require('./18_withdraw');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -189,6 +191,20 @@ async function main() {
         .argument('<minOrMax>', 'min or max')
         .argument('<newLimit>', 'new limit')
         .action(setDepositLimit);
+
+    program
+        .command('set-burner-minter')
+        .description('[token-man] set burner/minter on token contract')
+        .argument('<burnerOrMinter>', 'burner or minter')
+        .argument('<address>', 'addres to grant role to')
+        .action(setBurnerOrMinter);
+
+    program
+        .command('withdraw')
+        .description('[token-man] withdraw some amount')
+        .argument('<uuid>', 'UUID of vault')
+        .argument('<amount>', 'amount to withdraw')
+        .action(withdraw);
 
     program
         .command('create-dlc')

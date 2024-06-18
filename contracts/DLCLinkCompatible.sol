@@ -8,7 +8,7 @@ pragma solidity 0.8.18;
  * @notice  A simple interface for accepting callbacks from the DLCManager contract
  */
 interface DLCLinkCompatible {
-    function setStatusFunded(bytes32 uuid, string calldata btcTxId) external;
+    function setStatusFunded(bytes32 uuid, string calldata btcTxId, uint256 valueMinted) external;
 
     function postCloseDLCHandler(
         bytes32 uuid,

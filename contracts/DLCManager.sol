@@ -65,7 +65,7 @@ contract DLCManager is
     error ContractNotWhitelisted();
     error NotCreatorContract();
     error DLCNotFound();
-    error DLCNotReady();
+    error DLCNotReadyOrRedeemPending();
     error DLCNotFunded();
     error DLCNotClosing();
 
@@ -138,6 +138,10 @@ contract DLCManager is
     );
 
     event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
+
+    event SetStatusRedeemPending(bytes32 uuid, address sender);
+
+    event UserBurnAmount(bytes32 uuid, uint256 amount, address sender);
 
     event CloseDLC(bytes32 uuid, address sender);
 
@@ -220,14 +224,12 @@ contract DLCManager is
     /**
      * @notice  Triggers the creation of an Announcement in the Attestor Layer.
      * @dev     Call this function from a whitelisted protocol-contract.
-     * @param   valueLocked  Value to be locked in the DLC , in Satoshis.
      * @param   btcFeeRecipient  Bitcoin address that will receive the DLC fees.
      * @param   btcMintFeeBasisPoints  Basis points of the minting fee.
      * @param   btcRedeemFeeBasisPoints  Basis points of the redeeming fee.
      * @return  bytes32  A generated UUID.
      */
     function createDLC(
-        uint256 valueLocked,
         string calldata btcFeeRecipient,
         uint256 btcMintFeeBasisPoints,
         uint256 btcRedeemFeeBasisPoints
@@ -243,7 +245,8 @@ contract DLCManager is
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender,
-            valueLocked: valueLocked,
+            valueLocked: 0,
+            valueMinted: 0,
             timestamp: block.timestamp,
             creator: tx.origin,
             status: DLCLink.DLCStatus.READY,
@@ -255,13 +258,7 @@ contract DLCManager is
             taprootPubKey: ""
         });
 
-        emit CreateDLC(
-            _uuid,
-            valueLocked,
-            msg.sender,
-            tx.origin,
-            block.timestamp
-        );
+        emit CreateDLC(_uuid, 0, msg.sender, tx.origin, block.timestamp);
 
         dlcIDsByUUID[_uuid] = _index;
         _index++;
@@ -280,24 +277,86 @@ contract DLCManager is
         bytes32 uuid,
         string calldata btcTxId,
         bytes[] calldata signatures,
-        string calldata taprootPubKey
+        string calldata taprootPubKey,
+        uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "set-status-funded"),
+            abi.encode(uuid, btcTxId, "set-status-funded", newValueLocked),
             signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
+        if (
+            dlc.status != DLCLink.DLCStatus.READY &&
+            dlc.status != DLCLink.DLCStatus.REDEEM_PENDING
+        ) revert DLCNotReadyOrRedeemPending();
 
         dlc.fundingTxId = btcTxId;
         dlc.status = DLCLink.DLCStatus.FUNDED;
         dlc.taprootPubKey = taprootPubKey;
 
-        DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
-
+        if (newValueLocked < dlc.valueMinted) {
+            revert("New value locked is less than minted value"); // use a real error code
+        }
+        // better to use safeMath to avoid overflow?
+        uint256 amountToMint = newValueLocked - dlc.valueMinted;
+        dlc.valueLocked = newValueLocked;
+        dlc.valueMinted += amountToMint;
+        DLCLinkCompatible(dlc.protocolContract).setStatusFunded(
+            uuid,
+            btcTxId,
+            amountToMint
+        );
         emit SetStatusFunded(uuid, btcTxId, msg.sender);
+    }
+
+    /**
+     * @notice  Puts the vault into the redeem-pending state.
+     * @dev     Called by the Attestor Coordinator.
+     * @param   uuid  UUID of the DLC.
+     * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @param   signatures  Signatures of the Attestors
+     * @param   newValueLocked  New value locked in the DLC. in this case, 0
+     */
+    function setStatusRedeemPending(
+        bytes32 uuid,
+        string calldata btcTxId,
+        bytes[] calldata signatures,
+        uint256 newValueLocked
+    ) external whenNotPaused onlyApprovedSigners {
+        _attestorMultisigIsValid(
+            abi.encode(
+                uuid,
+                btcTxId,
+                "set-status-redeem-pending",
+                newValueLocked
+            ),
+            signatures
+        );
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+
+        dlc.status = DLCLink.DLCStatus.REDEEM_PENDING;
+
+        emit SetStatusRedeemPending(uuid, msg.sender);
+    }
+
+    /**
+     * @notice  Triggers the creation of an Attestation.
+     * @param   uuid  UUID of the DLC.
+     * @param   amount Amount of dlcBTC that the user burned.
+     */
+    function userBurnedAmount(
+        bytes32 uuid,
+        uint256 amount
+    ) external onlyCreatorContract(uuid) whenNotPaused {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+
+        if (dlc.uuid == bytes32(0)) revert DLCNotFound();
+        if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
+        dlc.valueMinted -= amount;
+
+        emit UserBurnAmount(uuid, amount, msg.sender);
     }
 
     /**
@@ -313,6 +372,8 @@ contract DLCManager is
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
         dlc.status = DLCLink.DLCStatus.CLOSING;
+        dlc.valueMinted = 0;
+        dlc.valueLocked = 0;
 
         emit CloseDLC(uuid, msg.sender);
     }
@@ -329,8 +390,9 @@ contract DLCManager is
         string calldata btcTxId,
         bytes[] calldata signatures
     ) external whenNotPaused onlyApprovedSigners {
+        uint256 fixedLockedValue = 0;
         _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "post-close-dlc"),
+            abi.encode(uuid, btcTxId, "post-close-dlc", fixedLockedValue),
             signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
