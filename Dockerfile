@@ -19,6 +19,10 @@ COPY --from=dlc-solidity-build /app/dlc-solidity /app/dlc-solidity
 
 WORKDIR /app/dlc-solidity
 
+RUN npm link
+
+RUN echo "HARDHAT_NETWORK=localhost" >> /app/dlc-solidity/.env
+
 COPY ./docker/scripts/check-service.sh /check-service.sh
 RUN chmod +x /check-service.sh
 

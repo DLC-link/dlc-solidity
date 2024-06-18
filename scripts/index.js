@@ -33,6 +33,7 @@ const whitelistingEnabled = require('./13_set-whitelisting');
 const setBtcFeeRecipient = require('./14_set-btc-fee-recipient');
 const setBTCFee = require('./15_set-btc-fee');
 const setDepositLimit = require('./16_set-deposit-limit');
+const setMinterOrBurner = require('./17_set-minter-or-burner');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -189,6 +190,13 @@ async function main() {
         .argument('<minOrMax>', 'min or max')
         .argument('<newLimit>', 'new limit')
         .action(setDepositLimit);
+
+    program
+        .command('set-minter-or-burner')
+        .description('[token-man] set minter or burner')
+        .argument('<minterOrBurner>', 'minter or burner')
+        .argument('<address>', 'address')
+        .action(setMinterOrBurner);
 
     program
         .command('create-dlc')
