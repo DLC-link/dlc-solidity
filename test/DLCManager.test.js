@@ -36,7 +36,6 @@ async function getSignatures(message, attestors, numberOfSignatures) {
         //         sig
         //     )
         // );
-
         signatureBytes.push(ethers.utils.arrayify(sig));
     }
     // Convert signatures from strings to bytes
@@ -602,6 +601,195 @@ describe('DLCManager', () => {
             expect(event.event).to.equal('SetStatusFunded');
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.btcTxId).to.equal(btcTxId);
+        });
+    });
+
+    describe('setStatusRedeemPending', async () => {
+        let uuid;
+        beforeEach(async () => {
+            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+
+            const tx = await mockProtocol.connect(user).requestCreateDLC();
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    valueLocked,
+                },
+                attestors,
+                3
+            );
+            const ssf_tx = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytes,
+                    mockTaprootPubkey,
+                    valueLocked
+                );
+            ssf_tx.wait();
+        });
+
+        // it('reverts if called without enough signatures', async () => {
+        //     await setSigners(dlcManager, attestors);
+        //     const { signatureBytes } = await getSignatures(
+        //         {
+        //             uuid,
+        //             btcTxId,
+        //             functionString: 'set-status-funded',
+        //             valueLocked,
+        //         },
+        //         attestors,
+        //         3
+        //     );
+        //     await expect(
+        //         dlcManager
+        //             .connect(attestor1)
+        //             .setStatusFunded(
+        //                 uuid,
+        //                 btcTxId,
+        //                 signatureBytes,
+        //                 mockTaprootPubkey,
+        //                 valueLocked
+        //             )
+        //     ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
+        // });
+
+        // it('reverts if contains non-approved signer', async () => {
+        //     await setSigners(dlcManager, attestors);
+        //     const { signatureBytes } = await getSignatures(
+        //         {
+        //             uuid,
+        //             btcTxId,
+        //             functionString: 'set-status-funded',
+        //             valueLocked,
+        //         },
+        //         [...attestors, randomAccount],
+        //         4
+        //     );
+
+        //     await expect(
+        //         dlcManager
+        //             .connect(attestor1)
+        //             .setStatusFunded(
+        //                 uuid,
+        //                 btcTxId,
+        //                 signatureBytes,
+        //                 mockTaprootPubkey,
+        //                 valueLocked
+        //             )
+        //     ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        // });
+
+        // it('reverts if signature is for other function', async () => {
+        //     await setSigners(dlcManager, attestors);
+        //     const { signatureBytes } = await getSignatures(
+        //         {
+        //             uuid,
+        //             btcTxId,
+        //             functionString: 'post-close-dlc',
+        //             valueLocked: 0,
+        //         },
+        //         attestors,
+        //         3
+        //     );
+
+        //     await expect(
+        //         dlcManager
+        //             .connect(attestor1)
+        //             .setStatusFunded(
+        //                 uuid,
+        //                 btcTxId,
+        //                 signatureBytes,
+        //                 mockTaprootPubkey,
+        //                 valueLocked
+        //             )
+        //     ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        // });
+
+        it('reverts if DLC is not in the right state', async () => {
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId: btcTxId2,
+                    functionString: 'set-status-redeem-pending',
+                    valueLocked: 0,
+                },
+                attestors,
+                3
+            );
+
+            const tx = await dlcManager
+                .connect(attestor1)
+                .setStatusRedeemPending(uuid, btcTxId2, signatureBytes, 0);
+
+            await tx.wait();
+
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusRedeemPending(uuid, btcTxId2, signatureBytes, 0)
+            ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFunded');
+        });
+
+        // it('reverts if attestors sign a different UUID', async () => {
+        //     await setSigners(dlcManager, attestors);
+        //     const wrongUUID =
+        //         '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
+        //     const { signatureBytes } = await getSignatures(
+        //         {
+        //             uuid: wrongUUID,
+        //             btcTxId,
+        //             functionString: 'set-status-funded',
+        //             valueLocked,
+        //         },
+        //         attestors,
+        //         3
+        //     );
+        //     await expect(
+        //         dlcManager
+        //             .connect(attestor1)
+        //             .setStatusFunded(
+        //                 uuid,
+        //                 btcTxId,
+        //                 signatureBytes,
+        //                 mockTaprootPubkey,
+        //                 valueLocked
+        //             )
+        //     ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        // });
+
+        it('emits a StatusRedeemPending event with the correct data', async () => {
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId: btcTxId2,
+                    functionString: 'set-status-redeem-pending',
+                    valueLocked: 0,
+                },
+                attestors,
+                3
+            );
+
+            const tx = await dlcManager
+                .connect(attestor1)
+                .setStatusRedeemPending(uuid, btcTxId2, signatureBytes, 0);
+            const receipt = await tx.wait();
+            const event = receipt.events.find(
+                (e) => e.event === 'SetStatusRedeemPending'
+            );
+
+            expect(event.event).to.equal('SetStatusRedeemPending');
+            expect(event.args.uuid).to.equal(uuid);
+            expect(event.args.btcTxId).to.equal(btcTxId2);
         });
     });
 

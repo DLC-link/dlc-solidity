@@ -100,6 +100,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
 
     event SetStatusFunded(bytes32 uuid, string creator, address sender);
 
+    event SetStatusRedeemPending(bytes32 uuid, address sender);
+
     event CloseDLC(bytes32 uuid, address creator, address sender);
 
     event PostCloseDLC(
@@ -200,6 +202,33 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             amountToMint
         );
         emit SetStatusFunded(uuid, btcTxId, msg.sender);
+    }
+
+    /**
+     * @notice  Puts the vault into the redeem-pending state.
+     * @dev     Called by the Attestor Coordinator.
+     * @param   uuid  UUID of the DLC.
+     * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @param   signatures  Signatures of the Attestors
+     * @param   newValueLocked  New value locked in the DLC. in this case, 0
+     */
+    function setStatusRedeemPending(
+        bytes32 uuid,
+        string calldata btcTxId,
+        bytes[] calldata signatures,
+        uint256 newValueLocked
+    ) external whenNotPaused {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+
+        if (dlc.uuid == bytes32(0)) revert DLCNotFound();
+        if (
+            dlc.status != DLCLink.DLCStatus.FUNDED
+        ) revert DLCNotFunded();
+
+        dlc.status = DLCLink.DLCStatus.REDEEM_PENDING;
+        dlc.withdrawTxId = btcTxId;
+
+        emit SetStatusRedeemPending(uuid, msg.sender);
     }
 
     function closeDLC(bytes32 _uuid) external whenNotPaused {

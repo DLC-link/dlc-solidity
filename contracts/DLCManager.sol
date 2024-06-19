@@ -139,7 +139,7 @@ contract DLCManager is
 
     event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
 
-    event SetStatusRedeemPending(bytes32 uuid, address sender);
+    event SetStatusRedeemPending(bytes32 uuid, string btcTxId, address sender);
 
     event UserBurnAmount(bytes32 uuid, uint256 amount, address sender);
 
@@ -338,10 +338,15 @@ contract DLCManager is
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
+        if (dlc.uuid == bytes32(0)) revert DLCNotFound();
+        if (
+            dlc.status != DLCLink.DLCStatus.FUNDED
+        ) revert DLCNotFunded();
+
         dlc.status = DLCLink.DLCStatus.REDEEM_PENDING;
         dlc.withdrawTxId = btcTxId;
 
-        emit SetStatusRedeemPending(uuid, msg.sender);
+        emit SetStatusRedeemPending(uuid, btcTxId, msg.sender);
     }
 
     /**
