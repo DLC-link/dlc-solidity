@@ -34,5 +34,6 @@ library DLCLink {
         uint256 btcRedeemFeeBasisPoints;
         string taprootPubKey;
         uint256 valueMinted;
+        string withdrawTxId;
     }
 }

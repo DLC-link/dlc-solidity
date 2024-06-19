@@ -153,6 +153,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
+            withdrawTxId: "",
             btcFeeRecipient: "",
             btcMintFeeBasisPoints: 0,
             btcRedeemFeeBasisPoints: 0,

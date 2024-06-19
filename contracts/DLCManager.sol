@@ -252,6 +252,7 @@ contract DLCManager is
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
+            withdrawTxId: "",
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeBasisPoints,
             btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints,
@@ -293,6 +294,7 @@ contract DLCManager is
         ) revert DLCNotReadyOrRedeemPending();
 
         dlc.fundingTxId = btcTxId;
+        dlc.withdrawTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
         dlc.taprootPubKey = taprootPubKey;
 
@@ -337,6 +339,7 @@ contract DLCManager is
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         dlc.status = DLCLink.DLCStatus.REDEEM_PENDING;
+        dlc.withdrawTxId = btcTxId;
 
         emit SetStatusRedeemPending(uuid, msg.sender);
     }
