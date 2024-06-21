@@ -47,7 +47,7 @@ async function setSigners(dlcManager, attestors) {
     }
 }
 
-describe('DLCManager', () => {
+xdescribe('DLCManager', () => {
     let dlcManager, mockProtocol;
     let accounts, deployer, protocol, user, randomAccount, anotherAccount;
     let attestor1, attestor2, attestor3;

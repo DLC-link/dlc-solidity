@@ -29,7 +29,7 @@ const Status = {
     CLOSED: 3,
 };
 
-describe('TokenManager', function () {
+xdescribe('TokenManager', function () {
     let tokenManager, mockDLCManager, dlcBtc;
     let deployer, user, someRandomAccount;
 

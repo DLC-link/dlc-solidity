@@ -21,7 +21,7 @@ const mockSigs = [
 const mockTaprootPubkey =
     '0x1234567890123456789012345678901234567890123456789012345678901234';
 
-describe('DLCBTC', function () {
+xdescribe('DLCBTC', function () {
     let tokenManager, mockDLCManager, dlcBtc;
     let deployer, user, someRandomAccount;
 

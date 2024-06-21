@@ -9,11 +9,9 @@ pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "../DLCLinkCompatible.sol";
-import "../IDLCManager.sol";
 import "../DLCLinkLibrary.sol";
 
-contract MockDLCManager is AccessControl, Pausable, IDLCManager {
+contract MockDLCManager is AccessControl, Pausable {
     using DLCLink for DLCLink.DLC;
     using DLCLink for DLCLink.DLCStatus;
 
@@ -141,7 +139,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         string calldata /*_btcFeeRecipient*/,
         uint256 /*_btcMintFeeBasisPoints*/,
         uint256 /*_btcRedeemFeeBasisPoints*/
-    ) external override returns (bytes32) {
+    ) external returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
         dlcs[_index] = DLCLink.DLC({
@@ -182,10 +180,10 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         dlc.fundingTxId = _btcTxId;
         dlc.status = _newStatus;
 
-        DLCLinkCompatible(dlc.protocolContract).setStatusFunded(
-            _uuid,
-            _btcTxId
-        );
+        // DLCLinkCompatible(dlc.protocolContract).setStatusFunded(
+        //     _uuid,
+        //     _btcTxId
+        // );
 
         emit SetStatusFunded(_uuid, dlc.creator, msg.sender);
     }
@@ -216,10 +214,10 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         dlc.closingTxId = _btcTxId;
         dlc.status = _newStatus;
 
-        DLCLinkCompatible(dlc.protocolContract).postCloseDLCHandler(
-            _uuid,
-            _btcTxId
-        );
+        // DLCLinkCompatible(dlc.protocolContract).postCloseDLCHandler(
+        //     _uuid,
+        //     _btcTxId
+        // );
 
         emit PostCloseDLC(_uuid, dlc.creator, msg.sender, _btcTxId);
     }
@@ -228,9 +226,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     //                      VIEW FUNCTIONS                        //
     ////////////////////////////////////////////////////////////////
 
-    function getDLC(
-        bytes32 _uuid
-    ) external view override returns (DLCLink.DLC memory) {
+    function getDLC(bytes32 _uuid) external view returns (DLCLink.DLC memory) {
         DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[_uuid]];
         if (_dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (_dlc.uuid != _uuid) revert DLCNotFound();
