@@ -1,9 +1,9 @@
 const {
-    callTokenManagerFunction,
-} = require('./helpers/10-call-token-manager-fn');
+    callManagerContractFunction,
+} = require('./helpers/00-call-dlc-manager-fn');
 
 async function unwhitelistAccount(addressToUnWhitelist) {
-    await callTokenManagerFunction('unwhitelistAddress', [
+    await callManagerContractFunction('unwhitelistAddress', [
         addressToUnWhitelist,
     ]);
 }

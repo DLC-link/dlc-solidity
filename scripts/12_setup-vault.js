@@ -3,37 +3,31 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-async function tokenManagerSetupVault(btcDeposit, hardhat) {
+async function dlcManagerSetupVault(btcDeposit, hardhat) {
     if (!hardhat || !hardhat.network) hardhat = require('hardhat');
     if (!btcDeposit) btcDeposit = 1000000;
 
     const deployInfo = await loadDeploymentInfo(
         hardhat.network.name,
-        'TokenManager'
+        'DLCManager'
     );
     const accounts = await hardhat.ethers.getSigners();
 
-    const tokenManager = new hardhat.ethers.Contract(
+    const dlcManager = new hardhat.ethers.Contract(
         deployInfo.contract.address,
         deployInfo.contract.abi,
         accounts[0]
     );
 
-    const tx = await tokenManager.setupVault(btcDeposit);
+    const tx = await dlcManager.setupVault(btcDeposit);
     const receipt = await tx.wait();
     console.dir(tx, { depth: 4 });
     console.dir(receipt, { depth: 4 });
 }
 
-module.exports = tokenManagerSetupVault;
+module.exports = dlcManagerSetupVault;
 
 if (require.main === module) {
     const deposit = process.argv[2];
-    tokenManagerSetupVault(deposit).catch(console.error);
+    dlcManagerSetupVault(deposit).catch(console.error);
 }
-
-task('tokenManager:setupVault', 'Setup vault for TokenManager')
-    .addParam('btcDeposit', 'BTC deposit amount', 1000000, types.int)
-    .setAction(async (taskArgs, hardhat) => {
-        await tokenManagerSetupVault(taskArgs.btcDeposit, hardhat);
-    });

@@ -1,10 +1,10 @@
 const {
-    callTokenManagerFunction,
-} = require('./helpers/10-call-token-manager-fn');
+    callManagerContractFunction,
+} = require('./helpers/00-call-dlc-manager-fn');
 
 async function setWhitelisting(whitelistingEnabled) {
     const toSet = whitelistingEnabled === 'true' ? true : false;
-    await callTokenManagerFunction('setWhitelistingEnabled', [toSet]);
+    await callManagerContractFunction('setWhitelistingEnabled', [toSet]);
 }
 
 module.exports = setWhitelisting;

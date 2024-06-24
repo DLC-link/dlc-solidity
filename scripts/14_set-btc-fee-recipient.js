@@ -1,9 +1,9 @@
 const {
-    callTokenManagerFunction,
-} = require('./helpers/10-call-token-manager-fn');
+    callManagerContractFunction,
+} = require('./helpers/00-call-dlc-manager-fn');
 
 async function setBtcFeeRecipient(btcFeeRecipient) {
-    await callTokenManagerFunction('setBtcFeeRecipient', [btcFeeRecipient]);
+    await callManagerContractFunction('setBtcFeeRecipient', [btcFeeRecipient]);
 }
 
 module.exports = setBtcFeeRecipient;

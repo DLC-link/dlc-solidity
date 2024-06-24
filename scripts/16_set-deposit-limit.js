@@ -1,6 +1,6 @@
 const {
-    callTokenManagerFunction,
-} = require('./helpers/10-call-token-manager-fn');
+    callManagerContractFunction,
+} = require('./helpers/00-call-dlc-manager-fn');
 
 async function setDepositLimit(minOrMax, newLimit) {
     let functionToCall;
@@ -11,7 +11,7 @@ async function setDepositLimit(minOrMax, newLimit) {
     } else {
         throw new Error('Invalid minOrMax argument');
     }
-    await callTokenManagerFunction(functionToCall, [newLimit]);
+    await callManagerContractFunction(functionToCall, [newLimit]);
 }
 
 module.exports = setDepositLimit;
