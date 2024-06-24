@@ -19,10 +19,9 @@ import "./DLCBTC.sol";
  * @author  DLC.Link 2024
  * @title   DLCManager
  * @dev     This is the contract the Attestor Layer listens to.
- * Protocol contracts should implement the DLCLinkCompatible interface and interact with this contract.
  * @dev     It is upgradable through the OpenZeppelin proxy pattern
  * @notice  DLCManager is the main contract of the DLC.Link protocol.
- * @custom:contact robert@dlc.link
+ * @custom:contact eng@dlc.link
  * @custom:website https://www.dlc.link
  */
 contract DLCManager is
@@ -105,20 +104,8 @@ contract DLCManager is
         _;
     }
 
-    modifier onlyWhiteListedContracts() {
-        if (!hasRole(WHITELISTED_CONTRACT, msg.sender))
-            revert ContractNotWhitelisted();
-        _;
-    }
-
     modifier onlyApprovedSigners() {
         if (!hasRole(APPROVED_SIGNER, msg.sender)) revert Unauthorized();
-        _;
-    }
-
-    modifier onlyCreatorContract(bytes32 _uuid) {
-        if (dlcs[dlcIDsByUUID[_uuid]].protocolContract != msg.sender)
-            revert NotCreatorContract();
         _;
     }
 
@@ -145,10 +132,10 @@ contract DLCManager is
         tssCommitment = 0x0;
         dlcBTC = tokenContract;
         minimumDeposit = 1e6; // 0.01 BTC
-        maximumDeposit = 1e8; // 1 BTC
+        maximumDeposit = 5e8; // 5 BTC
         whitelistingEnabled = true;
-        btcMintFeeRate = 100; // 1% BTC fee for now
-        btcRedeemFeeRate = 100; // 1% BTC fee for now
+        btcMintFeeRate = 12; // 0.12% BTC fee for now
+        btcRedeemFeeRate = 15; // 0.15% BTC fee for now
         btcFeeRecipient = btcFeeRecipientToSet;
     }
 
@@ -275,19 +262,24 @@ contract DLCManager is
     ////////////////////////////////////////////////////////////////
 
     /**
-     * @notice  Triggers the creation of an Announcement in the Attestor Layer.
-     * @param   valueLocked  Value to be locked in the DLC , in Satoshis.
-     * @return  bytes32  A generated UUID.
+     * @notice  Creates a new vault for the user
+     * @param   btcDeposit  amount to be locked (in sats)
+     * @return  bytes32  uuid of the new vault/DLC
      */
-    function createDLC(
-        uint256 valueLocked
-    ) internal whenNotPaused returns (bytes32) {
+    function setupVault(
+        uint256 btcDeposit
+    ) external whenNotPaused onlyWhitelisted returns (bytes32) {
+        if (btcDeposit < minimumDeposit)
+            revert DepositTooSmall(btcDeposit, minimumDeposit);
+        if (btcDeposit > maximumDeposit)
+            revert DepositTooLarge(btcDeposit, maximumDeposit);
+
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender,
-            valueLocked: valueLocked,
+            valueLocked: btcDeposit,
             timestamp: block.timestamp,
             creator: tx.origin,
             status: DLCLink.DLCStatus.READY,
@@ -301,36 +293,15 @@ contract DLCManager is
 
         emit CreateDLC(
             _uuid,
-            valueLocked,
+            btcDeposit,
             msg.sender,
             tx.origin,
             block.timestamp
         );
 
         dlcIDsByUUID[_uuid] = _index;
-        _index++;
-
-        return _uuid;
-    }
-
-    /**
-     * @notice  Creates a new vault for the user
-     * @param   btcDeposit  amount to be locked (in sats)
-     * @return  bytes32  uuid of the new vault/DLC
-     */
-    function setupVault(
-        uint256 btcDeposit
-    ) external whenNotPaused onlyWhitelisted returns (bytes32) {
-        if (btcDeposit < minimumDeposit)
-            revert DepositTooSmall(btcDeposit, minimumDeposit);
-        if (btcDeposit > maximumDeposit)
-            revert DepositTooLarge(btcDeposit, maximumDeposit);
-
-        bytes32 _uuid = createDLC(btcDeposit);
-
         userVaults[msg.sender].push(_uuid);
-
-        // emit SetupVault(_uuid, btcDeposit, msg.sender);
+        _index++;
 
         return _uuid;
     }
@@ -361,8 +332,6 @@ contract DLCManager is
         dlc.status = DLCLink.DLCStatus.FUNDED;
         dlc.taprootPubKey = taprootPubKey;
 
-        // DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
-
         _mintTokens(dlc.creator, dlc.valueLocked);
 
         emit SetStatusFunded(uuid, btcTxId, msg.sender);
@@ -372,9 +341,7 @@ contract DLCManager is
      * @notice  Triggers the creation of an Attestation.
      * @param   uuid  UUID of the DLC.
      */
-    function closeDLC(
-        bytes32 uuid
-    ) external onlyCreatorContract(uuid) whenNotPaused {
+    function closeVault(bytes32 uuid) external whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
         if (dlc.creator != msg.sender) revert NotOwner();
 

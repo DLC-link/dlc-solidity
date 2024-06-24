@@ -3,53 +3,15 @@ const { ethers } = require('hardhat');
 const hardhat = require('hardhat');
 const crypto = require('crypto');
 
-async function whitelistProtocolContractAndAddress(dlcManager, mockProtocol) {
-    await dlcManager.grantRole(
-        ethers.utils.id('WHITELISTED_CONTRACT'),
-        mockProtocol.address
-    );
+const { getSignatures, setSigners } = require('./utils');
+
+async function whitelistAddress(dlcManager, user) {
+    await dlcManager.whitelistAddress(user.address);
 }
 
-async function getSignatures(message, attestors, numberOfSignatures) {
-    const hashedOriginalMessage = ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(
-            ['bytes32', 'string', 'string'],
-            [message.uuid, message.btcTxId, message.functionString]
-        )
-    );
-
-    let signatureBytes = [];
-    for (let i = 0; i < numberOfSignatures; i++) {
-        const sig = await attestors[i].signMessage(
-            ethers.utils.arrayify(hashedOriginalMessage)
-        );
-        // console.log('Attestor address:', attestors[i].address);
-        // console.log(
-        //     'Recovered:',
-        //     ethers.utils.verifyMessage(
-        //         ethers.utils.arrayify(hashedOriginalMessage),
-        //         sig
-        //     )
-        // );
-
-        signatureBytes.push(ethers.utils.arrayify(sig));
-    }
-    // Convert signatures from strings to bytes
-    return { signatureBytes };
-}
-
-async function setSigners(dlcManager, attestors) {
-    for (let i = 0; i < attestors.length; i++) {
-        await dlcManager.grantRole(
-            ethers.utils.id('APPROVED_SIGNER'),
-            attestors[i].address
-        );
-    }
-}
-
-xdescribe('DLCManager', () => {
-    let dlcManager, mockProtocol;
-    let accounts, deployer, protocol, user, randomAccount, anotherAccount;
+describe('DLCManager', () => {
+    let dlcManager, dlcBtc;
+    let accounts, deployer, user, randomAccount, anotherAccount;
     let attestor1, attestor2, attestor3;
     let attestors;
 
@@ -58,6 +20,7 @@ xdescribe('DLCManager', () => {
     const btcTxId2 = '0x1234567891';
     const mockTaprootPubkey =
         '0x1234567890123456789012345678901234567890123456789012345678901234';
+    let btcFeeRecipient = '0x000001';
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -72,48 +35,76 @@ xdescribe('DLCManager', () => {
         attestor3 = accounts[8];
         attestors = [attestor1, attestor2, attestor3];
 
+        const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
+        dlcBtc = await upgrades.deployProxy(DLCBTC);
+        await dlcBtc.deployed();
+
         // DLCManager
         const DLCManager = await ethers.getContractFactory('DLCManager');
         dlcManager = await hardhat.upgrades.deployProxy(DLCManager, [
             deployer.address,
             deployer.address,
             3,
+            dlcBtc.address,
+            btcFeeRecipient,
         ]);
         await dlcManager.deployed();
 
-        // MockProtocol
-        const MockProtocol = await ethers.getContractFactory('MockProtocol');
-        mockProtocol = await MockProtocol.connect(protocol).deploy(
-            dlcManager.address
-        );
-        await mockProtocol.deployed();
+        await dlcBtc.transferOwnership(dlcManager.address);
     });
 
     describe('test contracts are deployed correctly', async () => {
         it('deploys DLCManager correctly', async () => {
             expect(dlcManager.address).to.not.equal(0);
         });
-        it('deploys MockProtocol correctly', async () => {
-            expect(mockProtocol.address).to.not.equal(0);
+
+        it('should be the owner of the dlcBTC token contract', async () => {
+            expect(await dlcBtc.owner()).to.equal(dlcManager.address);
         });
     });
 
     describe('contract is pausable', async () => {
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
-
             await dlcManager.pauseContract();
         });
         it('reverts correctly when paused', async () => {
             await expect(
-                mockProtocol.connect(user).requestCreateDLC(valueLocked)
+                dlcManager.connect(user).setupVault(valueLocked)
             ).to.be.revertedWith('Pausable: paused');
         });
         it('allows functions when unpaused', async () => {
             await dlcManager.unpauseContract();
             await expect(
-                mockProtocol.connect(user).requestCreateDLC(valueLocked)
+                dlcManager.connect(user).setupVault(valueLocked)
             ).to.not.be.revertedWith('Pausable: paused');
+        });
+    });
+
+    describe('setMinimumDeposit', async () => {
+        it('reverts on unauthorized calls', async () => {
+            await expect(
+                dlcManager
+                    .connect(randomAccount)
+                    .setMinimumDeposit(randomAccount.address)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
+        });
+        it('should set minimum deposit', async () => {
+            await dlcManager.connect(deployer).setMinimumDeposit(1000);
+            expect(await dlcManager.minimumDeposit()).to.equal(1000);
+        });
+    });
+
+    describe('setMaximumDeposit', async () => {
+        it('reverts on unauthorized calls', async () => {
+            await expect(
+                dlcManager
+                    .connect(randomAccount)
+                    .setMaximumDeposit(randomAccount.address)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
+        });
+        it('should set maximum deposit', async () => {
+            await dlcManager.connect(deployer).setMaximumDeposit(1000);
+            expect(await dlcManager.maximumDeposit()).to.equal(1000);
         });
     });
 
@@ -191,22 +182,41 @@ xdescribe('DLCManager', () => {
         });
     });
 
-    describe('createDLC', async () => {
-        it('reverts if called from a non-whitelisted contract', async () => {
+    describe('setupVault', async () => {
+        it('reverts if called by a non-whitelisted user', async () => {
             await expect(
-                mockProtocol.connect(user).requestCreateDLC(valueLocked)
-            ).to.be.revertedWithCustomError(
-                dlcManager,
-                'ContractNotWhitelisted'
+                dlcManager.connect(user).setupVault(valueLocked)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotWhitelisted');
+        });
+
+        it('reverts when deposit is too small', async () => {
+            await whitelistAddress(dlcManager, user);
+            let _deposit = 10;
+            await expect(
+                dlcManager.connect(user).setupVault(_deposit)
+            ).to.be.revertedWithCustomError(dlcManager, 'DepositTooSmall');
+        });
+        it('reverts when deposit is too large', async () => {
+            await whitelistAddress(dlcManager, user);
+            let _deposit = 1000000001;
+            await expect(
+                dlcManager.connect(user).setupVault(_deposit)
+            ).to.be.revertedWithCustomError(dlcManager, 'DepositTooLarge');
+        });
+
+        it('stores the _uuid in the userVaults map', async () => {
+            await whitelistAddress(dlcManager, user);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
+            const receipt = await tx.wait();
+            const _uuid = receipt.events[0].args.uuid;
+            expect(await dlcManager.userVaults(user.address, 0)).to.equal(
+                _uuid
             );
         });
 
         it('emits a CreateDLC event with the correct data', async () => {
-            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
-
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            await whitelistAddress(dlcManager, user);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
 
             const receipt = await tx.wait();
             const event = receipt.events[0];
@@ -219,15 +229,11 @@ xdescribe('DLCManager', () => {
         });
 
         it('called multiple times generates unique UUIDs', async () => {
-            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+            await whitelistAddress(dlcManager, user);
 
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt = await tx.wait();
-            const tx2 = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx2 = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt2 = await tx2.wait();
 
             const decodedEvent = dlcManager.interface.parseLog(
@@ -245,11 +251,9 @@ xdescribe('DLCManager', () => {
     describe('getDLC', async () => {
         let uuid;
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+            await whitelistAddress(dlcManager, user);
 
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -274,11 +278,9 @@ xdescribe('DLCManager', () => {
     describe('getDLCByIndex', async () => {
         let uuid;
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+            await whitelistAddress(dlcManager, user);
 
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -302,11 +304,9 @@ xdescribe('DLCManager', () => {
     describe('setStatusFunded', async () => {
         let uuid;
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+            await whitelistAddress(dlcManager, user);
 
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -390,7 +390,7 @@ xdescribe('DLCManager', () => {
                 );
             await tx2.wait();
 
-            await mockProtocol.connect(user).requestCloseDLC(uuid);
+            await dlcManager.connect(user).closeVault(uuid);
 
             const sigs = await getSignatures(
                 {
@@ -483,6 +483,29 @@ xdescribe('DLCManager', () => {
             ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
         });
 
+        it('mints dlcBTC tokens to the user', async () => {
+            await whitelistAddress(dlcManager, user);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
+            await tx.wait();
+
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                { uuid, btcTxId, functionString: 'set-status-funded' },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytes,
+                    mockTaprootPubkey
+                );
+            await tx2.wait();
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(valueLocked);
+        });
+
         it('emits a StatusFunded event with the correct data', async () => {
             await setSigners(dlcManager, attestors);
             const { signatureBytes } = await getSignatures(
@@ -509,16 +532,14 @@ xdescribe('DLCManager', () => {
         });
     });
 
-    describe('closeDLC', async () => {
+    describe('closeVault', async () => {
         let uuid;
         let outcome = 10000;
 
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+            await whitelistAddress(dlcManager, user);
 
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -542,34 +563,46 @@ xdescribe('DLCManager', () => {
 
         it('reverts if not called by the creator contract', async () => {
             await expect(
-                dlcManager.connect(randomAccount).closeDLC(uuid)
-            ).to.be.revertedWithCustomError(dlcManager, 'NotCreatorContract');
+                dlcManager.connect(randomAccount).closeVault(uuid)
+            ).to.be.revertedWithCustomError(dlcManager, 'NotOwner');
         });
 
         it('reverts if DLC is not in the right state', async () => {
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
             const newUuid = decodedEvent.args.uuid;
 
             await expect(
-                mockProtocol.connect(protocol).requestCloseDLC(newUuid)
+                dlcManager.connect(user).closeVault(newUuid)
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFunded');
         });
 
+        it('reverts if user does not have enough dlcBTC tokens', async () => {
+            await dlcBtc.connect(user).transfer(randomAccount.address, 5000);
+            await expect(
+                dlcManager.connect(user).closeVault(uuid)
+            ).to.be.revertedWithCustomError(
+                dlcManager,
+                'InsufficientTokenBalance'
+            );
+        });
+        it('burns the users dlcBTC tokens', async () => {
+            await dlcManager.connect(user).closeVault(uuid);
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(0);
+        });
+
         it('emits a CloseDLC event with the correct data', async () => {
-            const tx = await mockProtocol.connect(user).requestCloseDLC(uuid);
+            const tx = await dlcManager.connect(user).closeVault(uuid);
             const receipt = await tx.wait();
-            const event = receipt.events[0];
+            const event = receipt.events.find((e) => e.event === 'CloseDLC');
 
             const decodedEvent = dlcManager.interface.parseLog(event);
 
             expect(decodedEvent.name).to.equal('CloseDLC');
             expect(decodedEvent.args.uuid).to.equal(uuid);
-            expect(decodedEvent.args.sender).to.equal(mockProtocol.address);
+            expect(decodedEvent.args.sender).to.equal(user.address);
         });
     });
 
@@ -578,11 +611,9 @@ xdescribe('DLCManager', () => {
         const closingBtcTxId = '0x1234567890123';
 
         beforeEach(async () => {
-            await whitelistProtocolContractAndAddress(dlcManager, mockProtocol);
+            await whitelistAddress(dlcManager, user);
 
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
@@ -603,16 +634,12 @@ xdescribe('DLCManager', () => {
                     mockTaprootPubkey
                 );
             await tx3.wait();
-            const tx4 = await mockProtocol
-                .connect(protocol)
-                .requestCloseDLC(uuid);
+            const tx4 = await dlcManager.connect(user).closeVault(uuid);
             await tx4.wait();
         });
 
         it('reverts if DLC is not in the right state', async () => {
-            const tx = await mockProtocol
-                .connect(user)
-                .requestCreateDLC(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault(valueLocked);
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);

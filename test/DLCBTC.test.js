@@ -1,33 +1,23 @@
 const { expect } = require('chai');
-const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
 
-function getRoleInBytes(role) {
-    return ethers.utils.id(role);
-}
+const { getSignatures, setSigners } = require('./utils');
+
 const mockUUID =
     '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4967';
 const mockBTCTxId =
     '0x1234567890123456789012345678901234567890123456789012345678901234';
-
-const mockSig =
-    '0x5f4896a5ad17ebc5277cf37fa8687163b50e6cfa73ffa5614f295929aa6ba11b3f6a4ff57817d99b737de84807229f19527f6c919c02ba38a7b6110cb86c11701b';
-
-const mockSigs = [
-    ethers.utils.arrayify(mockSig),
-    ethers.utils.arrayify(mockSig),
-];
-
 const mockTaprootPubkey =
     '0x1234567890123456789012345678901234567890123456789012345678901234';
 
-xdescribe('DLCBTC', function () {
-    let tokenManager, mockDLCManager, dlcBtc;
+describe('DLCBTC', function () {
+    let dlcBtc, dlcManager;
     let deployer, user, someRandomAccount;
+    let attestor1, attestor2, attestor3;
+    let attestors;
 
     let deposit = 100000000; // 1 BTC
     let btcFeeRecipient = '0x000001';
-    let btcFee = 100;
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -35,26 +25,25 @@ xdescribe('DLCBTC', function () {
         user = accounts[2];
         someRandomAccount = accounts[3];
 
-        const MockDLCManager =
-            await ethers.getContractFactory('MockDLCManager');
-        mockDLCManager = await MockDLCManager.deploy();
-        await mockDLCManager.deployed();
+        attestor1 = accounts[6];
+        attestor2 = accounts[7];
+        attestor3 = accounts[8];
+        attestors = [attestor1, attestor2, attestor3];
 
         const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
         dlcBtc = await upgrades.deployProxy(DLCBTC);
         await dlcBtc.deployed();
 
-        const TokenManager = await ethers.getContractFactory(
-            'TokenManager',
-            deployer
-        );
-        tokenManager = await upgrades.deployProxy(TokenManager, [
+        // DLCManager
+        const DLCManager = await ethers.getContractFactory('DLCManager');
+        dlcManager = await upgrades.deployProxy(DLCManager, [
             deployer.address,
             deployer.address,
-            mockDLCManager.address,
+            3,
             dlcBtc.address,
             btcFeeRecipient,
         ]);
+        await dlcManager.deployed();
     });
 
     it('should deploy', async () => {
@@ -99,11 +88,11 @@ xdescribe('DLCBTC', function () {
     describe('after Ownership transfer', async () => {
         beforeEach(async () => {
             await dlcBtc['mint(address,uint256)'](user.address, deposit);
-            await dlcBtc.transferOwnership(tokenManager.address);
+            await dlcBtc.transferOwnership(dlcManager.address);
         });
 
-        it('should be owned by TokenManager', async () => {
-            expect(await dlcBtc.owner()).to.equal(tokenManager.address);
+        it('should be owned by dlcManager', async () => {
+            expect(await dlcBtc.owner()).to.equal(dlcManager.address);
         });
 
         it('should revert on mint called by previous owner', async () => {
@@ -122,17 +111,31 @@ xdescribe('DLCBTC', function () {
             ).to.be.revertedWith('Ownable: caller is not the owner');
         });
 
-        it('TokenManager can mint tokens', async () => {
+        it('dlcManager can mint tokens', async () => {
             const existingBalance = await dlcBtc.balanceOf(user.address);
-            await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager.connect(user).setupVault(deposit);
-            await tx.wait();
-            const tx2 = await mockDLCManager.setStatusFunded(
-                mockUUID,
-                mockBTCTxId,
-                mockSigs,
-                mockTaprootPubkey
+            await dlcManager.connect(deployer).whitelistAddress(user.address);
+            const tx = await dlcManager.connect(user).setupVault(deposit);
+            const receipt = await tx.wait();
+            const _uuid = await receipt.events[0].args.uuid;
+
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid: _uuid,
+                    btcTxId: mockBTCTxId,
+                    functionString: 'set-status-funded',
+                },
+                attestors,
+                3
             );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    _uuid,
+                    mockBTCTxId,
+                    signatureBytes,
+                    mockTaprootPubkey
+                );
             await tx2.wait();
             const expectedBalance = ethers.BigNumber.from(existingBalance).add(
                 ethers.BigNumber.from(deposit)
@@ -142,8 +145,8 @@ xdescribe('DLCBTC', function () {
             );
         });
 
-        it('tokenManager can blacklist addresses', async () => {
-            await tokenManager.blacklistOnTokenContract(user.address);
+        it('dlcManager can blacklist addresses', async () => {
+            await dlcManager.blacklistOnTokenContract(user.address);
             await expect(
                 dlcBtc
                     .connect(user)
@@ -157,17 +160,31 @@ xdescribe('DLCBTC', function () {
             ).to.be.revertedWithCustomError(dlcBtc, 'BlacklistedRecipient');
         });
 
-        it('TokenManager can burn tokens', async () => {
+        it('dlcManager can burn tokens', async () => {
             const existingBalance = await dlcBtc.balanceOf(user.address);
-            await tokenManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await tokenManager.connect(user).setupVault(deposit);
-            await tx.wait();
-            const tx2 = await mockDLCManager.setStatusFunded(
-                mockUUID,
-                mockBTCTxId,
-                mockSigs,
-                mockTaprootPubkey
+            await dlcManager.connect(deployer).whitelistAddress(user.address);
+            const tx = await dlcManager.connect(user).setupVault(deposit);
+            const receipt = await tx.wait();
+            const _uuid = await receipt.events[0].args.uuid;
+
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid: _uuid,
+                    btcTxId: mockBTCTxId,
+                    functionString: 'set-status-funded',
+                },
+                attestors,
+                3
             );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    _uuid,
+                    mockBTCTxId,
+                    signatureBytes,
+                    mockTaprootPubkey
+                );
             await tx2.wait();
 
             expect(await dlcBtc.balanceOf(user.address)).to.equal(
@@ -175,7 +192,7 @@ xdescribe('DLCBTC', function () {
                     ethers.BigNumber.from(deposit)
                 )
             );
-            const tx3 = await tokenManager.connect(user).closeVault(mockUUID);
+            const tx3 = await dlcManager.connect(user).closeVault(mockUUID);
             await tx3.wait();
 
             expect(await dlcBtc.balanceOf(user.address)).to.equal(
