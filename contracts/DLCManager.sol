@@ -354,9 +354,9 @@ contract DLCManager is
                 dlc.valueLocked
             );
 
-        _burnTokens(dlc.creator, dlc.valueLocked);
-
         dlc.status = DLCLink.DLCStatus.CLOSING;
+
+        _burnTokens(dlc.creator, dlc.valueLocked);
 
         emit CloseDLC(uuid, msg.sender);
     }
