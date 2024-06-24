@@ -193,25 +193,6 @@ async function main() {
         .argument('<address>', 'address')
         .action(setMinterOrBurner);
 
-    program
-        .command('create-dlc')
-        .description('[test] create a DLC')
-        .argument('[attestorCount]', 'number of attestors', 1)
-        .action(createV1);
-
-    program
-        .command('close-dlc')
-        .description('[test] close a DLC')
-        .argument('<uuid>', 'uuid of DLC to close')
-        .argument('[outcome]', 'outcome of DLC', 7890)
-        .action(closeV1);
-
-    program
-        .command('set-status-funded')
-        .description('[test] set status to funded for uuid')
-        .argument('<uuid>', 'uuid of DLC')
-        .action(setStatusFunded);
-
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
     // even if you call dlc-link-eth from elsewhere

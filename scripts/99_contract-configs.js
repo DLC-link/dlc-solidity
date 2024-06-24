@@ -41,6 +41,30 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
 
     return [
         {
+            name: 'DLCBTC',
+            deployer: deployer.address,
+            upgradeable: true,
+            requirements: [],
+            deploy: async (requirementAddresses) => {
+                await beforeDeployment('DLCBTC', '', network);
+
+                const DLCBTC =
+                    await hardhat.ethers.getContractFactory('DLCBTC');
+                const dlcBtc = await hardhat.upgrades.deployProxy(DLCBTC);
+                await dlcBtc.deployed();
+
+                await afterDeployment('DLCBTC', dlcBtc);
+
+                return dlcBtc.address;
+            },
+            verify: async () => {
+                const address = await loadContractAddress('DLCBTC', network);
+                await hardhat.run('verify:verify', {
+                    address: address,
+                });
+            },
+        },
+        {
             name: 'DLCManager',
             deployer: deployer.address,
             upgradeable: true,
@@ -129,30 +153,6 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                     'DlcManager',
                     network
                 );
-                await hardhat.run('verify:verify', {
-                    address: address,
-                });
-            },
-        },
-        {
-            name: 'DLCBTC',
-            deployer: deployer.address,
-            upgradeable: true,
-            requirements: [],
-            deploy: async (requirementAddresses) => {
-                await beforeDeployment('DLCBTC', '', network);
-
-                const DLCBTC =
-                    await hardhat.ethers.getContractFactory('DLCBTC');
-                const dlcBtc = await hardhat.upgrades.deployProxy(DLCBTC);
-                await dlcBtc.deployed();
-
-                await afterDeployment('DLCBTC', dlcBtc);
-
-                return dlcBtc.address;
-            },
-            verify: async () => {
-                const address = await loadContractAddress('DLCBTC', network);
                 await hardhat.run('verify:verify', {
                     address: address,
                 });

@@ -9,7 +9,7 @@ COPY ./docker/hardhat.config.docker.js /app/dlc-solidity/hardhat.config.js
 
 WORKDIR /app/dlc-solidity
 
-RUN npm ci
+RUN npm i
 
 RUN npx hardhat compile
 
