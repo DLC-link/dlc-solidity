@@ -151,7 +151,6 @@ contract DLCManager is
     event CreateDLC(
         bytes32 uuid,
         uint256 valueLocked,
-        address protocolContract,
         address creator,
         uint256 timestamp
     );
@@ -291,13 +290,7 @@ contract DLCManager is
             taprootPubKey: ""
         });
 
-        emit CreateDLC(
-            _uuid,
-            btcDeposit,
-            msg.sender,
-            tx.origin,
-            block.timestamp
-        );
+        emit CreateDLC(_uuid, btcDeposit, msg.sender, block.timestamp);
 
         dlcIDsByUUID[_uuid] = _index;
         userVaults[msg.sender].push(_uuid);
@@ -602,11 +595,31 @@ contract DLCManager is
         userVaults[user] = uuids;
     }
 
-    function setWhitelistedAddresses(
-        address[] calldata addresses
+    // Migration function
+    function importData(
+        address _dlcBTC,
+        string calldata _btcFeeRecipient,
+        uint256 _minimumDeposit,
+        uint256 _maximumDeposit,
+        uint256 _btcMintFeeRate,
+        uint256 _btcRedeemFeeRate,
+        bool _whitelistingEnabled,
+        address[] calldata _users,
+        bytes32[][] calldata _uuids,
+        address[] calldata _addressesToWhitelist
     ) external onlyAdmin {
-        for (uint256 i = 0; i < addresses.length; i++) {
-            this.whitelistAddress(addresses[i]);
+        dlcBTC = DLCBTC(_dlcBTC);
+        this.setBtcFeeRecipient(_btcFeeRecipient);
+        this.setMinimumDeposit(_minimumDeposit);
+        this.setMaximumDeposit(_maximumDeposit);
+        this.setBtcMintFeeRate(_btcMintFeeRate);
+        this.setBtcRedeemFeeRate(_btcRedeemFeeRate);
+        this.setWhitelistingEnabled(_whitelistingEnabled);
+        for (uint256 i = 0; i < _users.length; i++) {
+            this.setUserVaultUUIDs(_users[i], _uuids[i]);
+        }
+        for (uint256 i = 0; i < _addressesToWhitelist.length; i++) {
+            this.whitelistAddress(_addressesToWhitelist[i]);
         }
     }
 }
