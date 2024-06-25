@@ -597,29 +597,20 @@ contract DLCManager is
 
     // Migration function
     function importData(
-        address _dlcBTC,
+        DLCBTC _dlcBTC,
         string calldata _btcFeeRecipient,
         uint256 _minimumDeposit,
         uint256 _maximumDeposit,
         uint256 _btcMintFeeRate,
         uint256 _btcRedeemFeeRate,
-        bool _whitelistingEnabled,
-        address[] calldata _users,
-        bytes32[][] calldata _uuids,
-        address[] calldata _addressesToWhitelist
+        bool _whitelistingEnabled
     ) external onlyAdmin {
-        dlcBTC = DLCBTC(_dlcBTC);
-        this.setBtcFeeRecipient(_btcFeeRecipient);
-        this.setMinimumDeposit(_minimumDeposit);
-        this.setMaximumDeposit(_maximumDeposit);
-        this.setBtcMintFeeRate(_btcMintFeeRate);
-        this.setBtcRedeemFeeRate(_btcRedeemFeeRate);
-        this.setWhitelistingEnabled(_whitelistingEnabled);
-        for (uint256 i = 0; i < _users.length; i++) {
-            this.setUserVaultUUIDs(_users[i], _uuids[i]);
-        }
-        for (uint256 i = 0; i < _addressesToWhitelist.length; i++) {
-            this.whitelistAddress(_addressesToWhitelist[i]);
-        }
+        dlcBTC = _dlcBTC;
+        btcFeeRecipient = _btcFeeRecipient;
+        minimumDeposit = _minimumDeposit;
+        maximumDeposit = _maximumDeposit;
+        btcMintFeeRate = _btcMintFeeRate;
+        btcRedeemFeeRate = _btcRedeemFeeRate;
+        whitelistingEnabled = _whitelistingEnabled;
     }
 }

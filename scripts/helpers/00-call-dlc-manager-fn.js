@@ -44,7 +44,9 @@ async function callManagerContractFunction(functionName, args) {
         console.log(
             chalk.bgYellow('admin has DEFAULT_ADMIN_ROLE, calling function...')
         );
+
         const tx = await contract.connect(admin)[functionName](...args);
+
         const receipt = await tx.wait();
         console.log(receipt);
     } else {
