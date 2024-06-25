@@ -592,4 +592,21 @@ contract DLCManager is
     function setBurnerOnTokenContract(address burner) external onlyAdmin {
         dlcBTC.setBurner(burner);
     }
+
+    // These two functions are used to migrate data from
+    // the legacy TokenManager contract
+    function setUserVaultUUIDs(
+        address user,
+        bytes32[] calldata uuids
+    ) external onlyAdmin {
+        userVaults[user] = uuids;
+    }
+
+    function setWhitelistedAddresses(
+        address[] calldata addresses
+    ) external onlyAdmin {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            this.whitelistAddress(addresses[i]);
+        }
+    }
 }
