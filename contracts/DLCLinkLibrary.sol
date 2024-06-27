@@ -13,7 +13,7 @@ library DLCLink {
         FUNDED,
         CLOSING,
         CLOSED,
-        REDEEM_PENDING,
+        PENDING,
         AUX_STATE_2,
         AUX_STATE_3,
         AUX_STATE_4,

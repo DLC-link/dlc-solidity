@@ -138,7 +138,7 @@ contract TokenManager is
     //                          EVENTS                            //
     ////////////////////////////////////////////////////////////////
 
-    event SetupVault(bytes32 dlcUUID, uint256 btcDeposit, address owner);
+    event SetupVault(bytes32 dlcUUID, address owner);
 
     event CloseVault(bytes32 dlcUUID, address owner);
 
@@ -147,6 +147,9 @@ contract TokenManager is
     event Burn(address from, uint256 amount);
 
     event SetStatusFunded(bytes32 dlcUUID, string btcTxId, address owner);
+    event SetStatusPending(bytes32 dlcUUID, string btcTxId, address owner);
+
+    event Withdraw(bytes32 dlcUUID, uint256 amount, address owner);
 
     event PostCloseDLCHandler(bytes32 dlcUUID, string btcTxId, address owner);
 
@@ -182,27 +185,16 @@ contract TokenManager is
     /**
      * @notice  Creates a new vault for the user
      * @dev     It calls the DLCManager contract to create a new DLC
-     * @param   btcDeposit  amount to be locked (in sats)
      * @return  bytes32  uuid of the new vault/DLC
      */
-    function setupVault(
-        uint256 btcDeposit
-    ) external whenNotPaused onlyWhitelisted returns (bytes32) {
-        if (btcDeposit < minimumDeposit)
-            revert DepositTooSmall(btcDeposit, minimumDeposit);
-        if (btcDeposit > maximumDeposit)
-            revert DepositTooLarge(btcDeposit, maximumDeposit);
-
+    function setupVault() external whenNotPaused onlyWhitelisted returns (bytes32) {
         bytes32 _uuid = dlcManager.createDLC(
             btcFeeRecipient,
             btcMintFeeRate,
             btcRedeemFeeRate
         );
-
         userVaults[msg.sender].push(_uuid);
-
-        emit SetupVault(_uuid, btcDeposit, msg.sender);
-
+        emit SetupVault(_uuid, msg.sender);
         return _uuid;
     }
 
@@ -224,10 +216,25 @@ contract TokenManager is
         emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
+       /**
+     * @notice  Callback function called by the DLCManager contract when a DLC is funded
+     * @dev     It initiates the mint to the user
+     * @param   uuid  uuid of the vault/DLC
+     * @param   btcTxId  BTC transaction ID
+     */
+    function setStatusPending(
+        bytes32 uuid,
+        string calldata btcTxId
+    ) external override whenNotPaused onlyDLCManagerContract {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        emit SetStatusPending(uuid, btcTxId, dlc.creator);
+    }
+
     /**
-     * @notice  Burns the tokens and requests the closing of the vault
+     * @notice  Burns the tokens
      * @dev     User must have enough dlcBTC tokens to close the DLC fully
      * @param   uuid  uuid of the vault/DLC
+     * @param   amount  amount of tokens to burn
      */
     function withdraw(bytes32 uuid, uint256 amount) external whenNotPaused {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
@@ -244,7 +251,7 @@ contract TokenManager is
         _burnTokens(dlc.creator, amount);
 
         dlcManager.userBurnedAmount(uuid, amount);
-        emit CloseVault(uuid, msg.sender);
+        emit Withdraw(uuid, amount, msg.sender);
     }
 
     /**

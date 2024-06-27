@@ -42,7 +42,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
     error WrongDLCState();
     error DLCStateAlreadySet(DLCLink.DLCStatus status);
     error DLCNotFound();
-    error DLCNotReadyOrRedeemPending();
+    error DLCNotReadyOrPending();
     error DLCNotFunded();
     error DLCNotClosing();
 
@@ -182,8 +182,8 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (
             dlc.status != DLCLink.DLCStatus.READY &&
-            dlc.status != DLCLink.DLCStatus.REDEEM_PENDING
-        ) revert DLCNotReadyOrRedeemPending();
+            dlc.status != DLCLink.DLCStatus.PENDING
+        ) revert DLCNotReadyOrPending();
 
         dlc.fundingTxId = btcTxId;
         dlc.status = DLCLink.DLCStatus.FUNDED;
@@ -225,7 +225,7 @@ contract MockDLCManager is AccessControl, Pausable, IDLCManager {
             dlc.status != DLCLink.DLCStatus.FUNDED
         ) revert DLCNotFunded();
 
-        dlc.status = DLCLink.DLCStatus.REDEEM_PENDING;
+        dlc.status = DLCLink.DLCStatus.PENDING;
         dlc.withdrawTxId = btcTxId;
 
         emit SetStatusRedeemPending(uuid, msg.sender);

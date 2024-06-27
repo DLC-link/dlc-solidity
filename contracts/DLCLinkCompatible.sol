@@ -9,6 +9,7 @@ pragma solidity 0.8.18;
  */
 interface DLCLinkCompatible {
     function setStatusFunded(bytes32 uuid, string calldata btcTxId, uint256 valueMinted) external;
+    function setStatusPending(bytes32 uuid, string calldata btcTxId) external;
 
     function postCloseDLCHandler(
         bytes32 uuid,

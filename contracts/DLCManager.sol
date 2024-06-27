@@ -65,7 +65,7 @@ contract DLCManager is
     error ContractNotWhitelisted();
     error NotCreatorContract();
     error DLCNotFound();
-    error DLCNotReadyOrRedeemPending();
+    error DLCNotReadyOrPending();
     error DLCNotFunded();
     error DLCNotClosing();
 
@@ -139,7 +139,7 @@ contract DLCManager is
 
     event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
 
-    event SetStatusRedeemPending(bytes32 uuid, string btcTxId, address sender);
+    event SetStatusPending(bytes32 uuid, string btcTxId, address sender);
 
     event UserBurnAmount(bytes32 uuid, uint256 amount, address sender);
 
@@ -290,8 +290,8 @@ contract DLCManager is
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (
             dlc.status != DLCLink.DLCStatus.READY &&
-            dlc.status != DLCLink.DLCStatus.REDEEM_PENDING
-        ) revert DLCNotReadyOrRedeemPending();
+            dlc.status != DLCLink.DLCStatus.PENDING
+        ) revert DLCNotReadyOrPending();
 
         dlc.fundingTxId = btcTxId;
         dlc.withdrawTxId = "";
@@ -314,14 +314,14 @@ contract DLCManager is
     }
 
     /**
-     * @notice  Puts the vault into the redeem-pending state.
+     * @notice  Puts the vault into the pending state.
      * @dev     Called by the Attestor Coordinator.
      * @param   uuid  UUID of the DLC.
      * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
      * @param   signatures  Signatures of the Attestors
      * @param   newValueLocked  New value locked in the DLC. in this case, 0
      */
-    function setStatusRedeemPending(
+    function setStatusPending(
         bytes32 uuid,
         string calldata btcTxId,
         bytes[] calldata signatures,
@@ -343,14 +343,19 @@ contract DLCManager is
             dlc.status != DLCLink.DLCStatus.FUNDED
         ) revert DLCNotFunded();
 
-        dlc.status = DLCLink.DLCStatus.REDEEM_PENDING;
+        dlc.status = DLCLink.DLCStatus.PENDING;
         dlc.withdrawTxId = btcTxId;
 
-        emit SetStatusRedeemPending(uuid, btcTxId, msg.sender);
+        DLCLinkCompatible(dlc.protocolContract).setStatusPending(
+            uuid,
+            btcTxId
+        );
+
+        emit SetStatusPending(uuid, btcTxId, msg.sender);
     }
 
     /**
-     * @notice  Triggers the creation of an Attestation.
+     * @notice  Burn token.
      * @param   uuid  UUID of the DLC.
      * @param   amount Amount of dlcBTC that the user burned.
      */

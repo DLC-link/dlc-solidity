@@ -39,6 +39,14 @@ contract MockProtocol is DLCLinkCompatible {
         // console.logBytes32(uuid);
     }
 
+        function setStatusPending(
+        bytes32 uuid,
+        string calldata btcTxId
+            ) external view override {
+        // console.log('[MockProtocol] setStatusFunded called');
+        // console.logBytes32(uuid);
+    }
+
     function postCloseDLCHandler(
         bytes32 uuid,
         string calldata btxTxId

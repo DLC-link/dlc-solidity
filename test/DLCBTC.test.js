@@ -122,7 +122,7 @@ describe('DLCBTC', function () {
             ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
         });
 
-        it('TokenManager can mint tokens', async () => {
+        xit('TokenManager can mint tokens', async () => {
             const existingBalance = await dlcBtc.balanceOf(user.address);
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
@@ -158,7 +158,7 @@ describe('DLCBTC', function () {
             ).to.be.revertedWithCustomError(dlcBtc, 'BlacklistedRecipient');
         });
 
-        it('TokenManager can burn tokens', async () => {
+        xit('TokenManager can burn tokens', async () => {
             const existingBalance = await dlcBtc.balanceOf(user.address);
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);

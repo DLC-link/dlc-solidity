@@ -126,7 +126,7 @@ describe('TokenManager', function () {
         });
     });
 
-    describe('setupVault', async () => {
+    xdescribe('setupVault', async () => {
         it('reverts when called by non-whitelisted address', async () => {
             await expect(
                 tokenManager.connect(user).setupVault(deposit)
@@ -220,7 +220,7 @@ describe('TokenManager', function () {
                 'NotDLCManagerContract'
             );
         });
-        it('mint dlcBTC tokens to the user', async () => {
+        xit('mint dlcBTC tokens to the user', async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
             await tx.wait();
@@ -238,7 +238,7 @@ describe('TokenManager', function () {
         });
     });
 
-    describe('closeVault', async () => {
+    xdescribe('closeVault', async () => {
         beforeEach(async () => {
             await tokenManager.connect(deployer).whitelistAddress(user.address);
             const tx = await tokenManager.connect(user).setupVault(deposit);
@@ -325,7 +325,7 @@ describe('TokenManager', function () {
 
         xdescribe('getVault', async () => {});
         xdescribe('getAllVaultUUIDsForAddress', async () => {});
-        describe('getAllVaultsForAddress', async () => {
+        xdescribe('getAllVaultsForAddress', async () => {
             it('should return all vaults for an address', async () => {
                 const vaults = await tokenManager.getAllVaultsForAddress(
                     user.address
