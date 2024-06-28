@@ -75,9 +75,10 @@ contract DLCManager is
     error ContractNotWhitelisted();
     error NotCreatorContract();
     error DLCNotFound();
-    error DLCNotReady();
+    error DLCNotReadyOrPending();
     error DLCNotFunded();
     error DLCNotClosing();
+
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
     error ThresholdTooLow(uint16 _minimumThreshold);
@@ -86,6 +87,7 @@ contract DLCManager is
     error InvalidSigner();
     error DuplicateSignature();
     error SignerNotApproved(address signer);
+    error ClosingFundedVault();
 
     error InvalidRange();
     error NotOwner();
@@ -93,7 +95,9 @@ contract DLCManager is
     error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
     error DepositTooLarge(uint256 deposit, uint256 maximumDeposit);
     error InsufficientTokenBalance(uint256 balance, uint256 amount);
+    error InsufficientMintedBalance(uint256 minted, uint256 amount);
     error FeeRateOutOfBounds(uint256 feeRate);
+    error UnderCollateralized(uint256 newValueLocked, uint256 valueMinted);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -112,6 +116,12 @@ contract DLCManager is
     modifier onlyWhitelisted() {
         if (whitelistingEnabled && !_whitelistedAddresses[msg.sender])
             revert NotWhitelisted();
+        _;
+    }
+
+    modifier onlyOwner(bytes32 _uuid) {
+        if (dlcs[dlcIDsByUUID[_uuid]].protocolContract != msg.sender)
+            revert NotOwner();
         _;
     }
 
@@ -150,12 +160,13 @@ contract DLCManager is
 
     event CreateDLC(
         bytes32 uuid,
-        uint256 valueLocked,
         address creator,
         uint256 timestamp
     );
 
     event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
+    event SetStatusPending(bytes32 uuid, string btcTxId, address sender);
+    event Withdraw(bytes32 uuid, uint256 amount, address sender);
 
     event CloseDLC(bytes32 uuid, address sender);
 
@@ -262,35 +273,29 @@ contract DLCManager is
 
     /**
      * @notice  Creates a new vault for the user
-     * @param   btcDeposit  amount to be locked (in sats)
      * @return  bytes32  uuid of the new vault/DLC
      */
-    function setupVault(
-        uint256 btcDeposit
-    ) external whenNotPaused onlyWhitelisted returns (bytes32) {
-        if (btcDeposit < minimumDeposit)
-            revert DepositTooSmall(btcDeposit, minimumDeposit);
-        if (btcDeposit > maximumDeposit)
-            revert DepositTooLarge(btcDeposit, maximumDeposit);
-
+    function setupVault() external whenNotPaused onlyWhitelisted returns (bytes32) {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender,
-            valueLocked: btcDeposit,
+            valueLocked: 0,
+            valueMinted: 0,
             timestamp: block.timestamp,
             creator: tx.origin,
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
+            withdrawTxId: "",
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeRate,
             btcRedeemFeeBasisPoints: btcRedeemFeeRate,
             taprootPubKey: ""
         });
 
-        emit CreateDLC(_uuid, btcDeposit, msg.sender, block.timestamp);
+        emit CreateDLC(_uuid, msg.sender, block.timestamp);
 
         dlcIDsByUUID[_uuid] = _index;
         userVaults[msg.sender].push(_uuid);
@@ -305,29 +310,117 @@ contract DLCManager is
      * @param   uuid  UUID of the DLC.
      * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
      * @param   signatures  Signatures of the Attestors.
+     * @param   taprootPubKey  User's Taproot public key involved in the DLC multisig.
+     * @param   newValueLocked  New value locked in the DLC.
      */
     function setStatusFunded(
         bytes32 uuid,
         string calldata btcTxId,
         bytes[] calldata signatures,
-        string calldata taprootPubKey
+        string calldata taprootPubKey,
+        uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "set-status-funded"),
+            abi.encode(uuid, btcTxId, "set-status-funded", newValueLocked),
             signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
+        if (
+            dlc.status != DLCLink.DLCStatus.READY &&
+            dlc.status != DLCLink.DLCStatus.PENDING
+        ) revert DLCNotReadyOrPending();
+
+        if (newValueLocked < dlc.valueMinted) {
+            // During a withdrawal, a burn should have already happened
+            revert UnderCollateralized(newValueLocked, dlc.valueMinted);
+        }
 
         dlc.fundingTxId = btcTxId;
+        dlc.withdrawTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
         dlc.taprootPubKey = taprootPubKey;
 
-        _mintTokens(dlc.creator, dlc.valueLocked);
+        // better to use safeMath to avoid overflow?
+        uint256 amountToMint = newValueLocked - dlc.valueMinted;
+
+        if (amountToMint > maximumDeposit) {
+            revert DepositTooLarge(amountToMint, maximumDeposit);
+        }
+        // Add this back later when we want a minimum
+        // if (amountToMint < minimumDeposit) {
+        //     revert DepositTooSmall(amountToMint, minimumDeposit);
+        // }
+
+        dlc.valueLocked = newValueLocked;
+        dlc.valueMinted += amountToMint;
+
+        _mintTokens(dlc.creator, amountToMint);
 
         emit SetStatusFunded(uuid, btcTxId, msg.sender);
+    }
+
+    /**
+     * @notice  Puts the vault into the pending state.
+     * @dev     Called by the Attestor Coordinator.
+     * @param   uuid  UUID of the DLC.
+     * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @param   signatures  Signatures of the Attestors
+     * @param   newValueLocked  New value locked in the DLC. For this function this will always be 0
+     */
+    function setStatusPending(
+        bytes32 uuid,
+        string calldata btcTxId,
+        bytes[] calldata signatures,
+        uint256 newValueLocked
+    ) external whenNotPaused onlyApprovedSigners {
+        _attestorMultisigIsValid(
+            abi.encode(
+                uuid,
+                btcTxId,
+                "set-status-redeem-pending",
+                newValueLocked
+            ),
+            signatures
+        );
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+
+        if (dlc.uuid == bytes32(0)) revert DLCNotFound();
+        if (
+            dlc.status != DLCLink.DLCStatus.FUNDED
+        ) revert DLCNotFunded();
+
+        dlc.status = DLCLink.DLCStatus.PENDING;
+        dlc.withdrawTxId = btcTxId;
+
+        emit SetStatusPending(uuid, btcTxId, msg.sender);
+    }
+
+    /**
+     * @notice  Withdraw the tokens from the vault, essentially a burn
+     * @dev     User must have enough dlcBTC tokens to close the DLC fully
+     * @param   uuid  uuid of the vault/DLC
+     * @param   amount  amount of tokens to burn
+     */
+    function withdraw(bytes32 uuid, uint256 amount) external onlyOwner(uuid) whenNotPaused {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+
+        // Validation checks
+        if (dlc.uuid == bytes32(0)) revert DLCNotFound();
+        if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
+        if (amount > dlcBTC.balanceOf(dlc.creator))
+            revert InsufficientTokenBalance(
+                dlcBTC.balanceOf(dlc.creator),
+                amount
+            );
+        if (amount > dlc.valueMinted) {
+            revert InsufficientMintedBalance(dlc.valueMinted, amount);
+        }
+
+        dlc.valueMinted -= amount;
+        _burnTokens(dlc.creator, amount);
+        emit Withdraw(uuid, amount, msg.sender);
     }
 
     /**
@@ -346,10 +439,10 @@ contract DLCManager is
                 dlcBTC.balanceOf(dlc.creator),
                 dlc.valueLocked
             );
+        if (dlc.valueMinted > 0 || dlc.valueLocked > 0)
+            revert ClosingFundedVault();
 
         dlc.status = DLCLink.DLCStatus.CLOSING;
-
-        _burnTokens(dlc.creator, dlc.valueLocked);
 
         emit CloseDLC(uuid, msg.sender);
     }
@@ -366,8 +459,9 @@ contract DLCManager is
         string calldata btcTxId,
         bytes[] calldata signatures
     ) external whenNotPaused onlyApprovedSigners {
+        uint256 fixedLockedValue = 0;
         _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "post-close-dlc"),
+            abi.encode(uuid, btcTxId, "post-close-dlc", fixedLockedValue),
             signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];

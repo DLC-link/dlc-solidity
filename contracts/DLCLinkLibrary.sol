@@ -13,7 +13,7 @@ library DLCLink {
         FUNDED,
         CLOSING,
         CLOSED,
-        AUX_STATE_1,
+        PENDING,
         AUX_STATE_2,
         AUX_STATE_3,
         AUX_STATE_4,
@@ -33,5 +33,7 @@ library DLCLink {
         uint256 btcMintFeeBasisPoints;
         uint256 btcRedeemFeeBasisPoints;
         string taprootPubKey;
+        uint256 valueMinted;
+        string withdrawTxId;
     }
 }
