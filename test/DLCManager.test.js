@@ -182,30 +182,15 @@ describe('DLCManager', () => {
         });
     });
 
-    xdescribe('setupVault', async () => {
+    describe('setupVault', async () => {
         it('reverts if called by a non-whitelisted user', async () => {
             await expect(
                 dlcManager.connect(user).setupVault()
             ).to.be.revertedWithCustomError(dlcManager, 'NotWhitelisted');
         });
-        xit('reverts when deposit is too small', async () => {
-            await whitelistAddress(dlcManager, user);
-            let _deposit = 10;
-            await expect(
-                dlcManager.connect(user).setupVault(_deposit)
-            ).to.be.revertedWithCustomError(dlcManager, 'DepositTooSmall');
-        });
-        xit('reverts when deposit is too large', async () => {
-            await whitelistAddress(dlcManager, user);
-            let _deposit = 1000000001;
-            await expect(
-                dlcManager.connect(user).setupVault(_deposit)
-            ).to.be.revertedWithCustomError(dlcManager, 'DepositTooLarge');
-        });
-
         it('stores the _uuid in the userVaults map', async () => {
             await whitelistAddress(dlcManager, user);
-            const tx = await dlcManager.connect(user).setupVault(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault();
             const receipt = await tx.wait();
             const _uuid = receipt.events[0].args.uuid;
             expect(await dlcManager.userVaults(user.address, 0)).to.equal(
@@ -215,7 +200,7 @@ describe('DLCManager', () => {
 
         it('emits a CreateDLC event with the correct data', async () => {
             await whitelistAddress(dlcManager, user);
-            const tx = await dlcManager.connect(user).setupVault(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault();
 
             const receipt = await tx.wait();
             const event = receipt.events[0];
@@ -230,9 +215,9 @@ describe('DLCManager', () => {
         it('called multiple times generates unique UUIDs', async () => {
             await whitelistAddress(dlcManager, user);
 
-            const tx = await dlcManager.connect(user).setupVault(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault();
             const receipt = await tx.wait();
-            const tx2 = await dlcManager.connect(user).setupVault(valueLocked);
+            const tx2 = await dlcManager.connect(user).setupVault();
             const receipt2 = await tx2.wait();
 
             const decodedEvent = dlcManager.interface.parseLog(
@@ -267,7 +252,29 @@ describe('DLCManager', () => {
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFound');
         });
 
-        xit('returns the correct data', async () => {
+        it('returns the correct data', async () => {
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytes,
+                    mockTaprootPubkey,
+                    valueLocked
+                );
+            await tx2.wait();
+
             const data = await dlcManager.getDLC(uuid);
             expect(data.creator).to.equal(user.address);
             expect(data.valueLocked).to.equal(valueLocked);
@@ -279,21 +286,43 @@ describe('DLCManager', () => {
         beforeEach(async () => {
             await whitelistAddress(dlcManager, user);
 
-            const tx = await dlcManager.connect(user).setupVault(valueLocked);
+            const tx = await dlcManager.connect(user).setupVault();
             const receipt = await tx.wait();
             const event = receipt.events[0];
             const decodedEvent = dlcManager.interface.parseLog(event);
             uuid = decodedEvent.args.uuid;
+
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytes,
+                    mockTaprootPubkey,
+                    valueLocked
+                );
+            await tx2.wait();
         });
 
-        xit('returns 0s if called with a non-existing index', async () => {
+        it('returns 0s if called with a non-existing index', async () => {
             let dlc = await dlcManager.getDLCByIndex(5);
             expect(dlc.creator).to.equal(ethers.constants.AddressZero);
             expect(dlc.valueLocked).to.equal(0);
             expect(dlc.uuid).to.equal(ethers.constants.HashZero);
         });
 
-        xit('returns the correct data', async () => {
+        it('returns the correct data', async () => {
             const data = await dlcManager.getDLCByIndex(0);
             expect(data.creator).to.equal(user.address);
             expect(data.valueLocked).to.equal(valueLocked);
@@ -312,10 +341,15 @@ describe('DLCManager', () => {
             uuid = decodedEvent.args.uuid;
         });
 
-        xit('reverts if called without enough signatures', async () => {
+        it('reverts if called without enough signatures', async () => {
             await setSigners(dlcManager, attestors);
             const { signatureBytes } = await getSignatures(
-                { uuid, btcTxId, functionString: 'set-status-funded' },
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
                 attestors,
                 1
             );
@@ -326,15 +360,21 @@ describe('DLCManager', () => {
                         uuid,
                         btcTxId,
                         signatureBytes,
-                        mockTaprootPubkey
+                        mockTaprootPubkey,
+                        valueLocked
                     )
             ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughSignatures');
         });
 
-        xit('reverts if contains non-approved signer', async () => {
+        it('reverts if contains non-approved signer', async () => {
             await setSigners(dlcManager, attestors);
             const { signatureBytes } = await getSignatures(
-                { uuid, btcTxId, functionString: 'set-status-funded' },
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
                 [...attestors, randomAccount],
                 4
             );
@@ -346,7 +386,8 @@ describe('DLCManager', () => {
                         uuid,
                         btcTxId,
                         signatureBytes,
-                        mockTaprootPubkey
+                        mockTaprootPubkey,
+                        valueLocked
                     )
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
@@ -502,6 +543,56 @@ describe('DLCManager', () => {
                         signatureBytes,
                         mockTaprootPubkey,
                         valueLocked
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
+        });
+
+        it('reverts if deposit is too large', async () => {
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked * 100,
+                },
+                [attestor1, attestor1, attestor1],
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        signatureBytes,
+                        mockTaprootPubkey,
+                        valueLocked * 100
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
+        });
+
+        it('reverts if deposit is too small', async () => {
+            await setSigners(dlcManager, attestors);
+            const { signatureBytes } = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: 100,
+                },
+                [attestor1, attestor1, attestor1],
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        signatureBytes,
+                        mockTaprootPubkey,
+                        100
                     )
             ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
         });

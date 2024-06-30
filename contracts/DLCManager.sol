@@ -288,7 +288,7 @@ contract DLCManager is
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
-            withdrawTxId: "",
+            wdTxId: "",
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeRate,
             btcRedeemFeeBasisPoints: btcRedeemFeeRate,
@@ -338,7 +338,7 @@ contract DLCManager is
         }
 
         dlc.fundingTxId = btcTxId;
-        dlc.withdrawTxId = "";
+        dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
         dlc.taprootPubKey = taprootPubKey;
 
@@ -349,9 +349,9 @@ contract DLCManager is
             revert DepositTooLarge(amountToMint, maximumDeposit);
         }
         // Add this back later when we want a minimum
-        // if (amountToMint < minimumDeposit) {
-        //     revert DepositTooSmall(amountToMint, minimumDeposit);
-        // }
+        if (amountToMint > 0 && amountToMint < minimumDeposit) {
+            revert DepositTooSmall(amountToMint, minimumDeposit);
+        }
 
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted += amountToMint;
@@ -392,7 +392,7 @@ contract DLCManager is
         ) revert DLCNotFunded();
 
         dlc.status = DLCLink.DLCStatus.PENDING;
-        dlc.withdrawTxId = btcTxId;
+        dlc.wdTxId = btcTxId;
 
         emit SetStatusPending(uuid, btcTxId, msg.sender);
     }
