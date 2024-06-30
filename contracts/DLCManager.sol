@@ -77,7 +77,6 @@ contract DLCManager is
     error DLCNotFound();
     error DLCNotReadyOrPending();
     error DLCNotFunded();
-    error DLCNotClosing();
 
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
@@ -167,10 +166,6 @@ contract DLCManager is
     event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
     event SetStatusPending(bytes32 uuid, string btcTxId, address sender);
     event Withdraw(bytes32 uuid, uint256 amount, address sender);
-
-    event CloseDLC(bytes32 uuid, address sender);
-
-    event PostCloseDLC(bytes32 uuid, string btcTxId, address sender);
 
     event SetThreshold(uint16 newThreshold);
 
@@ -399,7 +394,7 @@ contract DLCManager is
 
     /**
      * @notice  Withdraw the tokens from the vault, essentially a burn
-     * @dev     User must have enough dlcBTC tokens to close the DLC fully
+     * @dev     User must have enough dlcBTC tokens to withdraw the amount specified
      * @param   uuid  uuid of the vault/DLC
      * @param   amount  amount of tokens to burn
      */
@@ -421,58 +416,6 @@ contract DLCManager is
         dlc.valueMinted -= amount;
         _burnTokens(dlc.creator, amount);
         emit Withdraw(uuid, amount, msg.sender);
-    }
-
-    /**
-     * @notice  Triggers the creation of an Attestation.
-     * @param   uuid  UUID of the DLC.
-     */
-    function closeVault(bytes32 uuid) external whenNotPaused {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
-        if (dlc.creator != msg.sender) revert NotOwner();
-
-        if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
-
-        if (dlc.valueLocked > dlcBTC.balanceOf(dlc.creator))
-            revert InsufficientTokenBalance(
-                dlcBTC.balanceOf(dlc.creator),
-                dlc.valueLocked
-            );
-        if (dlc.valueMinted > 0 || dlc.valueLocked > 0)
-            revert ClosingFundedVault();
-
-        dlc.status = DLCLink.DLCStatus.CLOSING;
-
-        emit CloseDLC(uuid, msg.sender);
-    }
-
-    /**
-     * @notice  Triggered after a closing Tx has been confirmed Bitcoin.
-     * @dev     Similarly to setStatusFunded, this is called by the Attestor Coordinator.
-     * @param   uuid  UUID of the DLC.
-     * @param   btcTxId  Closing Bitcoin Tx id.
-     * @param   signatures  Signatures of the Attestors.
-     */
-    function postCloseDLC(
-        bytes32 uuid,
-        string calldata btcTxId,
-        bytes[] calldata signatures
-    ) external whenNotPaused onlyApprovedSigners {
-        uint256 fixedLockedValue = 0;
-        _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "post-close-dlc", fixedLockedValue),
-            signatures
-        );
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
-
-        if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.CLOSING) revert DLCNotClosing();
-
-        dlc.closingTxId = btcTxId;
-        dlc.status = DLCLink.DLCStatus.CLOSED;
-
-        emit PostCloseDLC(uuid, btcTxId, msg.sender);
     }
 
     ////////////////////////////////////////////////////////////////
