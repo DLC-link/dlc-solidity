@@ -624,7 +624,7 @@ contract DLCManager is
         dlcBTC.setBurner(burner);
     }
 
-    // These two functions are used to migrate data from
+    // These three functions are used to migrate data from
     // the legacy TokenManager contract
     function setUserVaultUUIDs(
         address user,
@@ -652,6 +652,12 @@ contract DLCManager is
         whitelistingEnabled = _whitelistingEnabled;
     }
 
-    // TODO:
-    // setAmountMinted on the existing vaults
+    // Temporary migration function to bring old vaults up to speed with withdraw PR
+    function setValueMinted(
+        bytes32 uuid,
+        uint256 valueMinted
+    ) external onlyAdmin {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        dlc.valueMinted = valueMinted;
+    }
 }
