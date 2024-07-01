@@ -101,6 +101,29 @@ async function main() {
             _uuids[_users.indexOf(user)],
         ]);
     }
+
+    // if ready, valueLocked should be 0
+    // if funded, valueMinted should be valueLocked
+    // if closed do nothing
+
+    for (const vault of allVaults) {
+        switch (vault.status) {
+            case 0:
+                await callManagerContractFunction('setValueLocked', [
+                    vault.uuid,
+                    0,
+                ]);
+                break;
+            case 1:
+                await callManagerContractFunction('setValueMinted', [
+                    vault.uuid,
+                    vault.valueLocked,
+                ]);
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 main()

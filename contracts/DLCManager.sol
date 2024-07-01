@@ -332,12 +332,6 @@ contract DLCManager is
             revert UnderCollateralized(newValueLocked, dlc.valueMinted);
         }
 
-        dlc.fundingTxId = btcTxId;
-        dlc.wdTxId = "";
-        dlc.status = DLCLink.DLCStatus.FUNDED;
-        dlc.taprootPubKey = taprootPubKey;
-
-        // better to use safeMath to avoid overflow?
         uint256 amountToMint = newValueLocked - dlc.valueMinted;
 
         if (amountToMint > maximumDeposit) {
@@ -347,6 +341,11 @@ contract DLCManager is
         if (amountToMint > 0 && amountToMint < minimumDeposit) {
             revert DepositTooSmall(amountToMint, minimumDeposit);
         }
+
+        dlc.fundingTxId = btcTxId;
+        dlc.wdTxId = "";
+        dlc.status = DLCLink.DLCStatus.FUNDED;
+        dlc.taprootPubKey = taprootPubKey;
 
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted += amountToMint;
@@ -624,8 +623,9 @@ contract DLCManager is
         dlcBTC.setBurner(burner);
     }
 
-    // These three functions are used to migrate data from
-    // the legacy TokenManager contract
+    ////////////////////////////////////////////////////////////////
+    //                    MIGRATION FUNCTIONS                     //
+    ////////////////////////////////////////////////////////////////
     function setUserVaultUUIDs(
         address user,
         bytes32[] calldata uuids
@@ -633,7 +633,6 @@ contract DLCManager is
         userVaults[user] = uuids;
     }
 
-    // Migration function
     function importData(
         DLCBTC _dlcBTC,
         string calldata _btcFeeRecipient,
@@ -652,12 +651,20 @@ contract DLCManager is
         whitelistingEnabled = _whitelistingEnabled;
     }
 
-    // Temporary migration function to bring old vaults up to speed with withdraw PR
+    // Temporary migration functions to bring old vaults up to speed with withdraw PR
     function setValueMinted(
         bytes32 uuid,
         uint256 valueMinted
     ) external onlyAdmin {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
         dlc.valueMinted = valueMinted;
+    }
+
+    function setValueLocked(
+        bytes32 uuid,
+        uint256 valueLocked
+    ) external onlyAdmin {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        dlc.valueLocked = valueLocked;
     }
 }
