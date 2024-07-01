@@ -29,6 +29,7 @@ const setBtcFeeRecipient = require('./14_set-btc-fee-recipient');
 const setBTCFee = require('./15_set-btc-fee');
 const setDepositLimit = require('./16_set-deposit-limit');
 const setMinterOrBurner = require('./17_set-minter-or-burner');
+const withdraw = require('./18_withdraw');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -192,6 +193,13 @@ async function main() {
         .argument('<minterOrBurner>', 'minter or burner')
         .argument('<address>', 'address')
         .action(setMinterOrBurner);
+
+    program
+        .command('withdraw')
+        .description('[token-man] withdraw some amount')
+        .argument('<uuid>', 'UUID of vault')
+        .argument('<amount>', 'amount to withdraw')
+        .action(withdraw);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work

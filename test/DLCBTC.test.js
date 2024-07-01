@@ -114,7 +114,7 @@ describe('DLCBTC', function () {
         it('dlcManager can mint tokens', async () => {
             const existingBalance = await dlcBtc.balanceOf(user.address);
             await dlcManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await dlcManager.connect(user).setupVault(deposit);
+            const tx = await dlcManager.connect(user).setupVault();
             const receipt = await tx.wait();
             const _uuid = await receipt.events[0].args.uuid;
 
@@ -124,6 +124,7 @@ describe('DLCBTC', function () {
                     uuid: _uuid,
                     btcTxId: mockBTCTxId,
                     functionString: 'set-status-funded',
+                    newLockedAmount: deposit,
                 },
                 attestors,
                 3
@@ -134,7 +135,8 @@ describe('DLCBTC', function () {
                     _uuid,
                     mockBTCTxId,
                     signatureBytes,
-                    mockTaprootPubkey
+                    mockTaprootPubkey,
+                    deposit
                 );
             await tx2.wait();
             const expectedBalance = ethers.BigNumber.from(existingBalance).add(
@@ -163,7 +165,7 @@ describe('DLCBTC', function () {
         it('dlcManager can burn tokens', async () => {
             const existingBalance = await dlcBtc.balanceOf(user.address);
             await dlcManager.connect(deployer).whitelistAddress(user.address);
-            const tx = await dlcManager.connect(user).setupVault(deposit);
+            const tx = await dlcManager.connect(user).setupVault();
             const receipt = await tx.wait();
             const _uuid = await receipt.events[0].args.uuid;
 
@@ -173,6 +175,7 @@ describe('DLCBTC', function () {
                     uuid: _uuid,
                     btcTxId: mockBTCTxId,
                     functionString: 'set-status-funded',
+                    newLockedAmount: deposit,
                 },
                 attestors,
                 3
@@ -183,7 +186,8 @@ describe('DLCBTC', function () {
                     _uuid,
                     mockBTCTxId,
                     signatureBytes,
-                    mockTaprootPubkey
+                    mockTaprootPubkey,
+                    deposit
                 );
             await tx2.wait();
 
@@ -192,7 +196,9 @@ describe('DLCBTC', function () {
                     ethers.BigNumber.from(deposit)
                 )
             );
-            const tx3 = await dlcManager.connect(user).closeVault(mockUUID);
+            const tx3 = await dlcManager
+                .connect(user)
+                .withdraw(mockUUID, deposit);
             await tx3.wait();
 
             expect(await dlcBtc.balanceOf(user.address)).to.equal(
