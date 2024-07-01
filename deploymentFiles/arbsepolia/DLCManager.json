@@ -1,7 +1,7 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-07-01T10:23:31.606Z",
-  "gitSHA": "2c4c17b",
+  "updatedAt": "2024-07-01T10:52:06.188Z",
+  "gitSHA": "045e9ad",
   "contract": {
     "name": "DLCManager",
     "address": "0xE8FA6399d1b60968f04888F23Ed13Ed499C1Fd51",

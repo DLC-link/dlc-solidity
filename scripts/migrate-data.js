@@ -102,10 +102,6 @@ async function main() {
         ]);
     }
 
-    // if ready, valueLocked should be 0
-    // if funded, valueMinted should be valueLocked
-    // if closed do nothing
-
     for (const vault of allVaults) {
         switch (vault.status) {
             case 0:

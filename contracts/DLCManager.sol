@@ -117,9 +117,8 @@ contract DLCManager is
         _;
     }
 
-    modifier onlyOwner(bytes32 _uuid) {
-        if (dlcs[dlcIDsByUUID[_uuid]].protocolContract != msg.sender)
-            revert NotOwner();
+    modifier onlyVaultCreator(bytes32 _uuid) {
+        if (dlcs[dlcIDsByUUID[_uuid]].creator != msg.sender) revert NotOwner();
         _;
     }
 
@@ -398,7 +397,7 @@ contract DLCManager is
     function withdraw(
         bytes32 uuid,
         uint256 amount
-    ) external onlyOwner(uuid) whenNotPaused {
+    ) external onlyVaultCreator(uuid) whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         // Validation checks
