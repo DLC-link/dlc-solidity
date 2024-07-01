@@ -158,8 +158,8 @@ contract DLCManager is
 
     event CreateDLC(bytes32 uuid, address creator, uint256 timestamp);
 
-    event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
-    event SetStatusPending(bytes32 uuid, string btcTxId, address sender);
+    event SetStatusFunded(bytes32 uuid, string btcTxId, address creator);
+    event SetStatusPending(bytes32 uuid, string btcTxId, address creator);
     event Withdraw(bytes32 uuid, uint256 amount, address sender);
 
     event SetThreshold(uint16 newThreshold);
@@ -353,7 +353,7 @@ contract DLCManager is
 
         _mintTokens(dlc.creator, amountToMint);
 
-        emit SetStatusFunded(uuid, btcTxId, msg.sender);
+        emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
     /**
@@ -387,7 +387,7 @@ contract DLCManager is
         dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
         dlc.wdTxId = btcTxId;
 
-        emit SetStatusPending(uuid, btcTxId, msg.sender);
+        emit SetStatusPending(uuid, btcTxId, dlc.creator);
     }
 
     /**
