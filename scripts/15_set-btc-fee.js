@@ -1,6 +1,6 @@
 const {
-    callTokenManagerFunction,
-} = require('./helpers/10-call-token-manager-fn');
+    callManagerContractFunction,
+} = require('./helpers/00-call-dlc-manager-fn');
 
 async function setBTCFee(mintOrBurn, newFee) {
     let functionToCall;
@@ -11,7 +11,7 @@ async function setBTCFee(mintOrBurn, newFee) {
     } else {
         throw new Error('Invalid mintOrBurn argument');
     }
-    await callTokenManagerFunction(functionToCall, [newFee]);
+    await callManagerContractFunction(functionToCall, [newFee]);
 }
 
 module.exports = setBTCFee;

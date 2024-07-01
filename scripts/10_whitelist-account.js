@@ -1,9 +1,9 @@
 const {
-    callTokenManagerFunction,
-} = require('./helpers/10-call-token-manager-fn');
+    callManagerContractFunction,
+} = require('./helpers/00-call-dlc-manager-fn');
 
 async function whitelistAccount(addressToWhitelist) {
-    await callTokenManagerFunction('whitelistAddress', [addressToWhitelist]);
+    await callManagerContractFunction('whitelistAddress', [addressToWhitelist]);
 }
 
 module.exports = whitelistAccount;

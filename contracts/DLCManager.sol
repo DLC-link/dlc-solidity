@@ -11,28 +11,27 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRule
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
-import "./DLCLinkCompatible.sol";
-import "./IDLCManager.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./DLCLinkLibrary.sol";
+import "./DLCBTC.sol";
 
 /**
  * @author  DLC.Link 2024
  * @title   DLCManager
  * @dev     This is the contract the Attestor Layer listens to.
- * Protocol contracts should implement the DLCLinkCompatible interface and interact with this contract.
  * @dev     It is upgradable through the OpenZeppelin proxy pattern
  * @notice  DLCManager is the main contract of the DLC.Link protocol.
- * @custom:contact robert@dlc.link
+ * @custom:contact eng@dlc.link
  * @custom:website https://www.dlc.link
  */
 contract DLCManager is
     Initializable,
     AccessControlDefaultAdminRulesUpgradeable,
-    PausableUpgradeable,
-    IDLCManager
+    PausableUpgradeable
 {
     using DLCLink for DLCLink.DLC;
     using DLCLink for DLCLink.DLCStatus;
+    using SafeERC20 for DLCBTC;
 
     ////////////////////////////////////////////////////////////////
     //                      STATE VARIABLES                       //
@@ -54,7 +53,18 @@ contract DLCManager is
     uint16 private _signerCount;
     bytes32 public tssCommitment;
     string public attestorGroupPubKey;
-    uint256[50] __gap;
+
+    DLCBTC public dlcBTC; // dlcBTC contract
+    string public btcFeeRecipient; // BTC address to send fees to
+    uint256 public minimumDeposit; // in sats
+    uint256 public maximumDeposit; // in sats
+    uint256 public btcMintFeeRate; // in basis points (100 = 1%) -- BTC
+    uint256 public btcRedeemFeeRate; // in basis points (100 = 1%) -- BTC
+    bool public whitelistingEnabled;
+
+    mapping(address => bytes32[]) public userVaults;
+    mapping(address => bool) private _whitelistedAddresses;
+    uint256[41] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -65,9 +75,8 @@ contract DLCManager is
     error ContractNotWhitelisted();
     error NotCreatorContract();
     error DLCNotFound();
-    error DLCNotReady();
+    error DLCNotReadyOrPending();
     error DLCNotFunded();
-    error DLCNotClosing();
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
     error ThresholdTooLow(uint16 _minimumThreshold);
@@ -76,8 +85,17 @@ contract DLCManager is
     error InvalidSigner();
     error DuplicateSignature();
     error SignerNotApproved(address signer);
+    error ClosingFundedVault();
 
     error InvalidRange();
+    error NotOwner();
+    error NotWhitelisted();
+    error DepositTooSmall(uint256 deposit, uint256 minimumDeposit);
+    error DepositTooLarge(uint256 deposit, uint256 maximumDeposit);
+    error InsufficientTokenBalance(uint256 balance, uint256 amount);
+    error InsufficientMintedBalance(uint256 minted, uint256 amount);
+    error FeeRateOutOfBounds(uint256 feeRate);
+    error UnderCollateralized(uint256 newValueLocked, uint256 valueMinted);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -88,27 +106,28 @@ contract DLCManager is
         _;
     }
 
-    modifier onlyWhiteListedContracts() {
-        if (!hasRole(WHITELISTED_CONTRACT, msg.sender))
-            revert ContractNotWhitelisted();
-        _;
-    }
-
     modifier onlyApprovedSigners() {
         if (!hasRole(APPROVED_SIGNER, msg.sender)) revert Unauthorized();
         _;
     }
 
-    modifier onlyCreatorContract(bytes32 _uuid) {
-        if (dlcs[dlcIDsByUUID[_uuid]].protocolContract != msg.sender)
-            revert NotCreatorContract();
+    modifier onlyWhitelisted() {
+        if (whitelistingEnabled && !_whitelistedAddresses[msg.sender])
+            revert NotWhitelisted();
+        _;
+    }
+
+    modifier onlyVaultCreator(bytes32 _uuid) {
+        if (dlcs[dlcIDsByUUID[_uuid]].creator != msg.sender) revert NotOwner();
         _;
     }
 
     function initialize(
         address defaultAdmin,
         address dlcAdminRole,
-        uint16 threshold
+        uint16 threshold,
+        DLCBTC tokenContract,
+        string memory btcFeeRecipientToSet
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, defaultAdmin);
         _grantRole(DLC_ADMIN_ROLE, dlcAdminRole);
@@ -118,6 +137,13 @@ contract DLCManager is
         _threshold = threshold;
         _index = 0;
         tssCommitment = 0x0;
+        dlcBTC = tokenContract;
+        minimumDeposit = 1e6; // 0.01 BTC
+        maximumDeposit = 5e8; // 5 BTC
+        whitelistingEnabled = true;
+        btcMintFeeRate = 12; // 0.12% BTC fee for now
+        btcRedeemFeeRate = 15; // 0.15% BTC fee for now
+        btcFeeRecipient = btcFeeRecipientToSet;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -129,21 +155,28 @@ contract DLCManager is
     //                          EVENTS                            //
     ////////////////////////////////////////////////////////////////
 
-    event CreateDLC(
-        bytes32 uuid,
-        uint256 valueLocked,
-        address protocolContract,
-        address creator,
-        uint256 timestamp
-    );
+    event CreateDLC(bytes32 uuid, address creator, uint256 timestamp);
 
-    event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
-
-    event CloseDLC(bytes32 uuid, address sender);
-
-    event PostCloseDLC(bytes32 uuid, string btcTxId, address sender);
+    event SetStatusFunded(bytes32 uuid, string btcTxId, address creator);
+    event SetStatusPending(bytes32 uuid, string btcTxId, address creator);
+    event Withdraw(bytes32 uuid, uint256 amount, address sender);
 
     event SetThreshold(uint16 newThreshold);
+
+    event Mint(address to, uint256 amount);
+
+    event Burn(address from, uint256 amount);
+
+    event WhitelistAddress(address addressToWhitelist);
+    event UnwhitelistAddress(address addressToUnWhitelist);
+    event SetMinimumDeposit(uint256 newMinimumDeposit);
+    event SetMaximumDeposit(uint256 newMaximumDeposit);
+    event SetBtcMintFeeRate(uint256 newBtcMintFeeRate);
+    event SetBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate);
+    event SetBtcFeeRecipient(string btcFeeRecipient);
+    event SetWhitelistingEnabled(bool isWhitelistingEnabled);
+    event NewDLCManagerContract(address newDLCManagerAddress);
+    event TransferTokenContractOwnership(address newOwner);
 
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
@@ -213,29 +246,28 @@ contract DLCManager is
         return false;
     }
 
+    function _mintTokens(address to, uint256 amount) internal {
+        dlcBTC.mint(to, amount);
+        emit Mint(to, amount);
+    }
+
+    function _burnTokens(address from, uint256 amount) internal {
+        dlcBTC.burn(from, amount);
+        emit Burn(from, amount);
+    }
+
     ////////////////////////////////////////////////////////////////
     //                       MAIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
     /**
-     * @notice  Triggers the creation of an Announcement in the Attestor Layer.
-     * @dev     Call this function from a whitelisted protocol-contract.
-     * @param   valueLocked  Value to be locked in the DLC , in Satoshis.
-     * @param   btcFeeRecipient  Bitcoin address that will receive the DLC fees.
-     * @param   btcMintFeeBasisPoints  Basis points of the minting fee.
-     * @param   btcRedeemFeeBasisPoints  Basis points of the redeeming fee.
-     * @return  bytes32  A generated UUID.
+     * @notice  Creates a new vault for the user
+     * @return  bytes32  uuid of the new vault/DLC
      */
-    function createDLC(
-        uint256 valueLocked,
-        string calldata btcFeeRecipient,
-        uint256 btcMintFeeBasisPoints,
-        uint256 btcRedeemFeeBasisPoints
-    )
+    function setupVault()
         external
-        override
-        onlyWhiteListedContracts
         whenNotPaused
+        onlyWhitelisted
         returns (bytes32)
     {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
@@ -243,27 +275,24 @@ contract DLCManager is
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender,
-            valueLocked: valueLocked,
+            valueLocked: 0,
+            valueMinted: 0,
             timestamp: block.timestamp,
             creator: tx.origin,
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
+            wdTxId: "",
             btcFeeRecipient: btcFeeRecipient,
-            btcMintFeeBasisPoints: btcMintFeeBasisPoints,
-            btcRedeemFeeBasisPoints: btcRedeemFeeBasisPoints,
+            btcMintFeeBasisPoints: btcMintFeeRate,
+            btcRedeemFeeBasisPoints: btcRedeemFeeRate,
             taprootPubKey: ""
         });
 
-        emit CreateDLC(
-            _uuid,
-            valueLocked,
-            msg.sender,
-            tx.origin,
-            block.timestamp
-        );
+        emit CreateDLC(_uuid, msg.sender, block.timestamp);
 
         dlcIDsByUUID[_uuid] = _index;
+        userVaults[msg.sender].push(_uuid);
         _index++;
 
         return _uuid;
@@ -275,87 +304,124 @@ contract DLCManager is
      * @param   uuid  UUID of the DLC.
      * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
      * @param   signatures  Signatures of the Attestors.
+     * @param   taprootPubKey  User's Taproot public key involved in the DLC multisig.
+     * @param   newValueLocked  New value locked in the DLC.
      */
     function setStatusFunded(
         bytes32 uuid,
         string calldata btcTxId,
         bytes[] calldata signatures,
-        string calldata taprootPubKey
+        string calldata taprootPubKey,
+        uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "set-status-funded"),
+            abi.encode(uuid, btcTxId, "set-status-funded", newValueLocked),
             signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.READY) revert DLCNotReady();
+        if (
+            dlc.status != DLCLink.DLCStatus.READY &&
+            dlc.status != DLCLink.DLCStatus.AUX_STATE_1
+        ) revert DLCNotReadyOrPending();
+
+        if (newValueLocked < dlc.valueMinted) {
+            // During a withdrawal, a burn should have already happened
+            revert UnderCollateralized(newValueLocked, dlc.valueMinted);
+        }
+
+        uint256 amountToMint = newValueLocked - dlc.valueMinted;
+
+        if (amountToMint > maximumDeposit) {
+            revert DepositTooLarge(amountToMint, maximumDeposit);
+        }
+        // Add this back later when we want a minimum
+        if (amountToMint > 0 && amountToMint < minimumDeposit) {
+            revert DepositTooSmall(amountToMint, minimumDeposit);
+        }
 
         dlc.fundingTxId = btcTxId;
+        dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
         dlc.taprootPubKey = taprootPubKey;
 
-        DLCLinkCompatible(dlc.protocolContract).setStatusFunded(uuid, btcTxId);
+        dlc.valueLocked = newValueLocked;
+        dlc.valueMinted += amountToMint;
 
-        emit SetStatusFunded(uuid, btcTxId, msg.sender);
+        _mintTokens(dlc.creator, amountToMint);
+
+        emit SetStatusFunded(uuid, btcTxId, dlc.creator);
     }
 
     /**
-     * @notice  Triggers the creation of an Attestation.
+     * @notice  Puts the vault into the pending state.
+     * @dev     Called by the Attestor Coordinator.
      * @param   uuid  UUID of the DLC.
+     * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @param   signatures  Signatures of the Attestors
+     * @param   newValueLocked  New value locked in the DLC. For this function this will always be 0
      */
-    function closeDLC(
-        bytes32 uuid
-    ) external onlyCreatorContract(uuid) whenNotPaused {
+    function setStatusPending(
+        bytes32 uuid,
+        string calldata btcTxId,
+        bytes[] calldata signatures,
+        uint256 newValueLocked
+    ) external whenNotPaused onlyApprovedSigners {
+        _attestorMultisigIsValid(
+            abi.encode(
+                uuid,
+                btcTxId,
+                "set-status-redeem-pending",
+                newValueLocked
+            ),
+            signatures
+        );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
-        dlc.status = DLCLink.DLCStatus.CLOSING;
+        dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
+        dlc.wdTxId = btcTxId;
 
-        emit CloseDLC(uuid, msg.sender);
+        emit SetStatusPending(uuid, btcTxId, dlc.creator);
     }
 
     /**
-     * @notice  Triggered after a closing Tx has been confirmed Bitcoin.
-     * @dev     Similarly to setStatusFunded, this is called by the Attestor Coordinator.
-     * @param   uuid  UUID of the DLC.
-     * @param   btcTxId  Closing Bitcoin Tx id.
-     * @param   signatures  Signatures of the Attestors.
+     * @notice  Withdraw the tokens from the vault, essentially a burn
+     * @dev     User must have enough dlcBTC tokens to withdraw the amount specified
+     * @param   uuid  uuid of the vault/DLC
+     * @param   amount  amount of tokens to burn
      */
-    function postCloseDLC(
+    function withdraw(
         bytes32 uuid,
-        string calldata btcTxId,
-        bytes[] calldata signatures
-    ) external whenNotPaused onlyApprovedSigners {
-        _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "post-close-dlc"),
-            signatures
-        );
+        uint256 amount
+    ) external onlyVaultCreator(uuid) whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
+        // Validation checks
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.CLOSING) revert DLCNotClosing();
+        if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
+        if (amount > dlcBTC.balanceOf(dlc.creator))
+            revert InsufficientTokenBalance(
+                dlcBTC.balanceOf(dlc.creator),
+                amount
+            );
+        if (amount > dlc.valueMinted) {
+            revert InsufficientMintedBalance(dlc.valueMinted, amount);
+        }
 
-        dlc.closingTxId = btcTxId;
-        dlc.status = DLCLink.DLCStatus.CLOSED;
-
-        DLCLinkCompatible(dlc.protocolContract).postCloseDLCHandler(
-            uuid,
-            btcTxId
-        );
-
-        emit PostCloseDLC(uuid, btcTxId, msg.sender);
+        dlc.valueMinted -= amount;
+        _burnTokens(dlc.creator, amount);
+        emit Withdraw(uuid, amount, msg.sender);
     }
 
     ////////////////////////////////////////////////////////////////
     //                      VIEW FUNCTIONS                        //
     ////////////////////////////////////////////////////////////////
 
-    function getDLC(
-        bytes32 uuid
-    ) external view override returns (DLCLink.DLC memory) {
+    function getDLC(bytes32 uuid) external view returns (DLCLink.DLC memory) {
         DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[uuid]];
         if (_dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (_dlc.uuid != uuid) revert DLCNotFound();
@@ -390,6 +456,27 @@ contract DLCManager is
         }
 
         return dlcSubset;
+    }
+
+    function getVault(bytes32 uuid) public view returns (DLCLink.DLC memory) {
+        return this.getDLC(uuid);
+    }
+
+    function getAllVaultUUIDsForAddress(
+        address owner
+    ) public view returns (bytes32[] memory) {
+        return userVaults[owner];
+    }
+
+    function getAllVaultsForAddress(
+        address owner
+    ) public view returns (DLCLink.DLC[] memory) {
+        bytes32[] memory uuids = getAllVaultUUIDsForAddress(owner);
+        DLCLink.DLC[] memory vaults = new DLCLink.DLC[](uuids.length);
+        for (uint256 i = 0; i < uuids.length; i++) {
+            vaults[i] = getVault(uuids[i]);
+        }
+        return vaults;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -460,5 +547,123 @@ contract DLCManager is
 
     function setAttestorGroupPubKey(string calldata pubKey) external onlyAdmin {
         attestorGroupPubKey = pubKey;
+    }
+
+    function whitelistAddress(address addressToWhitelist) external onlyAdmin {
+        _whitelistedAddresses[addressToWhitelist] = true;
+        emit WhitelistAddress(addressToWhitelist);
+    }
+
+    function unwhitelistAddress(
+        address addressToUnWhitelist
+    ) external onlyAdmin {
+        _whitelistedAddresses[addressToUnWhitelist] = false;
+        emit UnwhitelistAddress(addressToUnWhitelist);
+    }
+
+    function setMinimumDeposit(uint256 newMinimumDeposit) external onlyAdmin {
+        minimumDeposit = newMinimumDeposit;
+        emit SetMinimumDeposit(newMinimumDeposit);
+    }
+
+    function setMaximumDeposit(uint256 newMaximumDeposit) external onlyAdmin {
+        maximumDeposit = newMaximumDeposit;
+        emit SetMaximumDeposit(newMaximumDeposit);
+    }
+
+    function setBtcMintFeeRate(uint256 newBtcMintFeeRate) external onlyAdmin {
+        if (newBtcMintFeeRate > 10000)
+            revert FeeRateOutOfBounds(newBtcMintFeeRate);
+        btcMintFeeRate = newBtcMintFeeRate;
+        emit SetBtcMintFeeRate(newBtcMintFeeRate);
+    }
+
+    function setBtcRedeemFeeRate(
+        uint256 newBtcRedeemFeeRate
+    ) external onlyAdmin {
+        btcRedeemFeeRate = newBtcRedeemFeeRate;
+        emit SetBtcRedeemFeeRate(newBtcRedeemFeeRate);
+    }
+
+    function setBtcFeeRecipient(
+        string calldata btcFeeRecipientToSet
+    ) external onlyAdmin {
+        btcFeeRecipient = btcFeeRecipientToSet;
+        emit SetBtcFeeRecipient(btcFeeRecipient);
+    }
+
+    function setWhitelistingEnabled(
+        bool isWhitelistingEnabled
+    ) external onlyAdmin {
+        whitelistingEnabled = isWhitelistingEnabled;
+        emit SetWhitelistingEnabled(isWhitelistingEnabled);
+    }
+
+    function transferTokenContractOwnership(
+        address newOwner
+    ) external onlyAdmin {
+        dlcBTC.transferOwnership(newOwner);
+        emit TransferTokenContractOwnership(newOwner);
+    }
+
+    function blacklistOnTokenContract(address account) external onlyAdmin {
+        dlcBTC.blacklist(account);
+    }
+
+    function unblacklistOnTokenContract(address account) external onlyAdmin {
+        dlcBTC.unblacklist(account);
+    }
+
+    function setMinterOnTokenContract(address minter) external onlyAdmin {
+        dlcBTC.setMinter(minter);
+    }
+
+    function setBurnerOnTokenContract(address burner) external onlyAdmin {
+        dlcBTC.setBurner(burner);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    //                    MIGRATION FUNCTIONS                     //
+    ////////////////////////////////////////////////////////////////
+    function setUserVaultUUIDs(
+        address user,
+        bytes32[] calldata uuids
+    ) external onlyAdmin {
+        userVaults[user] = uuids;
+    }
+
+    function importData(
+        DLCBTC _dlcBTC,
+        string calldata _btcFeeRecipient,
+        uint256 _minimumDeposit,
+        uint256 _maximumDeposit,
+        uint256 _btcMintFeeRate,
+        uint256 _btcRedeemFeeRate,
+        bool _whitelistingEnabled
+    ) external onlyAdmin {
+        dlcBTC = _dlcBTC;
+        btcFeeRecipient = _btcFeeRecipient;
+        minimumDeposit = _minimumDeposit;
+        maximumDeposit = _maximumDeposit;
+        btcMintFeeRate = _btcMintFeeRate;
+        btcRedeemFeeRate = _btcRedeemFeeRate;
+        whitelistingEnabled = _whitelistingEnabled;
+    }
+
+    // Temporary migration functions to bring old vaults up to speed with withdraw PR
+    function setValueMinted(
+        bytes32 uuid,
+        uint256 valueMinted
+    ) external onlyAdmin {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        dlc.valueMinted = valueMinted;
+    }
+
+    function setValueLocked(
+        bytes32 uuid,
+        uint256 valueLocked
+    ) external onlyAdmin {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        dlc.valueLocked = valueLocked;
     }
 }

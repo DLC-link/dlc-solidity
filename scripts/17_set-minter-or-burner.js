@@ -1,6 +1,6 @@
 const {
-    callTokenManagerFunction,
-} = require('./helpers/10-call-token-manager-fn');
+    callManagerContractFunction,
+} = require('./helpers/00-call-dlc-manager-fn');
 
 async function setMinterOrBurner(minterOrBurner, address) {
     let functionToCall;
@@ -11,7 +11,7 @@ async function setMinterOrBurner(minterOrBurner, address) {
     } else {
         throw new Error('Invalid minterOrBurner argument');
     }
-    await callTokenManagerFunction(functionToCall, [address]);
+    await callManagerContractFunction(functionToCall, [address]);
 }
 
 module.exports = setMinterOrBurner;

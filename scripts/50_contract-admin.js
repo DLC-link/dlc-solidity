@@ -241,6 +241,8 @@ module.exports = async function contractAdmin() {
 
             break;
         }
+        // NOTE: TODO: This will be useful for one time, while we transfer from the old TokenManager
+        // After that this will change to transfering from the DLCManager, if ever
         case 'transfer-dlcbtc': {
             const dlcBTCAddress = await loadContractAddress('DLCBTC', network);
             const dlcBTC = await hardhat.ethers.getContractAt(

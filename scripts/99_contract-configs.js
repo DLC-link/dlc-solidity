@@ -5,8 +5,6 @@ const {
     deploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 const { promptUser, loadContractAddress } = require('./helpers/utils');
-const getChainLinkBTCPriceFeedAddress = require('./helpers/chainlink-pricefeed-addresses');
-const { registerProtocol } = require('./00-grant-role-on-manager');
 
 // This is a pure function that just logs
 async function beforeDeployment(contractName, constructorArguments, network) {
@@ -43,41 +41,6 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
 
     return [
         {
-            name: 'DLCManager',
-            deployer: deployer.address,
-            upgradeable: true,
-            requirements: [],
-            deploy: async (requirementAddresses) => {
-                const defaultAdmin = dlcAdminSafes.critical;
-                const dlcAdmin = dlcAdminSafes.medium;
-                await beforeDeployment(
-                    'DLCManager',
-                    `defaultAdmin: ${defaultAdmin}, dlcAdminRole: ${dlcAdmin}, threshold: ${threshold}`,
-                    network
-                );
-                const DLCManager =
-                    await hardhat.ethers.getContractFactory('DLCManager');
-                const dlcManager = await hardhat.upgrades.deployProxy(
-                    DLCManager,
-                    [defaultAdmin, dlcAdmin, threshold]
-                );
-                await dlcManager.deployed();
-
-                await afterDeployment('DLCManager', dlcManager);
-
-                return dlcManager.address;
-            },
-            verify: async () => {
-                const address = await loadContractAddress(
-                    'DlcManager',
-                    network
-                );
-                await hardhat.run('verify:verify', {
-                    address: address,
-                });
-            },
-        },
-        {
             name: 'DLCBTC',
             deployer: deployer.address,
             upgradeable: true,
@@ -102,43 +65,40 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
             },
         },
         {
-            name: 'TokenManager',
+            name: 'DLCManager',
             deployer: deployer.address,
             upgradeable: true,
-            requirements: ['DLCBTC', 'DLCManager'],
+            requirements: ['DLCBTC'],
             deploy: async (requirementAddresses) => {
                 const defaultAdmin = dlcAdminSafes.critical;
                 const dlcAdmin = dlcAdminSafes.medium;
                 const DLCBTCAddress = requirementAddresses['DLCBTC'];
                 if (!DLCBTCAddress)
                     throw new Error('DLCBTC deployment not found.');
-                const DLCManagerAddress = requirementAddresses['DLCManager'];
-                if (!DLCManagerAddress)
-                    throw new Error('DLCManager deployment not found.');
-
                 await beforeDeployment(
-                    'TokenManager',
-                    `defaultAdmin: ${defaultAdmin}, _adminAddress: ${dlcAdmin}, _dlcManager: ${DLCManagerAddress}, _dlcBtc: ${DLCBTCAddress}, _btcFeeRecipient: ${btcFeeRecipient}`,
+                    'DLCManager',
+                    `defaultAdmin: ${defaultAdmin}, \
+                    dlcAdminRole: ${dlcAdmin}, \
+                    threshold: ${threshold}, \
+                    tokenContract: ${DLCBTCAddress}, \
+                    btcFeeRecipient: ${btcFeeRecipient}`,
                     network
                 );
-
-                const TokenManager = await hardhat.ethers.getContractFactory(
-                    'TokenManager',
-                    deployer
-                );
-                const tokenManager = await hardhat.upgrades.deployProxy(
-                    TokenManager,
+                const DLCManager =
+                    await hardhat.ethers.getContractFactory('DLCManager');
+                const dlcManager = await hardhat.upgrades.deployProxy(
+                    DLCManager,
                     [
                         defaultAdmin,
                         dlcAdmin,
-                        DLCManagerAddress,
+                        threshold,
                         DLCBTCAddress,
                         btcFeeRecipient,
                     ]
                 );
-                await tokenManager.deployed();
+                await dlcManager.deployed();
 
-                await afterDeployment('TokenManager', tokenManager);
+                await afterDeployment('DLCManager', dlcManager);
 
                 const dlcBtc = await hardhat.ethers.getContractAt(
                     'DLCBTC',
@@ -149,49 +109,48 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                     chalk.bgYellow('Current DLCBTC owner:', currentOwner)
                 );
 
-                const shouldTransferOwnership = await promptUser(
-                    `Would you like to transfer ownership of DLCBTC contract to ${tokenManager.address}?`
-                );
-                if (shouldTransferOwnership) {
-                    if (currentOwner === deployer.address) {
-                        console.log(
-                            'DLCBTC is owned by deployer, transferring ownership...'
-                        );
-                        const tx = await dlcBtc
-                            .connect(deployer)
-                            .transferOwnership(tokenManager.address);
-                        await tx.wait();
-                    } else {
-                        const oldTokenManager =
-                            await hardhat.ethers.getContractAt(
-                                'TokenManager',
-                                currentOwner
+                if (currentOwner === dlcManager.address) {
+                    console.log(
+                        'DLCBTC is already owned by DLCManager, skipping transfer...'
+                    );
+                } else {
+                    const shouldTransferOwnership = await promptUser(
+                        `Would you like to transfer ownership of DLCBTC contract to ${dlcManager.address}?`
+                    );
+                    if (shouldTransferOwnership) {
+                        if (currentOwner === deployer.address) {
+                            console.log(
+                                'DLCBTC is owned by deployer, transferring ownership...'
                             );
-                        const tx = await oldTokenManager
-                            .connect(deployer)
-                            .transferTokenContractOwnership(
-                                tokenManager.address
-                            );
-                        const receipt = await tx.wait();
-                        console.log(receipt);
+                            const tx = await dlcBtc
+                                .connect(deployer)
+                                .transferOwnership(dlcManager.address);
+                            await tx.wait();
+                        } else {
+                            const oldDlcManager =
+                                await hardhat.ethers.getContractAt(
+                                    'DLCManager',
+                                    currentOwner
+                                );
+                            const tx = await oldDlcManager
+                                .connect(deployer)
+                                .transferTokenContractOwnership(
+                                    dlcManager.address
+                                );
+                            const receipt = await tx.wait();
+                            console.log(receipt);
+                        }
+
+                        const newOwner = await dlcBtc.owner();
+                        console.log('New DLCBTC Owner:', newOwner);
                     }
-
-                    const newOwner = await dlcBtc.owner();
-                    console.log('New DLCBTC Owner:', newOwner);
                 }
 
-                const shouldRegisterProtocol = await promptUser(
-                    `Would you like to register TokenManager @ ${tokenManager.address} on DLCManager @ ${DLCManagerAddress}?`
-                );
-                if (shouldRegisterProtocol) {
-                    await registerProtocol(tokenManager.address);
-                }
-
-                return tokenManager.address;
+                return dlcManager.address;
             },
             verify: async () => {
                 const address = await loadContractAddress(
-                    'TokenManager',
+                    'DlcManager',
                     network
                 );
                 await hardhat.run('verify:verify', {

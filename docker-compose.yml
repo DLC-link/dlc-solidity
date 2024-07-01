@@ -1,8 +1,8 @@
 services:
-  hardhat:
-    container_name: hardhat
-    build: .
-    ports:
-      - "8545:8545"
-    volumes:
-      - ../dlc-attestor-stack/attestor/observer/contracts:/app/dlc-solidity/deploymentFiles
+    hardhat:
+        container_name: hardhat
+        build: .
+        ports:
+            - '8545:8545'
+        volumes:
+            - ../dlc-attestor-stack/attestor/observer/contracts:/app/dlc-solidity/deploymentFiles

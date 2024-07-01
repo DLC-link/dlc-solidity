@@ -7,9 +7,6 @@ const version = require('../package.json').version;
 const hardhat = require('hardhat');
 
 // DLCManager
-const createV1 = require('./01-create-dlc');
-const closeV1 = require('./02-close-dlc');
-const setStatusFunded = require('./03-set-status-funded');
 const {
     grantRoleOnManager,
     registerProtocol,
@@ -24,16 +21,15 @@ const { pauseManager, unpauseManager } = require('./04-pausability-manager');
 const setThreshold = require('./07-set-threshold');
 const setTSSCommitment = require('./08-set-tss-commitment');
 const setAttestorGroupPubKey = require('./09-set-attestor-gpk');
-
-// TokenManager
 const whitelistAccount = require('./10_whitelist-account');
 const unwhitelistAccount = require('./11_unwhitelist-account');
-const tokenManagerSetupVault = require('./12_setup-vault');
+const dlcManagerSetupVault = require('./12_setup-vault');
 const whitelistingEnabled = require('./13_set-whitelisting');
 const setBtcFeeRecipient = require('./14_set-btc-fee-recipient');
 const setBTCFee = require('./15_set-btc-fee');
 const setDepositLimit = require('./16_set-deposit-limit');
 const setMinterOrBurner = require('./17_set-minter-or-burner');
+const withdraw = require('./18_withdraw');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -149,73 +145,61 @@ async function main() {
 
     program
         .command('whitelist-account')
-        .description('[token-man] whitelist an account')
+        .description('[admin] whitelist an account')
         .argument('<addressToWhitelist>', 'address to whitelist')
         .action(whitelistAccount);
 
     program
         .command('unwhitelist-account')
-        .description('[token-man] unwhitelist an account')
+        .description('[admin] unwhitelist an account')
         .argument('<addressToUnWhitelist>', 'address to unwhitelist')
         .action(unwhitelistAccount);
 
     program
         .command('setup-vault')
-        .description('[token-man] setup a vault')
+        .description('[admin] setup a vault')
         .argument('[btcDeposit]', 'amount of BTC to deposit in sats', 1000000)
-        .action(tokenManagerSetupVault);
+        .action(dlcManagerSetupVault);
 
     program
         .command('set-whitelisting')
-        .description('[token-man] set whitelisting')
+        .description('[admin] set whitelisting')
         .argument('<whitelistingEnabled>', 'whitelisting enabled')
         .action(whitelistingEnabled);
 
     program
         .command('set-btc-fee-recipient')
-        .description('[token-man] set BTC fee recipient')
+        .description('[admin] set BTC fee recipient')
         .argument('<btcFeeRecipient>', 'BTC fee recipient')
         .action(setBtcFeeRecipient);
 
     program
         .command('set-btc-fee-rate')
-        .description('[token-man] set BTC fee rate')
+        .description('[admin] set BTC fee rate')
         .argument('<mintOrBurn>', 'mint or burn')
         .argument('<newFee>', 'new fee')
         .action(setBTCFee);
 
     program
         .command('set-deposit-limit')
-        .description('[token-man] set Min/Max deposit limit')
+        .description('[admin] set Min/Max deposit limit')
         .argument('<minOrMax>', 'min or max')
         .argument('<newLimit>', 'new limit')
         .action(setDepositLimit);
 
     program
         .command('set-minter-or-burner')
-        .description('[token-man] set minter or burner')
+        .description('[admin] set minter or burner')
         .argument('<minterOrBurner>', 'minter or burner')
         .argument('<address>', 'address')
         .action(setMinterOrBurner);
 
     program
-        .command('create-dlc')
-        .description('[test] create a DLC')
-        .argument('[attestorCount]', 'number of attestors', 1)
-        .action(createV1);
-
-    program
-        .command('close-dlc')
-        .description('[test] close a DLC')
-        .argument('<uuid>', 'uuid of DLC to close')
-        .argument('[outcome]', 'outcome of DLC', 7890)
-        .action(closeV1);
-
-    program
-        .command('set-status-funded')
-        .description('[test] set status to funded for uuid')
-        .argument('<uuid>', 'uuid of DLC')
-        .action(setStatusFunded);
+        .command('withdraw')
+        .description('[token-man] withdraw some amount')
+        .argument('<uuid>', 'UUID of vault')
+        .argument('<amount>', 'amount to withdraw')
+        .action(withdraw);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
