@@ -78,7 +78,6 @@ contract DLCManager is
     error DLCNotReadyOrPending();
     error DLCNotFunded();
 
-
     error ThresholdMinimumReached(uint16 _minimumThreshold);
     error ThresholdTooLow(uint16 _minimumThreshold);
     error Unauthorized();
@@ -157,11 +156,7 @@ contract DLCManager is
     //                          EVENTS                            //
     ////////////////////////////////////////////////////////////////
 
-    event CreateDLC(
-        bytes32 uuid,
-        address creator,
-        uint256 timestamp
-    );
+    event CreateDLC(bytes32 uuid, address creator, uint256 timestamp);
 
     event SetStatusFunded(bytes32 uuid, string btcTxId, address sender);
     event SetStatusPending(bytes32 uuid, string btcTxId, address sender);
@@ -270,7 +265,12 @@ contract DLCManager is
      * @notice  Creates a new vault for the user
      * @return  bytes32  uuid of the new vault/DLC
      */
-    function setupVault() external whenNotPaused onlyWhitelisted returns (bytes32) {
+    function setupVault()
+        external
+        whenNotPaused
+        onlyWhitelisted
+        returns (bytes32)
+    {
         bytes32 _uuid = _generateUUID(tx.origin, _index);
 
         dlcs[_index] = DLCLink.DLC({
@@ -324,7 +324,7 @@ contract DLCManager is
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (
             dlc.status != DLCLink.DLCStatus.READY &&
-            dlc.status != DLCLink.DLCStatus.PENDING
+            dlc.status != DLCLink.DLCStatus.AUX_STATE_1
         ) revert DLCNotReadyOrPending();
 
         if (newValueLocked < dlc.valueMinted) {
@@ -382,11 +382,9 @@ contract DLCManager is
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (
-            dlc.status != DLCLink.DLCStatus.FUNDED
-        ) revert DLCNotFunded();
+        if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
-        dlc.status = DLCLink.DLCStatus.PENDING;
+        dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
         dlc.wdTxId = btcTxId;
 
         emit SetStatusPending(uuid, btcTxId, msg.sender);
@@ -398,7 +396,10 @@ contract DLCManager is
      * @param   uuid  uuid of the vault/DLC
      * @param   amount  amount of tokens to burn
      */
-    function withdraw(bytes32 uuid, uint256 amount) external onlyOwner(uuid) whenNotPaused {
+    function withdraw(
+        bytes32 uuid,
+        uint256 amount
+    ) external onlyOwner(uuid) whenNotPaused {
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         // Validation checks
@@ -650,4 +651,7 @@ contract DLCManager is
         btcRedeemFeeRate = _btcRedeemFeeRate;
         whitelistingEnabled = _whitelistingEnabled;
     }
+
+    // TODO:
+    // setAmountMinted on the existing vaults
 }
