@@ -78,6 +78,16 @@ module.exports = {
                 deployerKey,
             ],
         },
+        base: {
+            url: `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            chainId: 8453,
+            accounts: [
+                deployerKey,
+                process.env['KEY2'],
+                process.env['KEY3'],
+                deployerKey,
+            ],
+        },
     },
     etherscan: {
         apiKey: {
@@ -85,6 +95,7 @@ module.exports = {
             arbsepolia: process.env['ARBISCAN_API_KEY'],
             mainnet: process.env['ETHERSCAN_API_KEY'],
             optimism: process.env['OPTISCAN_API_KEY'],
+            base: process.env['BASESCAN_API_KEY'],
         },
         customChains: [
             {
@@ -117,6 +128,14 @@ module.exports = {
                 urls: {
                     apiURL: `https://api-optimistic.etherscan.io/api?apikey=${process.env.OPTISCAN_API_KEY}`,
                     browserURL: 'https://optimistic.etherscan.io/',
+                },
+            },
+            {
+                network: 'base',
+                chainId: 8453,
+                urls: {
+                    apiURL: `https://api.basescan.org/api?apikey=${process.env.BASESCAN_API_KEY}`,
+                    browserURL: 'https://basescan.org/',
                 },
             },
         ],
