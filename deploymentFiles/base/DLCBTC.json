@@ -1,10 +1,10 @@
 {
   "network": "base",
-  "updatedAt": "2024-07-02T14:42:38.721Z",
-  "gitSHA": "d00bb00",
+  "updatedAt": "2024-07-02T15:08:58.790Z",
+  "gitSHA": "f213373",
   "contract": {
     "name": "DLCBTC",
-    "address": "0x20157DBAbb84e3BBFE68C349d0d44E48AE7B5AD2",
+    "address": "0x12418783e860997eb99e8aCf682DF952F721cF62",
     "signerAddress": "0x9506Ea24038609679732855F757041a3C1C06623",
     "abi": [
       "constructor()",
