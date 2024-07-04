@@ -359,7 +359,7 @@ contract DLCManager is
         dlc.taprootPubKey = taprootPubKey;
 
         dlc.valueLocked = newValueLocked;
-        dlc.valueMinted += amountToMint;
+        dlc.valueMinted = newValueLocked;
 
         _mintTokens(dlc.creator, amountToMint);
 
