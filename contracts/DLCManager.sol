@@ -377,20 +377,20 @@ contract DLCManager is
      * @notice  Puts the vault into the pending state.
      * @dev     Called by the Attestor Coordinator.
      * @param   uuid  UUID of the DLC.
-     * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @param   wdTxId  DLC Withdrawal Transaction ID on the Bitcoin blockchain.
      * @param   signatures  Signatures of the Attestors
      * @param   newValueLocked  New value locked in the DLC. For this function this will always be 0
      */
     function setStatusPending(
         bytes32 uuid,
-        string calldata btcTxId,
+        string calldata wdTxId,
         bytes[] calldata signatures,
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
             abi.encode(
                 uuid,
-                btcTxId,
+                wdTxId,
                 "set-status-redeem-pending",
                 newValueLocked
             ),
@@ -402,9 +402,9 @@ contract DLCManager is
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
         dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
-        dlc.wdTxId = btcTxId;
+        dlc.wdTxId = wdTxId;
 
-        emit SetStatusPending(uuid, btcTxId, dlc.creator, newValueLocked);
+        emit SetStatusPending(uuid, wdTxId, dlc.creator, newValueLocked);
     }
 
     /**
