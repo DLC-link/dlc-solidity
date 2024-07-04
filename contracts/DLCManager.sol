@@ -662,11 +662,17 @@ contract DLCManager is
     ) external onlyAdmin {
         dlcBTC = _dlcBTC;
         btcFeeRecipient = _btcFeeRecipient;
+        emit SetBtcFeeRecipient(_btcFeeRecipient);
         minimumDeposit = _minimumDeposit;
+        emit SetMinimumDeposit(_minimumDeposit);
         maximumDeposit = _maximumDeposit;
+        emit SetMaximumDeposit(_maximumDeposit);
         btcMintFeeRate = _btcMintFeeRate;
+        emit SetBtcMintFeeRate(_btcMintFeeRate);
         btcRedeemFeeRate = _btcRedeemFeeRate;
+        emit SetBtcRedeemFeeRate(_btcRedeemFeeRate);
         whitelistingEnabled = _whitelistingEnabled;
+        emit SetWhitelistingEnabled(_whitelistingEnabled);
     }
 
     // Temporary migration functions to bring old vaults up to speed with withdraw PR
