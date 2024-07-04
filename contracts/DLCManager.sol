@@ -348,7 +348,7 @@ contract DLCManager is
         if (amountToMint > maximumDeposit) {
             revert DepositTooLarge(amountToMint, maximumDeposit);
         }
-        // Add this back later when we want a minimum
+
         if (amountToMint > 0 && amountToMint < minimumDeposit) {
             revert DepositTooSmall(amountToMint, minimumDeposit);
         }
@@ -440,7 +440,7 @@ contract DLCManager is
     //                      VIEW FUNCTIONS                        //
     ////////////////////////////////////////////////////////////////
 
-    function getDLC(bytes32 uuid) external view returns (DLCLink.DLC memory) {
+    function getDLC(bytes32 uuid) public view returns (DLCLink.DLC memory) {
         DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[uuid]];
         if (_dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (_dlc.uuid != uuid) revert DLCNotFound();
@@ -478,7 +478,7 @@ contract DLCManager is
     }
 
     function getVault(bytes32 uuid) public view returns (DLCLink.DLC memory) {
-        return this.getDLC(uuid);
+        return getDLC(uuid);
     }
 
     function getAllVaultUUIDsForAddress(
