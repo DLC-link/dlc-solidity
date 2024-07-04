@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV2V3Interface.sol';
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 
 /**
  * @title MockV3Aggregator
@@ -96,6 +96,6 @@ contract MockV3Aggregator is AggregatorV2V3Interface {
     }
 
     function description() external pure override returns (string memory) {
-        return 'v0.6/tests/MockV3Aggregator.sol';
+        return "v0.6/tests/MockV3Aggregator.sol";
     }
 }

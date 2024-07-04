@@ -164,7 +164,7 @@ COINMARKETCAP_API_KEY=
 # Report gas usage after test run (optional) boolean
 REPORT_GAS=
 # SAFE key signer (optional)
-KEY_FOR_SAFE=
+SCRIPT_KEY=
 
 ```
 

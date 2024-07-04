@@ -19,4 +19,12 @@ module.exports = DLCAdminSafeAddresses = {
         medium: '0x442691Af617ce33878b0864501Ab74161870856f',
         critical: '0x207d1Bb4e1162Fa97E8117552fefB250653Aaee7',
     },
+    optimism: {
+        medium: '0x69a74Da7b00e750CC5dB06e0667e628a2aDdc91C',
+        critical: '0xD984C23bE2C0Fa9b5054Bd4C848B53c53f60924e',
+    },
+    base: {
+        medium: '0xDEb3288Dc58a85F32ebDD713594491d57727a615',
+        critical: '0x548c8bf99A294FF057563557e0879f60ffd3690d',
+    },
 };

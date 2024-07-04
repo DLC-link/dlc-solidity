@@ -3,7 +3,6 @@
 require('@nomicfoundation/hardhat-toolbox');
 require('@openzeppelin/hardhat-upgrades');
 require('@nomiclabs/hardhat-solhint');
-require('solidity-coverage');
 require('dotenv').config();
 
 const arbitrumURL = process.env.ARB_NODE_ADDR ?? 'https://arb1.arbitrum.io/rpc';
@@ -11,9 +10,7 @@ const arbSepoliaURL =
     process.env.ARB_SEPOLIA_NODE_ADDR ??
     'https://sepolia-rollup.arbitrum.io/rpc';
 
-const arbDeployerKey = process.env.ARB_DEPLOYER ?? process.env.KEY;
-const keyForSafe = process.env.KEY_FOR_SAFE ?? process.env.KEY;
-
+const deployerKey = process.env.SCRIPT_KEY ?? process.env.KEY;
 module.exports = {
     defaultNetwork: 'hardhat',
     solidity: {
@@ -35,10 +32,10 @@ module.exports = {
         mainnet: {
             url: `https://mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
             accounts: [
-                arbDeployerKey,
+                deployerKey,
                 process.env['KEY2'],
                 process.env['KEY3'],
-                keyForSafe,
+                deployerKey,
             ],
         },
         sepolia: {
@@ -47,7 +44,7 @@ module.exports = {
                 process.env['KEY'],
                 process.env['KEY2'],
                 process.env['KEY3'],
-                keyForSafe,
+                deployerKey,
             ],
         },
         arbsepolia: {
@@ -57,17 +54,37 @@ module.exports = {
                 process.env['KEY'],
                 process.env['KEY2'],
                 process.env['KEY3'],
-                keyForSafe,
+                deployerKey,
             ],
         },
         arbitrum: {
             url: arbitrumURL,
             chainId: 42161,
             accounts: [
-                arbDeployerKey,
+                deployerKey,
                 process.env['KEY2'],
                 process.env['KEY3'],
-                keyForSafe,
+                deployerKey,
+            ],
+        },
+        optimism: {
+            url: `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+            chainId: 10,
+            accounts: [
+                deployerKey,
+                process.env['KEY2'],
+                process.env['KEY3'],
+                deployerKey,
+            ],
+        },
+        base: {
+            url: `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            chainId: 8453,
+            accounts: [
+                deployerKey,
+                process.env['KEY2'],
+                process.env['KEY3'],
+                deployerKey,
             ],
         },
     },
@@ -76,6 +93,8 @@ module.exports = {
             arbitrum: process.env['ARBISCAN_API_KEY'],
             arbsepolia: process.env['ARBISCAN_API_KEY'],
             mainnet: process.env['ETHERSCAN_API_KEY'],
+            optimism: process.env['OPTISCAN_API_KEY'],
+            base: process.env['BASESCAN_API_KEY'],
         },
         customChains: [
             {
@@ -100,6 +119,22 @@ module.exports = {
                 urls: {
                     apiURL: `https://api.etherscan.io/api?apikey=${process.env.ETHERSCAN_API_KEY}`,
                     browserURL: 'https://etherscan.io',
+                },
+            },
+            {
+                network: 'optimism',
+                chainId: 10,
+                urls: {
+                    apiURL: `https://api-optimistic.etherscan.io/api?apikey=${process.env.OPTISCAN_API_KEY}`,
+                    browserURL: 'https://optimistic.etherscan.io/',
+                },
+            },
+            {
+                network: 'base',
+                chainId: 8453,
+                urls: {
+                    apiURL: `https://api.basescan.org/api?apikey=${process.env.BASESCAN_API_KEY}`,
+                    browserURL: 'https://basescan.org/',
                 },
             },
         ],

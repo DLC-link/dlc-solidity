@@ -30,7 +30,9 @@ async function saveDeploymentInfo(info, filename = undefined) {
     }
     console.log(`Writing deployment info to ${filename}`);
     const content = JSON.stringify(info, null, 2) + '\n';
+    const dir = filename.substring(0, filename.lastIndexOf('/'));
     try {
+        await fs.mkdir(dir, { recursive: true }); // Create the directory path if it doesn't exist
         await fs.writeFile(filename, content, { encoding: 'utf-8' });
     } catch (e) {
         console.error(`Error writing deployment info to ${filename}: ${e}`);
