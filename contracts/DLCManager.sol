@@ -118,7 +118,7 @@ contract DLCManager is
     }
 
     modifier onlyVaultCreator(bytes32 _uuid) {
-        if (dlcs[dlcIDsByUUID[_uuid]].creator != msg.sender) revert NotOwner();
+        if (dlcs[dlcIDsByUUID[_uuid]].creator != tx.origin) revert NotOwner();
         _;
     }
 
@@ -157,8 +157,20 @@ contract DLCManager is
 
     event CreateDLC(bytes32 uuid, address creator, uint256 timestamp);
 
-    event SetStatusFunded(bytes32 uuid, string btcTxId, address creator);
-    event SetStatusPending(bytes32 uuid, string btcTxId, address creator);
+    event SetStatusFunded(
+        bytes32 uuid,
+        string btcTxId,
+        address creator,
+        string taprootPubKey,
+        uint256 newValueLocked,
+        uint256 amountToMint
+    );
+    event SetStatusPending(
+        bytes32 uuid,
+        string btcTxId,
+        address creator,
+        uint256 newValueLocked
+    );
     event Withdraw(bytes32 uuid, uint256 amount, address sender);
 
     event SetThreshold(uint16 newThreshold);
@@ -274,7 +286,7 @@ contract DLCManager is
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
-            protocolContract: msg.sender,
+            protocolContract: msg.sender, // deprecated
             valueLocked: 0,
             valueMinted: 0,
             timestamp: block.timestamp,
@@ -289,10 +301,10 @@ contract DLCManager is
             taprootPubKey: ""
         });
 
-        emit CreateDLC(_uuid, msg.sender, block.timestamp);
+        emit CreateDLC(_uuid, tx.origin, block.timestamp);
 
         dlcIDsByUUID[_uuid] = _index;
-        userVaults[msg.sender].push(_uuid);
+        userVaults[tx.origin].push(_uuid);
         _index++;
 
         return _uuid;
@@ -336,7 +348,7 @@ contract DLCManager is
         if (amountToMint > maximumDeposit) {
             revert DepositTooLarge(amountToMint, maximumDeposit);
         }
-        // Add this back later when we want a minimum
+
         if (amountToMint > 0 && amountToMint < minimumDeposit) {
             revert DepositTooSmall(amountToMint, minimumDeposit);
         }
@@ -347,31 +359,38 @@ contract DLCManager is
         dlc.taprootPubKey = taprootPubKey;
 
         dlc.valueLocked = newValueLocked;
-        dlc.valueMinted += amountToMint;
+        dlc.valueMinted = newValueLocked;
 
         _mintTokens(dlc.creator, amountToMint);
 
-        emit SetStatusFunded(uuid, btcTxId, dlc.creator);
+        emit SetStatusFunded(
+            uuid,
+            btcTxId,
+            dlc.creator,
+            taprootPubKey,
+            newValueLocked,
+            amountToMint
+        );
     }
 
     /**
      * @notice  Puts the vault into the pending state.
      * @dev     Called by the Attestor Coordinator.
      * @param   uuid  UUID of the DLC.
-     * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
+     * @param   wdTxId  DLC Withdrawal Transaction ID on the Bitcoin blockchain.
      * @param   signatures  Signatures of the Attestors
      * @param   newValueLocked  New value locked in the DLC. For this function this will always be 0
      */
     function setStatusPending(
         bytes32 uuid,
-        string calldata btcTxId,
+        string calldata wdTxId,
         bytes[] calldata signatures,
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
             abi.encode(
                 uuid,
-                btcTxId,
+                wdTxId,
                 "set-status-redeem-pending",
                 newValueLocked
             ),
@@ -383,9 +402,9 @@ contract DLCManager is
         if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
 
         dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
-        dlc.wdTxId = btcTxId;
+        dlc.wdTxId = wdTxId;
 
-        emit SetStatusPending(uuid, btcTxId, dlc.creator);
+        emit SetStatusPending(uuid, wdTxId, dlc.creator, newValueLocked);
     }
 
     /**
@@ -421,7 +440,7 @@ contract DLCManager is
     //                      VIEW FUNCTIONS                        //
     ////////////////////////////////////////////////////////////////
 
-    function getDLC(bytes32 uuid) external view returns (DLCLink.DLC memory) {
+    function getDLC(bytes32 uuid) public view returns (DLCLink.DLC memory) {
         DLCLink.DLC memory _dlc = dlcs[dlcIDsByUUID[uuid]];
         if (_dlc.uuid == bytes32(0)) revert DLCNotFound();
         if (_dlc.uuid != uuid) revert DLCNotFound();
@@ -459,7 +478,7 @@ contract DLCManager is
     }
 
     function getVault(bytes32 uuid) public view returns (DLCLink.DLC memory) {
-        return this.getDLC(uuid);
+        return getDLC(uuid);
     }
 
     function getAllVaultUUIDsForAddress(
@@ -643,11 +662,17 @@ contract DLCManager is
     ) external onlyAdmin {
         dlcBTC = _dlcBTC;
         btcFeeRecipient = _btcFeeRecipient;
+        emit SetBtcFeeRecipient(_btcFeeRecipient);
         minimumDeposit = _minimumDeposit;
+        emit SetMinimumDeposit(_minimumDeposit);
         maximumDeposit = _maximumDeposit;
+        emit SetMaximumDeposit(_maximumDeposit);
         btcMintFeeRate = _btcMintFeeRate;
+        emit SetBtcMintFeeRate(_btcMintFeeRate);
         btcRedeemFeeRate = _btcRedeemFeeRate;
+        emit SetBtcRedeemFeeRate(_btcRedeemFeeRate);
         whitelistingEnabled = _whitelistingEnabled;
+        emit SetWhitelistingEnabled(_whitelistingEnabled);
     }
 
     // Temporary migration functions to bring old vaults up to speed with withdraw PR
