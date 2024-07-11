@@ -1,7 +1,7 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-07-10T14:10:05.524Z",
-  "gitSHA": "72f76ad",
+  "updatedAt": "2024-07-11T11:44:29.251Z",
+  "gitSHA": "ab30e2b",
   "contract": {
     "name": "DLCManager",
     "address": "0xE8FA6399d1b60968f04888F23Ed13Ed499C1Fd51",
@@ -92,6 +92,7 @@
       "function hasRole(bytes32 role, address account) view returns (bool)",
       "function importData(address _dlcBTC, string _btcFeeRecipient, uint256 _minimumDeposit, uint256 _maximumDeposit, uint256 _btcMintFeeRate, uint256 _btcRedeemFeeRate, bool _whitelistingEnabled)",
       "function initialize(address defaultAdmin, address dlcAdminRole, uint16 threshold, address tokenContract, string btcFeeRecipientToSet)",
+      "function isWhitelisted(address account) view returns (bool)",
       "function maximumDeposit() view returns (uint256)",
       "function minimumDeposit() view returns (uint256)",
       "function owner() view returns (address)",
