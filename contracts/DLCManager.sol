@@ -498,6 +498,22 @@ contract DLCManager is
         return vaults;
     }
 
+    function isWhitelisted(address account) external view returns (bool) {
+        return _whitelistedAddresses[account];
+    }
+
+    function getThreshold() external view returns (uint16) {
+        return _threshold;
+    }
+
+    function getMinimumThreshold() external view returns (uint16) {
+        return _minimumThreshold;
+    }
+
+    function getSignerCount() external view returns (uint16) {
+        return _signerCount;
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -541,23 +557,11 @@ contract DLCManager is
         _unpause();
     }
 
-    function getThreshold() external view onlyAdmin returns (uint16) {
-        return _threshold;
-    }
-
     function setThreshold(uint16 newThreshold) external onlyAdmin {
         if (newThreshold < _minimumThreshold)
             revert ThresholdTooLow(_minimumThreshold);
         _threshold = newThreshold;
         emit SetThreshold(newThreshold);
-    }
-
-    function getMinimumThreshold() external view onlyAdmin returns (uint16) {
-        return _minimumThreshold;
-    }
-
-    function getSignerCount() external view onlyAdmin returns (uint16) {
-        return _signerCount;
     }
 
     function setTSSCommitment(bytes32 commitment) external onlyAdmin {
