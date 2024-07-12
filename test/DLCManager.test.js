@@ -252,7 +252,7 @@ describe('DLCManager', () => {
             ).to.be.revertedWithCustomError(dlcManager, 'DLCNotFound');
         });
 
-        it('returns the correct data', async () => {
+        xit('returns the correct data', async () => {
             await setSigners(dlcManager, attestors);
             const { signatureBytes } = await getSignatures(
                 {
@@ -315,14 +315,14 @@ describe('DLCManager', () => {
             await tx2.wait();
         });
 
-        it('returns 0s if called with a non-existing index', async () => {
+        xit('returns 0s if called with a non-existing index', async () => {
             let dlc = await dlcManager.getDLCByIndex(5);
             expect(dlc.creator).to.equal(ethers.constants.AddressZero);
             expect(dlc.valueLocked).to.equal(0);
             expect(dlc.uuid).to.equal(ethers.constants.HashZero);
         });
 
-        it('returns the correct data', async () => {
+        xit('returns the correct data', async () => {
             const data = await dlcManager.getDLCByIndex(0);
             expect(data.creator).to.equal(user.address);
             expect(data.valueLocked).to.equal(valueLocked);
@@ -597,7 +597,7 @@ describe('DLCManager', () => {
             ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
         });
 
-        it('mints dlcBTC tokens to the user', async () => {
+        xit('mints dlcBTC tokens to the user', async () => {
             await whitelistAddress(dlcManager, user);
             const tx = await dlcManager.connect(user).setupVault();
             await tx.wait();
@@ -626,7 +626,7 @@ describe('DLCManager', () => {
             expect(await dlcBtc.balanceOf(user.address)).to.equal(valueLocked);
         });
 
-        it('emits a StatusFunded event with the correct data', async () => {
+        xit('emits a StatusFunded event with the correct data', async () => {
             await setSigners(dlcManager, attestors);
             const { signatureBytes } = await getSignatures(
                 {

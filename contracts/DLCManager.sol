@@ -75,7 +75,8 @@ contract DLCManager is
     error ContractNotWhitelisted();
     error NotCreatorContract();
     error DLCNotFound();
-    error DLCNotReadyOrPending();
+    error DLCNotPending();
+    error DLCNotReadyOrFunded();
     error DLCNotFunded();
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
@@ -333,10 +334,7 @@ contract DLCManager is
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (
-            dlc.status != DLCLink.DLCStatus.READY &&
-            dlc.status != DLCLink.DLCStatus.AUX_STATE_1
-        ) revert DLCNotReadyOrPending();
+        if (dlc.status != DLCLink.DLCStatus.AUX_STATE_1) revert DLCNotPending();
 
         if (newValueLocked < dlc.valueMinted) {
             // During a withdrawal, a burn should have already happened
@@ -399,7 +397,10 @@ contract DLCManager is
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
+        if (
+            dlc.status != DLCLink.DLCStatus.READY &&
+            dlc.status != DLCLink.DLCStatus.FUNDED
+        ) revert DLCNotReadyOrFunded();
 
         dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
         dlc.wdTxId = wdTxId;
