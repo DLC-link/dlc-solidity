@@ -4,6 +4,8 @@ const hardhat = require('hardhat');
 const crypto = require('crypto');
 
 const { getSignatures, setSigners } = require('./utils');
+const { get } = require('http');
+const exp = require('constants');
 
 async function whitelistAddress(dlcManager, user) {
     await dlcManager.whitelistAddress(user.address);
@@ -686,6 +688,344 @@ describe('DLCManager', () => {
             expect(event.event).to.equal('SetStatusFunded');
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.btcTxId).to.equal(btcTxId);
+        });
+    });
+
+    describe('Withdraw', async () => {
+        let uuid;
+        beforeEach(async () => {
+            await whitelistAddress(dlcManager, user);
+
+            const tx = await dlcManager.connect(user).setupVault();
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+
+            await setSigners(dlcManager, attestors);
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-redeem-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(uuid, btcTxId, signatureBytesForPending, 0);
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+            const tx3 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForFunding,
+                    mockTaprootPubkey,
+                    valueLocked
+                );
+            await tx3.wait();
+        });
+
+        it('should be able to withdraw (burn) half the locked tokens', async () => {
+            const tx = await dlcManager
+                .connect(user)
+                .withdraw(uuid, valueLocked / 2);
+            const getDlcTx = await dlcManager.getDLC(uuid);
+
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+                valueLocked / 2
+            );
+            expect(getDlcTx.valueMinted).to.equal(valueLocked / 2);
+
+            // but we haven't redeemed the btc yet
+            expect(getDlcTx.valueLocked).to.equal(valueLocked);
+        });
+
+        it('should be able to redeem bitcoin in the amount you did the withdraw', async () => {
+            const tx = await dlcManager
+                .connect(user)
+                .withdraw(uuid, valueLocked / 2);
+
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-redeem-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(uuid, btcTxId, signatureBytesForPending, 0);
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked / 2,
+                },
+                attestors,
+                3
+            );
+            const tx3 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForFunding,
+                    mockTaprootPubkey,
+                    valueLocked / 2
+                );
+            await tx3.wait();
+
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+                valueLocked / 2
+            );
+
+            const getDlcTx = await dlcManager.getDLC(uuid);
+            expect(getDlcTx.valueLocked).to.equal(valueLocked / 2);
+            expect(getDlcTx.valueMinted).to.equal(valueLocked / 2);
+        });
+
+        it('should throw an error if you try to redeem more bitcoin than you burned', async () => {
+            const tx = await dlcManager
+                .connect(user)
+                .withdraw(uuid, valueLocked / 2);
+
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-redeem-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(uuid, btcTxId, signatureBytesForPending, 0);
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked / 2 - 1,
+                },
+                attestors,
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        signatureBytesForFunding,
+                        mockTaprootPubkey,
+                        valueLocked / 2 - 1
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'UnderCollateralized');
+        });
+
+        it('should throw an error if you try to call setStatusFunded with too low a number', async () => {
+            const tx = await dlcManager
+                .connect(user)
+                .withdraw(uuid, valueLocked - 1);
+
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-redeem-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(uuid, btcTxId, signatureBytesForPending, 0);
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked - 1,
+                },
+                attestors,
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        signatureBytesForFunding,
+                        mockTaprootPubkey,
+                        valueLocked - 1
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DepositTooSmall');
+        });
+    });
+
+    describe('Deposit', async () => {
+        let uuid;
+        beforeEach(async () => {
+            await whitelistAddress(dlcManager, user);
+
+            const tx = await dlcManager.connect(user).setupVault();
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+
+            await setSigners(dlcManager, attestors);
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-redeem-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(uuid, btcTxId, signatureBytesForPending, 0);
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+            const tx3 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForFunding,
+                    mockTaprootPubkey,
+                    valueLocked
+                );
+            await tx3.wait();
+        });
+
+        it('should be able to deposit more bitcoin', async () => {
+            const lockedAmountAfterDeposit = valueLocked + valueLocked / 2;
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-redeem-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(uuid, btcTxId, signatureBytesForPending, 0);
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: lockedAmountAfterDeposit,
+                },
+                attestors,
+                3
+            );
+            const tx3 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForFunding,
+                    mockTaprootPubkey,
+                    lockedAmountAfterDeposit
+                );
+            await tx3.wait();
+
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+                lockedAmountAfterDeposit
+            );
+
+            const getDlcTx = await dlcManager.getDLC(uuid);
+            expect(getDlcTx.valueLocked).to.equal(lockedAmountAfterDeposit);
+            expect(getDlcTx.valueMinted).to.equal(lockedAmountAfterDeposit);
+        });
+
+        it('should throw an error if you try to despoit more bitcoin than allowed', async () => {
+            const lockedAmountAfterDeposit = valueLocked * 100;
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-redeem-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(uuid, btcTxId, signatureBytesForPending, 0);
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: lockedAmountAfterDeposit,
+                },
+                attestors,
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        signatureBytesForFunding,
+                        mockTaprootPubkey,
+                        lockedAmountAfterDeposit
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DepositTooLarge');
         });
     });
 });

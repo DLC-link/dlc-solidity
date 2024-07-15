@@ -341,16 +341,20 @@ contract DLCManager is
             revert UnderCollateralized(newValueLocked, dlc.valueMinted);
         }
 
+        uint256 amountToLockDiff;
+        if (newValueLocked > dlc.valueLocked) {
+            amountToLockDiff = newValueLocked - dlc.valueLocked;
+        } else {
+            amountToLockDiff = dlc.valueLocked - newValueLocked;
+        }
+        if (amountToLockDiff > maximumDeposit) {
+            revert DepositTooLarge(amountToLockDiff, maximumDeposit);
+        }
+        if (amountToLockDiff < minimumDeposit) {
+            revert DepositTooSmall(amountToLockDiff, minimumDeposit);
+        }
+
         uint256 amountToMint = newValueLocked - dlc.valueMinted;
-
-        if (amountToMint > maximumDeposit) {
-            revert DepositTooLarge(amountToMint, maximumDeposit);
-        }
-
-        if (amountToMint > 0 && amountToMint < minimumDeposit) {
-            revert DepositTooSmall(amountToMint, minimumDeposit);
-        }
-
         dlc.fundingTxId = btcTxId;
         dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
