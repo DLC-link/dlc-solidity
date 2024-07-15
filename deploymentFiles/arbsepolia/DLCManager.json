@@ -1,7 +1,7 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-07-11T11:44:29.251Z",
-  "gitSHA": "ab30e2b",
+  "updatedAt": "2024-07-15T15:09:23.623Z",
+  "gitSHA": "13f76b6",
   "contract": {
     "name": "DLCManager",
     "address": "0xE8FA6399d1b60968f04888F23Ed13Ed499C1Fd51",
@@ -12,7 +12,8 @@
       "error ContractNotWhitelisted()",
       "error DLCNotFound()",
       "error DLCNotFunded()",
-      "error DLCNotReadyOrPending()",
+      "error DLCNotPending()",
+      "error DLCNotReadyOrFunded()",
       "error DepositTooLarge(uint256 deposit, uint256 maximumDeposit)",
       "error DepositTooSmall(uint256 deposit, uint256 minimumDeposit)",
       "error DuplicateSignature()",

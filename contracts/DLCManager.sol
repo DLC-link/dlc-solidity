@@ -75,7 +75,8 @@ contract DLCManager is
     error ContractNotWhitelisted();
     error NotCreatorContract();
     error DLCNotFound();
-    error DLCNotReadyOrPending();
+    error DLCNotPending();
+    error DLCNotReadyOrFunded();
     error DLCNotFunded();
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
@@ -333,24 +334,25 @@ contract DLCManager is
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (
-            dlc.status != DLCLink.DLCStatus.READY &&
-            dlc.status != DLCLink.DLCStatus.AUX_STATE_1
-        ) revert DLCNotReadyOrPending();
+        if (dlc.status != DLCLink.DLCStatus.AUX_STATE_1) revert DLCNotPending();
 
         if (newValueLocked < dlc.valueMinted) {
             // During a withdrawal, a burn should have already happened
             revert UnderCollateralized(newValueLocked, dlc.valueMinted);
         }
-
         uint256 amountToMint = newValueLocked - dlc.valueMinted;
 
-        if (amountToMint > maximumDeposit) {
-            revert DepositTooLarge(amountToMint, maximumDeposit);
+        uint256 amountToLockDiff;
+        if (newValueLocked > dlc.valueLocked) {
+            amountToLockDiff = newValueLocked - dlc.valueLocked;
+        } else {
+            amountToLockDiff = dlc.valueLocked - newValueLocked;
         }
-
-        if (amountToMint > 0 && amountToMint < minimumDeposit) {
-            revert DepositTooSmall(amountToMint, minimumDeposit);
+        if (amountToLockDiff > maximumDeposit) {
+            revert DepositTooLarge(amountToLockDiff, maximumDeposit);
+        }
+        if (amountToLockDiff < minimumDeposit) {
+            revert DepositTooSmall(amountToLockDiff, minimumDeposit);
         }
 
         dlc.fundingTxId = btcTxId;
@@ -388,18 +390,16 @@ contract DLCManager is
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(
-                uuid,
-                wdTxId,
-                "set-status-redeem-pending",
-                newValueLocked
-            ),
+            abi.encode(uuid, wdTxId, "set-status-pending", newValueLocked),
             signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
         if (dlc.uuid == bytes32(0)) revert DLCNotFound();
-        if (dlc.status != DLCLink.DLCStatus.FUNDED) revert DLCNotFunded();
+        if (
+            dlc.status != DLCLink.DLCStatus.READY &&
+            dlc.status != DLCLink.DLCStatus.FUNDED
+        ) revert DLCNotReadyOrFunded();
 
         dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
         dlc.wdTxId = wdTxId;

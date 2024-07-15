@@ -21,7 +21,7 @@ async function getSignatures(message, attestors, numberOfSignatures) {
         signatureBytes.push(ethers.utils.arrayify(sig));
     }
     // Convert signatures from strings to bytes
-    return { signatureBytes };
+    return signatureBytes;
 }
 
 async function setSigners(dlcManager, attestors) {
