@@ -390,12 +390,7 @@ contract DLCManager is
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(
-                uuid,
-                wdTxId,
-                "set-status-redeem-pending",
-                newValueLocked
-            ),
+            abi.encode(uuid, wdTxId, "set-status-pending", newValueLocked),
             signatures
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];

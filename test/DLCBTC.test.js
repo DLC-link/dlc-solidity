@@ -123,7 +123,7 @@ describe('DLCBTC', function () {
                 {
                     uuid: _uuid,
                     btcTxId: mockBTCTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -193,7 +193,7 @@ describe('DLCBTC', function () {
                 {
                     uuid: _uuid,
                     btcTxId: mockBTCTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,

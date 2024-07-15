@@ -258,7 +258,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -311,7 +311,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -373,7 +373,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -705,7 +705,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -762,7 +762,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -812,7 +812,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -855,7 +855,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -906,7 +906,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -945,7 +945,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
@@ -992,7 +992,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'set-status-redeem-pending',
+                    functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
