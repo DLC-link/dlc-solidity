@@ -254,7 +254,7 @@ describe('DLCManager', () => {
 
         xit('returns the correct data', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -293,7 +293,7 @@ describe('DLCManager', () => {
             uuid = decodedEvent.args.uuid;
 
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -343,7 +343,7 @@ describe('DLCManager', () => {
 
         it('reverts if called without enough signatures', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -368,7 +368,7 @@ describe('DLCManager', () => {
 
         it('reverts if contains non-approved signer', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -394,7 +394,7 @@ describe('DLCManager', () => {
 
         it('reverts if signature is for other function', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -420,7 +420,7 @@ describe('DLCManager', () => {
 
         xit('reverts if DLC is not in the right state', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -472,7 +472,7 @@ describe('DLCManager', () => {
             await setSigners(dlcManager, attestors);
             const wrongUUID =
                 '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid: wrongUUID,
                     btcTxId,
@@ -499,7 +499,7 @@ describe('DLCManager', () => {
             await setSigners(dlcManager, attestors);
             const wrongBtcTxId =
                 '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId: wrongBtcTxId,
@@ -524,7 +524,7 @@ describe('DLCManager', () => {
 
         it('reverts if signatures are not unique', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -549,7 +549,7 @@ describe('DLCManager', () => {
 
         it('reverts if deposit is too large', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -574,7 +574,7 @@ describe('DLCManager', () => {
 
         it('reverts if deposit is too small', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -603,7 +603,7 @@ describe('DLCManager', () => {
             await tx.wait();
 
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -628,7 +628,7 @@ describe('DLCManager', () => {
 
         xit('emits a StatusFunded event with the correct data', async () => {
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId,
@@ -672,7 +672,7 @@ describe('DLCManager', () => {
             uuid = decodedEvent.args.uuid;
 
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 { uuid, btcTxId, functionString: 'set-status-funded' },
                 attestors,
                 3
@@ -746,7 +746,7 @@ describe('DLCManager', () => {
             uuid = decodedEvent.args.uuid;
 
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 { uuid, btcTxId, functionString: 'set-status-funded' },
                 attestors,
                 3
@@ -771,7 +771,7 @@ describe('DLCManager', () => {
             const decodedEvent = dlcManager.interface.parseLog(event);
             const newUuid = decodedEvent.args.uuid;
 
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid: newUuid,
                     btcTxId: closingBtcTxId,
@@ -788,7 +788,7 @@ describe('DLCManager', () => {
         });
 
         it('reverts if called without enough signatures', async () => {
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId: closingBtcTxId,
@@ -805,7 +805,7 @@ describe('DLCManager', () => {
         });
 
         xit('reverts if contains non-approved signer', async () => {
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId: closingBtcTxId,
@@ -825,7 +825,7 @@ describe('DLCManager', () => {
         it('reverts if attestors sign a different UUID', async () => {
             const wrongUUID =
                 '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid: wrongUUID,
                     btcTxId: closingBtcTxId,
@@ -842,7 +842,7 @@ describe('DLCManager', () => {
         });
 
         it('emits a PostCloseDLC event with the correct data', async () => {
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid,
                     btcTxId: closingBtcTxId,

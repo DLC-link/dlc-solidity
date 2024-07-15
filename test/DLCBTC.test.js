@@ -111,7 +111,7 @@ describe('DLCBTC', function () {
             ).to.be.revertedWith('Ownable: caller is not the owner');
         });
 
-        xit('dlcManager can mint tokens', async () => {
+        it('dlcManager can mint tokens', async () => {
             const existingBalance = await dlcBtc.balanceOf(user.address);
             await dlcManager.connect(deployer).whitelistAddress(user.address);
             const tx = await dlcManager.connect(user).setupVault();
@@ -119,17 +119,17 @@ describe('DLCBTC', function () {
             const _uuid = await receipt.events[0].args.uuid;
 
             await setSigners(dlcManager, attestors);
-            const { signatureBytesForPending } = await getSignatures(
+            const signatureBytesForPending = await getSignatures(
                 {
                     uuid: _uuid,
                     btcTxId: mockBTCTxId,
-                    functionString: 'set-status-pending',
+                    functionString: 'set-status-redeem-pending',
                     newLockedAmount: 0,
                 },
                 attestors,
                 3
             );
-            const { signatureBytesForFunding } = await getSignatures(
+            const signatureBytesForFunding = await getSignatures(
                 {
                     uuid: _uuid,
                     btcTxId: mockBTCTxId,
@@ -189,7 +189,7 @@ describe('DLCBTC', function () {
             const _uuid = await receipt.events[0].args.uuid;
 
             await setSigners(dlcManager, attestors);
-            const { signatureBytes } = await getSignatures(
+            const signatureBytes = await getSignatures(
                 {
                     uuid: _uuid,
                     btcTxId: mockBTCTxId,
