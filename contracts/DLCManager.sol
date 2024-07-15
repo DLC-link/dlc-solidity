@@ -340,6 +340,7 @@ contract DLCManager is
             // During a withdrawal, a burn should have already happened
             revert UnderCollateralized(newValueLocked, dlc.valueMinted);
         }
+        uint256 amountToMint = newValueLocked - dlc.valueMinted;
 
         uint256 amountToLockDiff;
         if (newValueLocked > dlc.valueLocked) {
@@ -354,7 +355,6 @@ contract DLCManager is
             revert DepositTooSmall(amountToLockDiff, minimumDeposit);
         }
 
-        uint256 amountToMint = newValueLocked - dlc.valueMinted;
         dlc.fundingTxId = btcTxId;
         dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;

@@ -4,8 +4,6 @@ const hardhat = require('hardhat');
 const crypto = require('crypto');
 
 const { getSignatures, setSigners } = require('./utils');
-const { get } = require('http');
-const exp = require('constants');
 
 async function whitelistAddress(dlcManager, user) {
     await dlcManager.whitelistAddress(user.address);
