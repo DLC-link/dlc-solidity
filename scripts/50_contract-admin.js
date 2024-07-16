@@ -21,6 +21,7 @@ module.exports = async function contractAdmin() {
     if (!dlcAdminSafes) throw new Error('DLC Admin Safe address not found.');
 
     const contractConfigs = getContractConfigs({
+        networkName: network,
         deployer,
         dlcAdminSafes,
     });

@@ -19,13 +19,13 @@ async function beforeDeployment(contractName, constructorArguments, network) {
 
 // This is an effectful function that saves deployment info
 // contractName will be used as the key in the deployment info!
-async function afterDeployment(contractName, contractObject) {
+async function afterDeployment(contractName, contractObject, networkName) {
     console.log(
-        `Deployed contract ${contractName} to ${contractObject.address}`
+        `Deployed contract ${contractName} to ${contractObject.address} on ${networkName}`
     );
     try {
         await saveDeploymentInfo(
-            deploymentInfo(hardhat, contractObject, contractName)
+            deploymentInfo(networkName, contractObject, contractName)
         );
     } catch (error) {
         console.error(error);
@@ -33,8 +33,7 @@ async function afterDeployment(contractName, contractObject) {
 }
 
 module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
-    const network = hardhat.network.name;
-    const { deployer, dlcAdminSafes } = networkConfig;
+    const { deployer, dlcAdminSafes, networkName } = networkConfig;
     const btcFeeRecipient =
         _btcFeeRecipient ?? '0014e60f61fa2f2941217934d5f9976bf27381b3b036';
     const threshold = 2;
@@ -46,19 +45,22 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
             upgradeable: true,
             requirements: [],
             deploy: async (requirementAddresses) => {
-                await beforeDeployment('DLCBTC', '', network);
+                await beforeDeployment('DLCBTC', '', networkName);
 
                 const DLCBTC =
                     await hardhat.ethers.getContractFactory('DLCBTC');
                 const dlcBtc = await hardhat.upgrades.deployProxy(DLCBTC);
                 await dlcBtc.deployed();
 
-                await afterDeployment('DLCBTC', dlcBtc);
+                await afterDeployment('DLCBTC', dlcBtc, networkName);
 
                 return dlcBtc.address;
             },
             verify: async () => {
-                const address = await loadContractAddress('DLCBTC', network);
+                const address = await loadContractAddress(
+                    'DLCBTC',
+                    networkName
+                );
                 await hardhat.run('verify:verify', {
                     address: address,
                 });
@@ -82,7 +84,7 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                     threshold: ${threshold}, \
                     tokenContract: ${DLCBTCAddress}, \
                     btcFeeRecipient: ${btcFeeRecipient}`,
-                    network
+                    networkName
                 );
                 const DLCManager =
                     await hardhat.ethers.getContractFactory('DLCManager');
@@ -98,7 +100,7 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                 );
                 await dlcManager.deployed();
 
-                await afterDeployment('DLCManager', dlcManager);
+                await afterDeployment('DLCManager', dlcManager, networkName);
 
                 const dlcBtc = await hardhat.ethers.getContractAt(
                     'DLCBTC',
@@ -151,7 +153,7 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
             verify: async () => {
                 const address = await loadContractAddress(
                     'DlcManager',
-                    network
+                    networkName
                 );
                 await hardhat.run('verify:verify', {
                     address: address,

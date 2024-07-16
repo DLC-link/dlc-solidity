@@ -9,19 +9,19 @@ const { loadContractAddress } = require('../../scripts/helpers/utils');
 process.env.CLI_MODE = 'noninteractive';
 
 async function main() {
-    const network = hardhat.network.name;
+    const network = process.env.NETWORK_NAME ?? 'localhost';
     const accounts = await hardhat.ethers.getSigners();
     const deployer = accounts[0];
-    const dlcAdminSafes = dlcAdminSafesConfigs[network];
-
-    console.log(network, dlcAdminSafes);
-
-    if (!dlcAdminSafes) throw new Error('DLC Admin Safe address not found.');
+    const dlcAdminSafes = {
+        medium: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+        critical: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+    }; // Hardhat default deployer account
 
     const contractConfigs = getContractConfigs(
         {
             deployer,
             dlcAdminSafes,
+            networkName: network,
         },
         process.env.BTC_FEE_RECIPIENT
     );

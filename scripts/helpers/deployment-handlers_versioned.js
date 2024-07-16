@@ -1,7 +1,7 @@
 const fs = require('fs/promises');
 const { execSync } = require('child_process');
 
-function deploymentInfo(hardhat, contract, contractName) {
+function deploymentInfo(networkName, contract, contractName) {
     let _gitSHA;
     try {
         _gitSHA = execSync('git rev-parse --short HEAD').toString().trim();
@@ -10,7 +10,7 @@ function deploymentInfo(hardhat, contract, contractName) {
     }
 
     const deployInfo = {
-        network: hardhat.network.name,
+        network: networkName,
         updatedAt: new Date().toISOString(),
         gitSHA: _gitSHA,
         contract: {
