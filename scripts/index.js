@@ -209,7 +209,7 @@ async function main() {
 
     console.log(
         'Interacting with network:',
-        chalk.bgYellowBright(hardhat.network.name)
+        chalk.bgYellowBright(process.env.NETWORK_NAME ?? hardhat.network.name)
     );
     await program.parseAsync(process.argv);
 }

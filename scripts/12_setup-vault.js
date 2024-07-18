@@ -8,7 +8,7 @@ async function dlcManagerSetupVault(btcDeposit, hardhat) {
     if (!btcDeposit) btcDeposit = 1000000;
 
     const deployInfo = await loadDeploymentInfo(
-        hardhat.network.name,
+        process.env.NETWORK_NAME ?? hardhat.network.name,
         'DLCManager'
     );
     const accounts = await hardhat.ethers.getSigners();
