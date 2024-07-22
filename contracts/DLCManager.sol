@@ -615,6 +615,14 @@ contract DLCManager is
         emit SetBtcFeeRecipient(btcFeeRecipient);
     }
 
+    function setBtcFeeRecipientForVault(
+        bytes32 uuid,
+        string calldata btcFeeRecipientToSet
+    ) external onlyAdmin {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        dlc.btcFeeRecipient = btcFeeRecipientToSet;
+    }
+
     function setWhitelistingEnabled(
         bool isWhitelistingEnabled
     ) external onlyAdmin {
