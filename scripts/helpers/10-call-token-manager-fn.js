@@ -6,7 +6,7 @@ const dlcAdminSafes = require('./dlc-admin-safes');
 const prompts = require('prompts');
 
 async function callTokenManagerFunction(functionName, args) {
-    const network = hardhat.network.name;
+    const network = process.env.NETWORK_NAME ?? hardhat.network.name;
     console.log('Network', network);
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
@@ -25,7 +25,7 @@ async function callTokenManagerFunction(functionName, args) {
     }
 
     const deployInfo = await loadDeploymentInfo(
-        hardhat.network.name,
+        process.env.NETWORK_NAME ?? hardhat.network.name,
         'TokenManager'
     );
     const contract = new hardhat.ethers.Contract(

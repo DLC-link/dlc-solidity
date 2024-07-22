@@ -12,7 +12,7 @@ async function setTSSCommitment(timestamp) {
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
     const deployInfo = await loadDeploymentInfo(
-        hardhat.network.name,
+        process.env.NETWORK_NAME ?? hardhat.network.name,
         'DLCManager'
     );
     const contract = new hardhat.ethers.Contract(

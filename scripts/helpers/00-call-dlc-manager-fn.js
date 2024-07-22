@@ -8,7 +8,7 @@ const dlcAdminSafes = require('./dlc-admin-safes');
 const prompts = require('prompts');
 
 async function callManagerContractFunction(functionName, args) {
-    const network = hardhat.network.name;
+    const network = process.env.NETWORK_NAME ?? hardhat.network.name;
     console.log('Network', network);
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
@@ -26,10 +26,7 @@ async function callManagerContractFunction(functionName, args) {
         return;
     }
 
-    const deployInfo = await loadDeploymentInfo(
-        hardhat.network.name,
-        'DLCManager'
-    );
+    const deployInfo = await loadDeploymentInfo(network, 'DLCManager');
     const contract = new hardhat.ethers.Contract(
         deployInfo.contract.address,
         deployInfo.contract.abi,
