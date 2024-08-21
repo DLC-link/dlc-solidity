@@ -4,8 +4,8 @@ module.exports = DLCAdminSafeAddresses = {
         critical: process.env.ARB_CRITICAL_SAFE,
     },
     sepolia: {
-        medium: '0x95a8A6f1800540060D76a3831f22CB53972Eea6E',
-        critical: '0x95a8A6f1800540060D76a3831f22CB53972Eea6E',
+        medium: '0x9506Ea24038609679732855F757041a3C1C06623',
+        critical: '0x9506Ea24038609679732855F757041a3C1C06623',
     },
     arbsepolia: {
         medium: '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9',
@@ -26,5 +26,9 @@ module.exports = DLCAdminSafeAddresses = {
     base: {
         medium: '0xDEb3288Dc58a85F32ebDD713594491d57727a615',
         critical: '0x548c8bf99A294FF057563557e0879f60ffd3690d',
+    },
+    basesepolia: {
+        medium: '0x9506Ea24038609679732855F757041a3C1C06623',
+        critical: '0x9506Ea24038609679732855F757041a3C1C06623',
     },
 };

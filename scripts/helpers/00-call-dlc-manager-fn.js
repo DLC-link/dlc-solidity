@@ -12,8 +12,7 @@ async function callManagerContractFunction(functionName, args) {
     console.log('Network', network);
     const accounts = await hardhat.ethers.getSigners();
     const admin = accounts[0];
-    let keyForSafe = accounts[3];
-    if (!keyForSafe) keyForSafe = admin;
+    let keyForSafe = admin;
     const safeAddresses = dlcAdminSafes[network];
 
     console.log('admin address:', admin.address);

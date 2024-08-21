@@ -9,6 +9,12 @@ const arbitrumURL = process.env.ARB_NODE_ADDR ?? 'https://arb1.arbitrum.io/rpc';
 const arbSepoliaURL =
     process.env.ARB_SEPOLIA_NODE_ADDR ??
     'https://sepolia-rollup.arbitrum.io/rpc';
+const baseURL =
+    process.env.BASE_NODE_ADDR ??
+    `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
+const baseSepoliaURL =
+    process.env.BASE_SEPOLIA_NODE_ADDR ??
+    `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 
 const deployerKey = process.env.SCRIPT_KEY ?? process.env.KEY;
 module.exports = {
@@ -23,6 +29,11 @@ module.exports = {
         },
     },
     networks: {
+        // networks have 4 accounts defined.
+        // 0: deployer
+        // 1: some other account
+        // 2: another account
+        // 3: keyForSafe - the key used to sign multisig transactions
         hardhat: {},
         coverage: {
             url: 'http://127.0.0.1:8555',
@@ -40,12 +51,8 @@ module.exports = {
         },
         sepolia: {
             url: `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
-            accounts: [
-                process.env['KEY'],
-                process.env['KEY2'],
-                process.env['KEY3'],
-                deployerKey,
-            ],
+            chainId: 11155111,
+            accounts: [deployerKey],
         },
         arbsepolia: {
             url: arbSepoliaURL,
@@ -78,7 +85,7 @@ module.exports = {
             ],
         },
         base: {
-            url: `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            url: baseURL,
             chainId: 8453,
             accounts: [
                 deployerKey,
@@ -87,14 +94,21 @@ module.exports = {
                 deployerKey,
             ],
         },
+        basesepolia: {
+            url: baseSepoliaURL,
+            chainId: 84532,
+            accounts: [deployerKey],
+        },
     },
     etherscan: {
         apiKey: {
             arbitrum: process.env['ARBISCAN_API_KEY'],
             arbsepolia: process.env['ARBISCAN_API_KEY'],
             mainnet: process.env['ETHERSCAN_API_KEY'],
+            sepolia: process.env['ETHERSCAN_API_KEY'],
             optimism: process.env['OPTISCAN_API_KEY'],
             base: process.env['BASESCAN_API_KEY'],
+            basesepolia: process.env['BASESCAN_API_KEY'],
         },
         customChains: [
             {
@@ -122,6 +136,14 @@ module.exports = {
                 },
             },
             {
+                network: 'sepolia',
+                chainId: 11155111,
+                urls: {
+                    apiURL: `https://api-sepolia.etherscan.io/api?apikey=${process.env.ETHERSCAN_API_KEY}`,
+                    browserURL: 'https://sepolia.etherscan.io',
+                },
+            },
+            {
                 network: 'optimism',
                 chainId: 10,
                 urls: {
@@ -135,6 +157,14 @@ module.exports = {
                 urls: {
                     apiURL: `https://api.basescan.org/api?apikey=${process.env.BASESCAN_API_KEY}`,
                     browserURL: 'https://basescan.org/',
+                },
+            },
+            {
+                network: 'basesepolia',
+                chainId: 84532,
+                urls: {
+                    apiURL: `https://api-sepolia.basescan.org/api?apikey=${process.env.BASESCAN_API_KEY}`,
+                    browserURL: 'https://sepolia.basescan.org/',
                 },
             },
         ],
