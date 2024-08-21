@@ -46,7 +46,7 @@ contract DLCBTC is
     }
 
     function initialize() public initializer {
-        __ERC20_init("dlcBTC", "DLCBTC");
+        __ERC20_init("dlcBTC", "dlcBTC");
         __Ownable_init();
         __ERC20Permit_init("dlcBTC");
     }
@@ -65,6 +65,10 @@ contract DLCBTC is
     // Representing Satoshis
     function decimals() public view virtual override returns (uint8) {
         return 8;
+    }
+
+    function symbol() public view virtual override returns (string memory) {
+        return "dlcBTC";
     }
 
     function mint(address to, uint256 amount) external onlyOwnerOrCCIPMinter {
