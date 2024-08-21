@@ -145,6 +145,7 @@ describe('DLCBTC', function () {
                     _uuid,
                     mockBTCTxId,
                     signatureBytesForPending,
+                    mockTaprootPubkey,
                     0
                 );
             await tx2.wait();
@@ -154,7 +155,6 @@ describe('DLCBTC', function () {
                     _uuid,
                     mockBTCTxId,
                     signatureBytesForFunding,
-                    mockTaprootPubkey,
                     deposit
                 );
             await tx3.wait();
@@ -215,6 +215,7 @@ describe('DLCBTC', function () {
                     _uuid,
                     mockBTCTxId,
                     signatureBytesForPending,
+                    mockTaprootPubkey,
                     0
                 );
             await tx2.wait();
@@ -224,7 +225,6 @@ describe('DLCBTC', function () {
                     _uuid,
                     mockBTCTxId,
                     signatureBytesForFunding,
-                    mockTaprootPubkey,
                     deposit
                 );
             await tx3.wait();
