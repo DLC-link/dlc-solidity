@@ -162,7 +162,6 @@ contract DLCManager is
         bytes32 uuid,
         string btcTxId,
         address creator,
-        string taprootPubKey,
         uint256 newValueLocked,
         uint256 amountToMint
     );
@@ -170,6 +169,7 @@ contract DLCManager is
         bytes32 uuid,
         string btcTxId,
         address creator,
+        string taprootPubKey,
         uint256 newValueLocked
     );
     event Withdraw(bytes32 uuid, uint256 amount, address sender);
@@ -317,14 +317,12 @@ contract DLCManager is
      * @param   uuid  UUID of the DLC.
      * @param   btcTxId  DLC Funding Transaction ID on the Bitcoin blockchain.
      * @param   signatures  Signatures of the Attestors.
-     * @param   taprootPubKey  User's Taproot public key involved in the DLC multisig.
      * @param   newValueLocked  New value locked in the DLC.
      */
     function setStatusFunded(
         bytes32 uuid,
         string calldata btcTxId,
         bytes[] calldata signatures,
-        string calldata taprootPubKey,
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
@@ -358,7 +356,6 @@ contract DLCManager is
         dlc.fundingTxId = btcTxId;
         dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
-        dlc.taprootPubKey = taprootPubKey;
 
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted = newValueLocked;
@@ -369,7 +366,6 @@ contract DLCManager is
             uuid,
             btcTxId,
             dlc.creator,
-            taprootPubKey,
             newValueLocked,
             amountToMint
         );
@@ -381,12 +377,14 @@ contract DLCManager is
      * @param   uuid  UUID of the DLC.
      * @param   wdTxId  DLC Withdrawal Transaction ID on the Bitcoin blockchain.
      * @param   signatures  Signatures of the Attestors
+     * @param   taprootPubKey  User's Taproot public key involved in the DLC multisig.
      * @param   newValueLocked  New value locked in the DLC. For this function this will always be 0
      */
     function setStatusPending(
         bytes32 uuid,
         string calldata wdTxId,
         bytes[] calldata signatures,
+        string calldata taprootPubKey,
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
@@ -403,8 +401,9 @@ contract DLCManager is
 
         dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
         dlc.wdTxId = wdTxId;
+        dlc.taprootPubKey = taprootPubKey;
 
-        emit SetStatusPending(uuid, wdTxId, dlc.creator, newValueLocked);
+        emit SetStatusPending(uuid, wdTxId, dlc.creator, taprootPubKey, newValueLocked);
     }
 
     /**
