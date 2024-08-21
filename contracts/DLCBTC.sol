@@ -95,8 +95,7 @@ contract DLCBTC is
         uint256 amount
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
-        if (blacklisted[from]) revert BlacklistedSender();
-        if (blacklisted[to]) revert BlacklistedRecipient();
+        // TODO: throw errors for blacklisted senders and recipients
     }
 
     function setMinter(address minter) external onlyOwner {

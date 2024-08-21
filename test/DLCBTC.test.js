@@ -12,7 +12,7 @@ const mockTaprootPubkey =
 
 describe('DLCBTC', function () {
     let dlcBtc, dlcManager;
-    let deployer, user, someRandomAccount;
+    let deployer, user, someRandomAccount, CCIPMinter;
     let attestor1, attestor2, attestor3;
     let attestors;
 
@@ -24,6 +24,7 @@ describe('DLCBTC', function () {
         deployer = accounts[0];
         user = accounts[2];
         someRandomAccount = accounts[3];
+        CCIPMinter = accounts[4];
 
         attestor1 = accounts[6];
         attestor2 = accounts[7];
@@ -44,6 +45,7 @@ describe('DLCBTC', function () {
             btcFeeRecipient,
         ]);
         await dlcManager.deployed();
+        await dlcBtc.setMinter(CCIPMinter.address);
     });
 
     it('should deploy', async () => {
@@ -83,6 +85,12 @@ describe('DLCBTC', function () {
         await dlcBtc['mint(address,uint256)'](user.address, deposit);
         await dlcBtc['burn(address,uint256)'](user.address, deposit);
         expect(await dlcBtc.balanceOf(user.address)).to.equal(0);
+    });
+
+    it('CCIPMinter can mint tokens', async () => {
+        // TODO: mint tokens using the CCIPMinter account
+
+        expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
     });
 
     describe('after Ownership transfer', async () => {
