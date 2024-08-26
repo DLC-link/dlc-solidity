@@ -166,21 +166,6 @@ describe('DLCBTC', function () {
             );
         });
 
-        it('dlcManager can blacklist addresses', async () => {
-            await dlcManager.blacklistOnTokenContract(user.address);
-            await expect(
-                dlcBtc
-                    .connect(user)
-                    .transfer(someRandomAccount.address, deposit)
-            ).to.be.revertedWithCustomError(dlcBtc, 'BlacklistedSender');
-
-            await expect(
-                dlcBtc
-                    .connect(someRandomAccount)
-                    .transfer(user.address, deposit)
-            ).to.be.revertedWithCustomError(dlcBtc, 'BlacklistedRecipient');
-        });
-
         it('dlcManager can burn tokens', async () => {
             const existingBalance = await dlcBtc.balanceOf(user.address);
             await dlcManager.connect(deployer).whitelistAddress(user.address);

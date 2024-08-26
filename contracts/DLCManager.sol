@@ -403,7 +403,13 @@ contract DLCManager is
         dlc.wdTxId = wdTxId;
         dlc.taprootPubKey = taprootPubKey;
 
-        emit SetStatusPending(uuid, wdTxId, dlc.creator, taprootPubKey, newValueLocked);
+        emit SetStatusPending(
+            uuid,
+            wdTxId,
+            dlc.creator,
+            taprootPubKey,
+            newValueLocked
+        );
     }
 
     /**
@@ -634,14 +640,6 @@ contract DLCManager is
     ) external onlyAdmin {
         dlcBTC.transferOwnership(newOwner);
         emit TransferTokenContractOwnership(newOwner);
-    }
-
-    function blacklistOnTokenContract(address account) external onlyAdmin {
-        dlcBTC.blacklist(account);
-    }
-
-    function unblacklistOnTokenContract(address account) external onlyAdmin {
-        dlcBTC.unblacklist(account);
     }
 
     function setMinterOnTokenContract(address minter) external onlyAdmin {
