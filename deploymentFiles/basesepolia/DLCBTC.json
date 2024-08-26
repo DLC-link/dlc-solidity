@@ -1,10 +1,10 @@
 {
   "network": "basesepolia",
-  "updatedAt": "2024-08-21T17:54:12.866Z",
-  "gitSHA": "7fccf02",
+  "updatedAt": "2024-08-26T18:30:45.913Z",
+  "gitSHA": "0cd8a2e",
   "contract": {
     "name": "DLCBTC",
-    "address": "0x20157DBAbb84e3BBFE68C349d0d44E48AE7B5AD2",
+    "address": "0x0b0D554D9573bAe1a7556d220847f45182918B28",
     "signerAddress": "0x9506Ea24038609679732855F757041a3C1C06623",
     "abi": [
       "constructor()",

@@ -1,10 +1,10 @@
 {
   "network": "basesepolia",
-  "updatedAt": "2024-08-21T17:54:50.155Z",
-  "gitSHA": "7fccf02",
+  "updatedAt": "2024-08-26T18:31:05.696Z",
+  "gitSHA": "0cd8a2e",
   "contract": {
     "name": "DLCManager",
-    "address": "0x050C24dBf1eEc17babE5fc585F06116A259CC77A",
+    "address": "0x41C0474BBe972B34790c39B416C07E66aEEC0F3C",
     "signerAddress": "0x9506Ea24038609679732855F757041a3C1C06623",
     "abi": [
       "constructor()",
