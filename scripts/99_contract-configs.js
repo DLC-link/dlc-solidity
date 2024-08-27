@@ -72,6 +72,8 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
             upgradeable: true,
             requirements: ['DLCBTC'],
             deploy: async (requirementAddresses) => {
+                // const defaultAdmin = deployer.address;
+                // const dlcAdmin = deployer.address;
                 const defaultAdmin = dlcAdminSafes.critical;
                 const dlcAdmin = dlcAdminSafes.medium;
                 const DLCBTCAddress = requirementAddresses['DLCBTC'];
