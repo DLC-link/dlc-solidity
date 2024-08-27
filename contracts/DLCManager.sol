@@ -156,23 +156,27 @@ contract DLCManager is
     //                          EVENTS                            //
     ////////////////////////////////////////////////////////////////
 
-    event CreateDLC(bytes32 uuid, address creator, uint256 timestamp);
+    event CreateDLC(
+        bytes32 indexed uuid,
+        address indexed creator,
+        uint256 timestamp
+    );
 
     event SetStatusFunded(
-        bytes32 uuid,
-        string btcTxId,
-        address creator,
+        bytes32 indexed uuid,
+        string indexed btcTxId,
+        address indexed creator,
         uint256 newValueLocked,
         uint256 amountToMint
     );
     event SetStatusPending(
-        bytes32 uuid,
-        string btcTxId,
-        address creator,
+        bytes32 indexed uuid,
+        string indexed btcTxId,
+        address indexed creator,
         string taprootPubKey,
         uint256 newValueLocked
     );
-    event Withdraw(bytes32 uuid, uint256 amount, address sender);
+    event Withdraw(bytes32 indexed uuid, uint256 amount, address sender);
 
     event SetThreshold(uint16 newThreshold);
 
@@ -403,7 +407,13 @@ contract DLCManager is
         dlc.wdTxId = wdTxId;
         dlc.taprootPubKey = taprootPubKey;
 
-        emit SetStatusPending(uuid, wdTxId, dlc.creator, taprootPubKey, newValueLocked);
+        emit SetStatusPending(
+            uuid,
+            wdTxId,
+            dlc.creator,
+            taprootPubKey,
+            newValueLocked
+        );
     }
 
     /**
