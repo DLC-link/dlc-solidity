@@ -227,7 +227,7 @@ module.exports = async function contractAdmin() {
                         proxyAddress
                     );
                     await saveDeploymentInfo(
-                        deploymentInfo(hardhat, contractObject, contractName)
+                        deploymentInfo(network, contractObject, contractName)
                     );
                 } catch (error) {
                     console.error(error);
