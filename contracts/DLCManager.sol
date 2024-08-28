@@ -700,4 +700,14 @@ contract DLCManager is
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
         dlc.valueLocked = valueLocked;
     }
+
+    function setClosedVault(bytes32 uuid) external onlyAdmin {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+
+        require(dlc.status == DLCLink.DLCStatus.CLOSED, "Vault not closed");
+
+        dlc.valueLocked = 0;
+        dlc.fundingTxId = dlc.closingTxId;
+        dlc.closingTxId = "";
+    }
 }

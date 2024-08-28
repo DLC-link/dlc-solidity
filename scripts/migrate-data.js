@@ -8,6 +8,7 @@ const {
 const {
     callTokenManagerFunction,
 } = require('./helpers/10-call-token-manager-fn');
+const chalk = require('chalk');
 
 async function main() {
     const accounts = await hardhat.ethers.getSigners();
@@ -51,7 +52,7 @@ async function main() {
     );
 
     const allVaults = await dlcManager.getAllDLCs(0, 10000);
-    // console.log('allVaults:', allVaults);
+    console.log('allVaults:', allVaults);
 
     const _users = [];
     const _uuids = [];
@@ -78,6 +79,7 @@ async function main() {
     console.log('_users:', _users);
     console.log('_uuids:', _uuids);
 
+    console.log(chalk.blue('Select MEDIUM SAFE Account'));
     await callManagerContractFunction('importData', [
         dlcBTC,
         btcFeeRecipient,
@@ -89,16 +91,35 @@ async function main() {
     ]);
 
     // transfer ownership
+    console.log(chalk.blue('Select MEDIUM SAFE Account'));
     await callTokenManagerFunction('transferTokenContractOwnership', [
         dlcManager.address,
     ]);
 
-    // NOTE: TODO:
-    // also add 0x5dd42c5fbf7f784d040c59f1720cdd8c47bbff95, 0xf92893654e38b80dfd9b4a2fb99100dd31ba5e2d (AMBER)
-    // also add 0x14Ee510Ebd4E5273e83Ad88f6cd2dc228BE40D12 (Tokkalabs)
+    // NOTE:
+    // also adding 0x5dd42c5fbf7f784d040c59f1720cdd8c47bbff95, 0xf92893654e38b80dfd9b4a2fb99100dd31ba5e2d (AMBER)
+    // also adding 0x14Ee510Ebd4E5273e83Ad88f6cd2dc228BE40D12 (Tokkalabs)
+
+    console.log(chalk.blue('Select MEDIUM SAFE Account'));
+    await callManagerContractFunction('whitelistAddress', [
+        '0x5dd42c5fbf7f784d040c59f1720cdd8c47bbff95',
+    ]);
+
+    console.log(chalk.blue('Select MEDIUM SAFE Account'));
+    await callManagerContractFunction('whitelistAddress', [
+        '0xf92893654e38b80dfd9b4a2fb99100dd31ba5e2d',
+    ]);
+
+    console.log(chalk.blue('Select MEDIUM SAFE Account'));
+    await callManagerContractFunction('whitelistAddress', [
+        '0x14Ee510Ebd4E5273e83Ad88f6cd2dc228BE40D12',
+    ]);
+
     for (const user of _users) {
+        console.log(chalk.blue('Select MEDIUM SAFE Account'));
         await callManagerContractFunction('whitelistAddress', [user]);
 
+        console.log(chalk.blue('Select MEDIUM SAFE Account'));
         await callManagerContractFunction('setUserVaultUUIDs', [
             user,
             _uuids[_users.indexOf(user)],
@@ -108,15 +129,23 @@ async function main() {
     for (const vault of allVaults) {
         switch (vault.status) {
             case 0:
+                console.log(chalk.blue('Select MEDIUM SAFE Account'));
                 await callManagerContractFunction('setValueLocked', [
                     vault.uuid,
                     0,
                 ]);
                 break;
             case 1:
+                console.log(chalk.blue('Select MEDIUM SAFE Account'));
                 await callManagerContractFunction('setValueMinted', [
                     vault.uuid,
                     vault.valueLocked,
+                ]);
+                break;
+            case 3:
+                console.log(chalk.blue('Select MEDIUM SAFE Account'));
+                await callManagerContractFunction('setClosedVault', [
+                    vault.uuid,
                 ]);
                 break;
             default:

@@ -20,11 +20,6 @@ async function callManagerContractFunction(functionName, args) {
     console.log('safeAddresses:', safeAddresses);
     console.log('functionName:', functionName);
 
-    if (!(await promptUser('Are you sure you want to proceed? (y/n)'))) {
-        console.log('Aborted by user.');
-        return;
-    }
-
     const deployInfo = await loadDeploymentInfo(network, 'DLCManager');
     const contract = new hardhat.ethers.Contract(
         deployInfo.contract.address,
@@ -33,6 +28,12 @@ async function callManagerContractFunction(functionName, args) {
     );
 
     console.log('calling function', functionName, 'with args', args);
+
+    if (!(await promptUser('Are you sure you want to proceed? (y/n)'))) {
+        console.log('Aborted by user.');
+        return;
+    }
+
     if (
         hardhat.network.name === 'localhost' ||
         admin.address == (await contract.defaultAdmin())
