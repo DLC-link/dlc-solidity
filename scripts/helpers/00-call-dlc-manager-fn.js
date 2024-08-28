@@ -36,10 +36,16 @@ async function callManagerContractFunction(functionName, args) {
 
     if (
         hardhat.network.name === 'localhost' ||
-        admin.address == (await contract.defaultAdmin())
+        (await contract.hasRole(
+            hardhat.ethers.utils.id('DLC_ADMIN_ROLE'),
+            admin.address
+        )) ||
+        (await contract.defaultAdmin()) === admin.address
     ) {
         console.log(
-            chalk.bgYellow('admin has DEFAULT_ADMIN_ROLE, calling function...')
+            chalk.bgYellow(
+                'admin has DLC_ADMIN_ROLE or is DEFAULT_ADMIN, calling function...'
+            )
         );
 
         const tx = await contract.connect(admin)[functionName](...args);
@@ -49,7 +55,7 @@ async function callManagerContractFunction(functionName, args) {
     } else {
         console.log(
             chalk.bgYellow(
-                'admin does not have DEFAULT_ADMIN_ROLE, preparing multisig request...'
+                'admin does not have DLC_ADMIN_ROLE or is DEFAULT_ADMIN, preparing multisig request...'
             )
         );
         const response = await prompts({
