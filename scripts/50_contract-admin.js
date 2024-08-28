@@ -233,11 +233,17 @@ module.exports = async function contractAdmin() {
                     console.error(error);
                 }
             } catch (error) {
-                console.log(chalk.bgYellow('Try upgrading from the SAFE'));
-                console.log(
-                    'Dont forget to update the deployment info afterwards'
-                );
                 console.error(error);
+                console.log(chalk.bgYellow('Upgrade through the SAFE!'));
+                console.log(
+                    'Dont forget to update the deployment info afterwards:'
+                );
+                const implObject = await hardhat.ethers.getContractAt(
+                    contractName,
+                    newImplementationAddress
+                );
+                const dI = deploymentInfo(network, implObject, contractName);
+                console.log(dI);
             }
 
             break;

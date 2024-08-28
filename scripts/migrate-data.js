@@ -8,6 +8,7 @@ const {
 const {
     callTokenManagerFunction,
 } = require('./helpers/10-call-token-manager-fn');
+const chalk = require('chalk');
 
 async function main() {
     const accounts = await hardhat.ethers.getSigners();
@@ -51,7 +52,7 @@ async function main() {
     );
 
     const allVaults = await dlcManager.getAllDLCs(0, 10000);
-    // console.log('allVaults:', allVaults);
+    console.log('allVaults:', allVaults);
 
     const _users = [];
     const _uuids = [];
@@ -93,6 +94,22 @@ async function main() {
         dlcManager.address,
     ]);
 
+    // NOTE:
+    // also adding 0x5dd42c5fbf7f784d040c59f1720cdd8c47bbff95, 0xf92893654e38b80dfd9b4a2fb99100dd31ba5e2d (AMBER)
+    // also adding 0x14Ee510Ebd4E5273e83Ad88f6cd2dc228BE40D12 (Tokkalabs)
+
+    await callManagerContractFunction('whitelistAddress', [
+        '0x5dd42c5fbf7f784d040c59f1720cdd8c47bbff95',
+    ]);
+
+    await callManagerContractFunction('whitelistAddress', [
+        '0xf92893654e38b80dfd9b4a2fb99100dd31ba5e2d',
+    ]);
+
+    await callManagerContractFunction('whitelistAddress', [
+        '0x14Ee510Ebd4E5273e83Ad88f6cd2dc228BE40D12',
+    ]);
+
     for (const user of _users) {
         await callManagerContractFunction('whitelistAddress', [user]);
 
@@ -114,6 +131,11 @@ async function main() {
                 await callManagerContractFunction('setValueMinted', [
                     vault.uuid,
                     vault.valueLocked,
+                ]);
+                break;
+            case 3:
+                await callManagerContractFunction('setClosedVault', [
+                    vault.uuid,
                 ]);
                 break;
             default:
