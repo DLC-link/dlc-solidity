@@ -103,6 +103,17 @@ async function main() {
         .action(grantRoleOnManager);
 
     program
+        .command('revoke-role-on-manager')
+        .description('[admin] revoke role on DLCManager')
+        .argument('[role]', 'the role to revoke', 'DLC_ADMIN_ROLE')
+        .argument(
+            '[grantRoleToAddress]',
+            'address to revoke role from',
+            '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9'
+        )
+        .action(grantRoleOnManager);
+
+    program
         .command('register-protocol')
         .description('[admin] register protocol contract')
         .argument('<contractAddress>', 'address of protocol contract')
