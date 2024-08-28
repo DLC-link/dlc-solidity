@@ -2,7 +2,7 @@ Join our Discord server for news and support!
 
 [![Discord Banner](https://discordapp.com/api/guilds/887360470955208745/widget.png?style=banner2)](https://discord.gg/TtzqyfPCvE)
 
-# DLC Solidity
+# dlc-solidity
 
 This repo contains the solidity smart contracts for the DLC.Link infrastructure.
 
@@ -12,7 +12,7 @@ Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) 
 
 A DLC is a contract on Bitcoin that enables users to move/lock Bitcoin conditionally. The possible outcomes of a DLC are predefined and stored by the DLC.Link Attestor Layer. Bitcoin locked in such a way can be represented then on any EVM chain using these smart contracts. The outcome - that is, the value that will be 'attested' to - is supplied by smart contracts too.
 
-This way, any EVM chain can essentially move native Bitcoin in a safe, "bridgeless" way. Ethereum can leverage the power of DLCs and the trustless Attestor Layer that DLC.Link provides.
+This way, any EVM chain can essentially move native Bitcoin in a safe, "bridgeless" way. Ethereum can leverage the power of DLCs and the trust-minimised Attestor Layer that DLC.Link provides.
 
 Learn more about the whole architecture on the documentation site here:
 https://docs.dlc.link/architecture/tech-stack
@@ -72,68 +72,6 @@ npx hardhat node
 ```
 
 Note that properly testing the entire DLC creation flow requires more of the DLC.Link infrastructure running -- but contract-integration can still be tested thoroughly and easily using the [testing framework](https://github.com/DLC-link/dlc-solidity#Testing).
-
-# Getting Started
-
-## Examples
-
-See our [Token Manager contract](./contracts/TokenManager.sol) for an example integration into our core functionality.
-
-## Import and Setup
-
-First import the DLCManager contract, and the interface, and construct an object to interact with it.
-
-```solidity
-import "github.com/dlc-link/dlc-solidity/contracts/DLCManager.sol";
-# Or only the interface:
-# import "github.com/dlc-link/dlc-solidity/contracts/IDLCManager.sol";
-
-import "github.com/dlc-link/dlc-solidity/contracts/DLCLinkCompatible.sol";
-
-// Inherit from DLCLinkCompatible in your contract definition
-contract ProtocolContract is DLCLinkCompatible {
-
-// In your constructor, create your DLCManager instance, pointing to our public contract.
-DLCManager _dlcManager = DLCManager(publcDLCManagerContractAddress);
-```
-
-## Opening a DLC
-
-When you register a DLC with this contract using the `createDLC` function, a DLC object is created with the core information locked for the lifetime of the DLC.
-
-```solidity
-bytes32 dlcUUID = _dlcManager.createDLC(
-            valueLocked       // The amount of BTC to lock
-            btcFeeRecipient,  // The address that will receive the fees
-            btcMintFeeRate,   // The fee rate for minting the DLC
-            btcRedeemFeeRate  // The fee rate for redeeming the DLC
-          );
-```
-
-## Overrides
-
-The following functions can be overridden from the DLCLinkCompatible contract for various DLC functionality.
-
-```solidity
-
-// Overwrite this function to run custom logic when the contract (DLC) on Bitcoin has been funded
-function setStatusFunded(bytes32 uuid, string btcTxId) external;
-
-// Called after successful DLC closing
-function postCloseDLCHandler(bytes32 uuid, string btcTxId) external;
-
-```
-
-## Closing the DLC
-
-Finally, the contract can call close on the DLCManager with the UUID of the contract to create the DLC attestation and close the Bitcoin contract. At this point, the funds will get sent out of the Bitcoin contract and sent back to the user's BTC wallet.
-
-```solidity
- _dlcManager.closeDLC(dlcUUID);
-
- // Overwrite this function to complete the close DLC logic
-function postCloseDLCHandler(bytes32 uuid, string btcTxId) external;
-```
 
 # Contributing
 
