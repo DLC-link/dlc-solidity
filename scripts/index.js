@@ -17,7 +17,12 @@ const {
     revokeRoleOnManager,
     removeSigner,
 } = require('./00-revoke-role-on-manager');
-const { pauseManager, unpauseManager } = require('./04-pausability-manager');
+const {
+    pauseManager,
+    unpauseManager,
+    pauseTokenManager,
+    unpauseTokenManager,
+} = require('./04-pausability-manager');
 const setThreshold = require('./07-set-threshold');
 const setTSSCommitment = require('./08-set-tss-commitment');
 const setAttestorGroupPubKey = require('./09-set-attestor-gpk');
@@ -124,6 +129,16 @@ async function main() {
         .command('unpause-manager')
         .description('[admin] unpause DLCManager')
         .action(unpauseManager);
+
+    program
+        .command('pause-token-manager')
+        .description('[admin] pause TokenManager')
+        .action(pauseTokenManager);
+
+    program
+        .command('unpause-token-manager')
+        .description('[admin] unpause TokenManager')
+        .action(unpauseTokenManager);
 
     program
         .command('set-threshold')

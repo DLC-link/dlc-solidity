@@ -93,6 +93,9 @@ async function main() {
         dlcManager.address,
     ]);
 
+    // NOTE: TODO:
+    // also add 0x5dd42c5fbf7f784d040c59f1720cdd8c47bbff95, 0xf92893654e38b80dfd9b4a2fb99100dd31ba5e2d (AMBER)
+    // also add 0x14Ee510Ebd4E5273e83Ad88f6cd2dc228BE40D12 (Tokkalabs)
     for (const user of _users) {
         await callManagerContractFunction('whitelistAddress', [user]);
 
