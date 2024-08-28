@@ -121,6 +121,7 @@
       "function setValueMinted(bytes32 uuid, uint256 valueMinted)",
       "function setWhitelistingEnabled(bool isWhitelistingEnabled)",
       "function setupVault() returns (bytes32)",
+      "function setClosedVault(bytes32 uuid)",
       "function supportsInterface(bytes4 interfaceId) view returns (bool)",
       "function transferTokenContractOwnership(address newOwner)",
       "function tssCommitment() view returns (bytes32)",
