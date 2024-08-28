@@ -188,7 +188,6 @@ contract DLCManager is
     event SetBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate);
     event SetBtcFeeRecipient(string btcFeeRecipient);
     event SetWhitelistingEnabled(bool isWhitelistingEnabled);
-    event NewDLCManagerContract(address newDLCManagerAddress);
     event TransferTokenContractOwnership(address newOwner);
 
     ////////////////////////////////////////////////////////////////
@@ -648,66 +647,5 @@ contract DLCManager is
 
     function setBurnerOnTokenContract(address burner) external onlyAdmin {
         dlcBTC.setBurner(burner);
-    }
-
-    ////////////////////////////////////////////////////////////////
-    //                    MIGRATION FUNCTIONS                     //
-    ////////////////////////////////////////////////////////////////
-    function setUserVaultUUIDs(
-        address user,
-        bytes32[] calldata uuids
-    ) external onlyAdmin {
-        userVaults[user] = uuids;
-    }
-
-    function importData(
-        DLCBTC _dlcBTC,
-        string calldata _btcFeeRecipient,
-        uint256 _minimumDeposit,
-        uint256 _maximumDeposit,
-        uint256 _btcMintFeeRate,
-        uint256 _btcRedeemFeeRate,
-        bool _whitelistingEnabled
-    ) external onlyAdmin {
-        dlcBTC = _dlcBTC;
-        btcFeeRecipient = _btcFeeRecipient;
-        emit SetBtcFeeRecipient(_btcFeeRecipient);
-        minimumDeposit = _minimumDeposit;
-        emit SetMinimumDeposit(_minimumDeposit);
-        maximumDeposit = _maximumDeposit;
-        emit SetMaximumDeposit(_maximumDeposit);
-        btcMintFeeRate = _btcMintFeeRate;
-        emit SetBtcMintFeeRate(_btcMintFeeRate);
-        btcRedeemFeeRate = _btcRedeemFeeRate;
-        emit SetBtcRedeemFeeRate(_btcRedeemFeeRate);
-        whitelistingEnabled = _whitelistingEnabled;
-        emit SetWhitelistingEnabled(_whitelistingEnabled);
-    }
-
-    // Temporary migration functions to bring old vaults up to speed with withdraw PR
-    function setValueMinted(
-        bytes32 uuid,
-        uint256 valueMinted
-    ) external onlyAdmin {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
-        dlc.valueMinted = valueMinted;
-    }
-
-    function setValueLocked(
-        bytes32 uuid,
-        uint256 valueLocked
-    ) external onlyAdmin {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
-        dlc.valueLocked = valueLocked;
-    }
-
-    function setClosedVault(bytes32 uuid) external onlyAdmin {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
-
-        require(dlc.status == DLCLink.DLCStatus.CLOSED, "Vault not closed");
-
-        dlc.valueLocked = 0;
-        dlc.fundingTxId = dlc.closingTxId;
-        dlc.closingTxId = "";
     }
 }
