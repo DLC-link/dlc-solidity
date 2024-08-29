@@ -295,7 +295,43 @@ module.exports = async function contractAdmin() {
             break;
         }
         case 'transfer-admin': {
-            // this should call the transfer ADMIN role process for a given contract BY THE DEPLOYER.
+            const dlcManagerAddress = await loadContractAddress(
+                'DLCManager',
+                network
+            );
+            const dlcManager = await hardhat.ethers.getContractAt(
+                'DLCManager',
+                dlcManagerAddress
+            );
+            const currentAdmin = await dlcManager.defaultAdmin();
+            console.log(
+                chalk.bgYellow('Current DEFAULT_ADMIN_ROLE:', currentAdmin)
+            );
+            const newAdmin = await prompts({
+                type: 'text',
+                name: 'value',
+                message: 'Enter new DEFAULT_ADMIN_ROLE address',
+            });
+            if (!newAdmin.value) return;
+            if (newAdmin.value != dlcAdminSafes.critical) {
+                if (
+                    (await promptUser(
+                        'Are you sure you want to transfer DEFAULT_ADMIN_ROLE to a non-critical address?'
+                    )) === false
+                )
+                    return;
+            }
+
+            console.log('Transferring ownership of DEFAULT_ADMIN_ROLE...');
+            const txRequest = await dlcManager.beginDefaultAdminTransfer(
+                newAdmin.value
+            );
+            console.log(await txRequest.wait());
+            console.log(
+                'Transferred ownership of DEFAULT_ADMIN_ROLE to:',
+                await dlcManager.defaultAdmin()
+            );
+
             break;
         }
         case 'transfer-proxyadmin': {

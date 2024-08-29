@@ -13,3 +13,14 @@ dlc-link-eth add-signer 0xdf4d8B54dE476B674f1832B95984fFa7e223d47B # PierTwo
 dlc-link-eth set-attestor-gpk 'xpub6C1F2SwADP3TNajQjg2PaniEGpZLvWdMiFP8ChPjQBRWD1XUBeMdE4YkQYvnNhAYGoZKfcQbsRCefserB5DyJM7R9VR6ce6vLrXHVfeqyH3'
 
 dlc-link-eth set-btc-fee-recipient 021b34f36d8487ce3a7a6f0124f58854d561cb52077593d1e86973fac0fea1a8b1
+
+dlc-link-eth set-threshold 4
+
+# dlc-link-eth grant-role-on-manager DLC_ADMIN_ROLE $MEDIUM_MULTISIG
+
+# other todos:
+# - transfer ownership of the proxy admin contract to the DLC.Link multisig
+# - transfer ownership of the dlcBTC contract to the DLCManager (this is automated)
+# - grant DLC_ADMIN_ROLE role to the DLC.Link MEDIUM multisig
+# - renounce DLC_ADMIN_ROLE from the deployer
+# - initiate DEFAULT_ADMIN_ROLE transfer on DLCManager to the DLC.Link CRITICAL multisig
