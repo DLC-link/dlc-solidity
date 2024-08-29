@@ -15,7 +15,13 @@ async function revokeRoleOnManager(role, revokeRoleFromAddress) {
     ]);
 }
 
-module.exports = { revokeRoleOnManager, removeSigner };
+async function renounceRoleOnManager(role) {
+    const roleInBytes = hardhat.ethers.utils.id(role);
+    const address = (await hardhat.ethers.getSigners())[0].address;
+    await callManagerContractFunction('renounceRole', [roleInBytes, address]);
+}
+
+module.exports = { revokeRoleOnManager, removeSigner, renounceRoleOnManager };
 
 if (require.main === module) {
     const role = process.argv[2];

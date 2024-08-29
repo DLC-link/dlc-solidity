@@ -29,11 +29,6 @@ module.exports = {
         },
     },
     networks: {
-        // networks have 4 accounts defined.
-        // 0: deployer
-        // 1: some other account
-        // 2: another account
-        // 3: keyForSafe - the key used to sign multisig transactions
         hardhat: {},
         coverage: {
             url: 'http://127.0.0.1:8555',
@@ -42,12 +37,8 @@ module.exports = {
         },
         mainnet: {
             url: `https://mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
-            accounts: [
-                deployerKey,
-                process.env['KEY2'],
-                process.env['KEY3'],
-                deployerKey,
-            ],
+            chainId: 1,
+            accounts: [deployerKey],
         },
         sepolia: {
             url: `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
@@ -67,32 +58,17 @@ module.exports = {
         arbitrum: {
             url: arbitrumURL,
             chainId: 42161,
-            accounts: [
-                deployerKey,
-                process.env['KEY2'],
-                process.env['KEY3'],
-                deployerKey,
-            ],
+            accounts: [deployerKey],
         },
         optimism: {
             url: `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
             chainId: 10,
-            accounts: [
-                deployerKey,
-                process.env['KEY2'],
-                process.env['KEY3'],
-                deployerKey,
-            ],
+            accounts: [deployerKey],
         },
         base: {
             url: baseURL,
             chainId: 8453,
-            accounts: [
-                deployerKey,
-                process.env['KEY2'],
-                process.env['KEY3'],
-                deployerKey,
-            ],
+            accounts: [deployerKey],
         },
         basesepolia: {
             url: baseSepoliaURL,

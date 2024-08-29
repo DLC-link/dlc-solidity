@@ -16,6 +16,7 @@ const {
 const {
     revokeRoleOnManager,
     removeSigner,
+    renounceRoleOnManager,
 } = require('./00-revoke-role-on-manager');
 const {
     pauseManager,
@@ -94,24 +95,22 @@ async function main() {
     program
         .command('grant-role-on-manager')
         .description('[admin] grant role on DLCManager')
-        .argument('[role]', 'the role to grant', 'DLC_ADMIN_ROLE')
-        .argument(
-            '[grantRoleToAddress]',
-            'the recipient of the role',
-            '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9'
-        )
+        .argument('[role]', 'the role to grant')
+        .argument('[grantRoleToAddress]', 'the recipient of the role')
         .action(grantRoleOnManager);
 
     program
         .command('revoke-role-on-manager')
         .description('[admin] revoke role on DLCManager')
-        .argument('[role]', 'the role to revoke', 'DLC_ADMIN_ROLE')
-        .argument(
-            '[grantRoleToAddress]',
-            'address to revoke role from',
-            '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9'
-        )
-        .action(grantRoleOnManager);
+        .argument('[role]', 'the role to revoke')
+        .argument('[revokeRoleFromAddress]', 'address to revoke role from')
+        .action(revokeRoleOnManager);
+
+    program
+        .command('renounce-role-on-manager')
+        .description('[admin] renounce role on DLCManager')
+        .argument('[role]', 'the role to renounce')
+        .action(renounceRoleOnManager);
 
     program
         .command('register-protocol')
