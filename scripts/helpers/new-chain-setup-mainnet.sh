@@ -24,3 +24,4 @@ dlc-link-eth set-threshold 4
 # - grant DLC_ADMIN_ROLE role to the DLC.Link MEDIUM multisig
 # - renounce DLC_ADMIN_ROLE from the deployer
 # - initiate DEFAULT_ADMIN_ROLE transfer on DLCManager to the DLC.Link CRITICAL multisig
+# - Fund Coordinator with ETH for gas
