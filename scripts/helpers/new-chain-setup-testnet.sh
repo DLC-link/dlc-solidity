@@ -19,5 +19,7 @@ dlc-link-eth set-attestor-gpk 'tpubDDRekL64eJJav32TLhNhG59qra7wAMaei8YMGXNiJE8ks
 
 dlc-link-eth set-btc-fee-recipient 032392b61a5c3b0098774465ad61e429fd892615ff2890f849f8eb237a8a59f3ba
 
+dlc-link-eth set-threshold 4
+
 # Vault setup and print dlcUUID
 # dlc-link-eth setup-vault 1200000 | grep dlcUUID

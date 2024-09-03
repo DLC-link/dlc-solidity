@@ -1,30 +1,25 @@
 {
   "network": "sepolia",
-  "updatedAt": "2024-08-21T18:04:15.793Z",
-  "gitSHA": "492e8fd",
+  "updatedAt": "2024-09-03T08:06:27.402Z",
+  "gitSHA": "0712062",
   "contract": {
     "name": "DLCBTC",
-    "address": "0xeb762Ed11a09E4A394C9c8101f8aeeaf5382ED74",
+    "address": "0x67a4Ed5E3E80ad4f1b84646E45bcf9216059A37e",
     "signerAddress": "0x9506Ea24038609679732855F757041a3C1C06623",
     "abi": [
       "constructor()",
-      "error BlacklistedRecipient()",
-      "error BlacklistedSender()",
       "error NotAuthorized()",
       "event Approval(address indexed owner, address indexed spender, uint256 value)",
-      "event Blacklisted(address account)",
       "event BurnerSet(address burner)",
       "event EIP712DomainChanged()",
       "event Initialized(uint8 version)",
       "event MinterSet(address minter)",
       "event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)",
       "event Transfer(address indexed from, address indexed to, uint256 value)",
-      "event Unblacklisted(address account)",
       "function DOMAIN_SEPARATOR() view returns (bytes32)",
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)",
       "function balanceOf(address account) view returns (uint256)",
-      "function blacklist(address account)",
       "function blacklisted(address) view returns (bool)",
       "function burn(uint256 amount)",
       "function burn(address from, uint256 amount)",
@@ -45,8 +40,7 @@
       "function totalSupply() view returns (uint256)",
       "function transfer(address to, uint256 amount) returns (bool)",
       "function transferFrom(address from, address to, uint256 amount) returns (bool)",
-      "function transferOwnership(address newOwner)",
-      "function unblacklist(address account)"
+      "function transferOwnership(address newOwner)"
     ]
   }
 }
