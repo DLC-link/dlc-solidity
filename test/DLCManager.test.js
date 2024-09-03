@@ -613,7 +613,7 @@ describe('DLCManager', () => {
             expect(await dlcBtc.balanceOf(user.address)).to.equal(valueLocked);
         });
 
-        xit('emits a StatusFunded event with the correct data', async () => {
+        it('emits a StatusFunded event with the correct data', async () => {
             const signatureBytes = await getSignatures(
                 {
                     uuid,
@@ -633,6 +633,7 @@ describe('DLCManager', () => {
             );
 
             expect(event.event).to.equal('SetStatusFunded');
+            expect(event.args.uuid).to.equal(uuid);
             expect(event.args.btcTxId).to.equal(btcTxId);
         });
     });

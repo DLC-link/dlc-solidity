@@ -156,27 +156,23 @@ contract DLCManager is
     //                          EVENTS                            //
     ////////////////////////////////////////////////////////////////
 
-    event CreateDLC(
-        bytes32 indexed uuid,
-        address indexed creator,
-        uint256 timestamp
-    );
+    event CreateDLC(bytes32 uuid, address creator, uint256 timestamp);
 
     event SetStatusFunded(
-        bytes32 indexed uuid,
-        string indexed btcTxId,
-        address indexed creator,
+        bytes32 uuid,
+        string btcTxId,
+        address creator,
         uint256 newValueLocked,
         uint256 amountToMint
     );
     event SetStatusPending(
-        bytes32 indexed uuid,
-        string indexed btcTxId,
-        address indexed creator,
+        bytes32 uuid,
+        string btcTxId,
+        address creator,
         string taprootPubKey,
         uint256 newValueLocked
     );
-    event Withdraw(bytes32 indexed uuid, uint256 amount, address sender);
+    event Withdraw(bytes32 uuid, uint256 amount, address sender);
 
     event SetThreshold(uint16 newThreshold);
 
@@ -192,7 +188,6 @@ contract DLCManager is
     event SetBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate);
     event SetBtcFeeRecipient(string btcFeeRecipient);
     event SetWhitelistingEnabled(bool isWhitelistingEnabled);
-    event NewDLCManagerContract(address newDLCManagerAddress);
     event TransferTokenContractOwnership(address newOwner);
 
     ////////////////////////////////////////////////////////////////
@@ -646,70 +641,11 @@ contract DLCManager is
         emit TransferTokenContractOwnership(newOwner);
     }
 
-    function blacklistOnTokenContract(address account) external onlyAdmin {
-        dlcBTC.blacklist(account);
-    }
-
-    function unblacklistOnTokenContract(address account) external onlyAdmin {
-        dlcBTC.unblacklist(account);
-    }
-
     function setMinterOnTokenContract(address minter) external onlyAdmin {
         dlcBTC.setMinter(minter);
     }
 
     function setBurnerOnTokenContract(address burner) external onlyAdmin {
         dlcBTC.setBurner(burner);
-    }
-
-    ////////////////////////////////////////////////////////////////
-    //                    MIGRATION FUNCTIONS                     //
-    ////////////////////////////////////////////////////////////////
-    function setUserVaultUUIDs(
-        address user,
-        bytes32[] calldata uuids
-    ) external onlyAdmin {
-        userVaults[user] = uuids;
-    }
-
-    function importData(
-        DLCBTC _dlcBTC,
-        string calldata _btcFeeRecipient,
-        uint256 _minimumDeposit,
-        uint256 _maximumDeposit,
-        uint256 _btcMintFeeRate,
-        uint256 _btcRedeemFeeRate,
-        bool _whitelistingEnabled
-    ) external onlyAdmin {
-        dlcBTC = _dlcBTC;
-        btcFeeRecipient = _btcFeeRecipient;
-        emit SetBtcFeeRecipient(_btcFeeRecipient);
-        minimumDeposit = _minimumDeposit;
-        emit SetMinimumDeposit(_minimumDeposit);
-        maximumDeposit = _maximumDeposit;
-        emit SetMaximumDeposit(_maximumDeposit);
-        btcMintFeeRate = _btcMintFeeRate;
-        emit SetBtcMintFeeRate(_btcMintFeeRate);
-        btcRedeemFeeRate = _btcRedeemFeeRate;
-        emit SetBtcRedeemFeeRate(_btcRedeemFeeRate);
-        whitelistingEnabled = _whitelistingEnabled;
-        emit SetWhitelistingEnabled(_whitelistingEnabled);
-    }
-
-    // Temporary migration functions to bring old vaults up to speed with withdraw PR
-    function setValueMinted(
-        bytes32 uuid,
-        uint256 valueMinted
-    ) external onlyAdmin {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
-        dlc.valueMinted = valueMinted;
-    }
-
-    function setValueLocked(
-        bytes32 uuid,
-        uint256 valueLocked
-    ) external onlyAdmin {
-        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
-        dlc.valueLocked = valueLocked;
     }
 }

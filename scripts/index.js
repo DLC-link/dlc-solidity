@@ -16,8 +16,14 @@ const {
 const {
     revokeRoleOnManager,
     removeSigner,
+    renounceRoleOnManager,
 } = require('./00-revoke-role-on-manager');
-const { pauseManager, unpauseManager } = require('./04-pausability-manager');
+const {
+    pauseManager,
+    unpauseManager,
+    pauseTokenManager,
+    unpauseTokenManager,
+} = require('./04-pausability-manager');
 const setThreshold = require('./07-set-threshold');
 const setTSSCommitment = require('./08-set-tss-commitment');
 const setAttestorGroupPubKey = require('./09-set-attestor-gpk');
@@ -89,13 +95,22 @@ async function main() {
     program
         .command('grant-role-on-manager')
         .description('[admin] grant role on DLCManager')
-        .argument('[role]', 'the role to grant', 'DLC_ADMIN_ROLE')
-        .argument(
-            '[grantRoleToAddress]',
-            'the recipient of the role',
-            '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9'
-        )
+        .argument('[role]', 'the role to grant')
+        .argument('[grantRoleToAddress]', 'the recipient of the role')
         .action(grantRoleOnManager);
+
+    program
+        .command('revoke-role-on-manager')
+        .description('[admin] revoke role on DLCManager')
+        .argument('[role]', 'the role to revoke')
+        .argument('[revokeRoleFromAddress]', 'address to revoke role from')
+        .action(revokeRoleOnManager);
+
+    program
+        .command('renounce-role-on-manager')
+        .description('[admin] renounce role on DLCManager')
+        .argument('[role]', 'the role to renounce')
+        .action(renounceRoleOnManager);
 
     program
         .command('register-protocol')
@@ -124,6 +139,16 @@ async function main() {
         .command('unpause-manager')
         .description('[admin] unpause DLCManager')
         .action(unpauseManager);
+
+    program
+        .command('pause-token-manager')
+        .description('[admin] pause TokenManager')
+        .action(pauseTokenManager);
+
+    program
+        .command('unpause-token-manager')
+        .description('[admin] unpause TokenManager')
+        .action(unpauseTokenManager);
 
     program
         .command('set-threshold')

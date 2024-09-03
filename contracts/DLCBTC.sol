@@ -17,7 +17,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
  * @title   DLCBTC
  * @notice  The DLCBTC Token represents Bitcoin locked through the DLC.Link bridge
  * @dev     Owner is the TokenManager contract
- * @custom:contact robert@dlc.link
+ * @custom:contact eng@dlc.link
  * @custom:website https://www.dlc.link
  */
 contract DLCBTC is
@@ -26,17 +26,13 @@ contract DLCBTC is
     ERC20PermitUpgradeable,
     OwnableUpgradeable
 {
-    mapping(address => bool) public blacklisted;
+    mapping(address => bool) public blacklisted; // deprecated. there is no blacklisting anymore
     address private _minter;
     address private _burner;
     uint256[48] __gap;
 
-    error BlacklistedSender();
-    error BlacklistedRecipient();
     error NotAuthorized();
 
-    event Blacklisted(address account);
-    event Unblacklisted(address account);
     event MinterSet(address minter);
     event BurnerSet(address burner);
 
@@ -81,26 +77,6 @@ contract DLCBTC is
 
     function burn(uint256 amount) external onlyCCIPBurner {
         _burn(msg.sender, amount);
-    }
-
-    function blacklist(address account) external onlyOwner {
-        blacklisted[account] = true;
-        emit Blacklisted(account);
-    }
-
-    function unblacklist(address account) external onlyOwner {
-        blacklisted[account] = false;
-        emit Unblacklisted(account);
-    }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
-        super._beforeTokenTransfer(from, to, amount);
-        if (blacklisted[from]) revert BlacklistedSender();
-        if (blacklisted[to]) revert BlacklistedRecipient();
     }
 
     function setMinter(address minter) external onlyOwner {

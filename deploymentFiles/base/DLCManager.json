@@ -1,10 +1,10 @@
 {
-  "network": "arbitrum",
-  "updatedAt": "2024-08-28T13:50:09.995Z",
-  "gitSHA": "07758a8",
+  "network": "base",
+  "updatedAt": "2024-08-26T17:40:32.919Z",
+  "gitSHA": "487c163",
   "contract": {
     "name": "DLCManager",
-    "address": "0x20157DBAbb84e3BBFE68C349d0d44E48AE7B5AD2",
+    "address": "0xE0d2c0979583Db7fD7E8779ADd83cA7Eb6BC7BD7",
     "signerAddress": "0x9506Ea24038609679732855F757041a3C1C06623",
     "abi": [
       "constructor()",
@@ -41,6 +41,7 @@
       "event DefaultAdminTransferScheduled(address indexed newAdmin, uint48 acceptSchedule)",
       "event Initialized(uint8 version)",
       "event Mint(address to, uint256 amount)",
+      "event NewDLCManagerContract(address newDLCManagerAddress)",
       "event Paused(address account)",
       "event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)",
       "event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)",
@@ -103,6 +104,7 @@
       "function rollbackDefaultAdminDelay()",
       "function setAttestorGroupPubKey(string pubKey)",
       "function setBtcFeeRecipient(string btcFeeRecipientToSet)",
+      "function setBtcFeeRecipientForVault(bytes32 uuid, string btcFeeRecipientToSet)",
       "function setBtcMintFeeRate(uint256 newBtcMintFeeRate)",
       "function setBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate)",
       "function setBurnerOnTokenContract(address burner)",

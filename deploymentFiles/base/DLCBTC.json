@@ -1,30 +1,25 @@
 {
   "network": "base",
-  "updatedAt": "2024-07-02T15:08:58.790Z",
-  "gitSHA": "f213373",
+  "updatedAt": "2024-08-26T16:47:13.354Z",
+  "gitSHA": "a6a4c9e",
   "contract": {
     "name": "DLCBTC",
     "address": "0x12418783e860997eb99e8aCf682DF952F721cF62",
     "signerAddress": "0x9506Ea24038609679732855F757041a3C1C06623",
     "abi": [
       "constructor()",
-      "error BlacklistedRecipient()",
-      "error BlacklistedSender()",
       "error NotAuthorized()",
       "event Approval(address indexed owner, address indexed spender, uint256 value)",
-      "event Blacklisted(address account)",
       "event BurnerSet(address burner)",
       "event EIP712DomainChanged()",
       "event Initialized(uint8 version)",
       "event MinterSet(address minter)",
       "event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)",
       "event Transfer(address indexed from, address indexed to, uint256 value)",
-      "event Unblacklisted(address account)",
       "function DOMAIN_SEPARATOR() view returns (bytes32)",
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)",
       "function balanceOf(address account) view returns (uint256)",
-      "function blacklist(address account)",
       "function blacklisted(address) view returns (bool)",
       "function burn(uint256 amount)",
       "function burn(address from, uint256 amount)",
@@ -45,8 +40,7 @@
       "function totalSupply() view returns (uint256)",
       "function transfer(address to, uint256 amount) returns (bool)",
       "function transferFrom(address from, address to, uint256 amount) returns (bool)",
-      "function transferOwnership(address newOwner)",
-      "function unblacklist(address account)"
+      "function transferOwnership(address newOwner)"
     ]
   }
 }
