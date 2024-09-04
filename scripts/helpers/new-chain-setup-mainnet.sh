@@ -24,3 +24,13 @@ dlc-link-eth set-threshold 4
 # - grant DLC_ADMIN_ROLE role to the DLC.Link MEDIUM multisig
 # - renounce DLC_ADMIN_ROLE from the deployer
 # - initiate DEFAULT_ADMIN_ROLE transfer on DLCManager to the DLC.Link CRITICAL multisig
+# - Fund Coordinator with ETH for gas
+
+# - Whitelist Minters
+
+dlc-link-eth whitelist-account 0x0DD4f29E21F10cb2E485cf9bDAb9F2dD1f240Bfa # DLC.Link
+dlc-link-eth whitelist-account 0x5dd42c5fbf7f784d040c59f1720cdd8c47bbff95 # Amber
+dlc-link-eth whitelist-account 0xf92893654e38b80dfd9b4a2fb99100dd31ba5e2d # Amber
+dlc-link-eth whitelist-account 0xff200709bf9bbc5209ba4b5dd767913a8a06b73f # Amber
+dlc-link-eth whitelist-account 0x46166fA874AAEDEA8d98b15F9A72C84e22Abe2A1 # SBL
+dlc-link-eth whitelist-account 0x14Ee510Ebd4E5273e83Ad88f6cd2dc228BE40D12 # Tokkalabs
