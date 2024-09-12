@@ -8,18 +8,24 @@ require('dotenv').config();
 const mainnetURL =
     process.env.MAINNET_NODE_ADDR ??
     `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
+const sepoliaURL =
+    process.env.SEPOLIA_NODE_ADDR ??
+    `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 const arbitrumURL =
     process.env.ARB_NODE_ADDR ??
     `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 const arbSepoliaURL =
     process.env.ARB_SEPOLIA_NODE_ADDR ??
-    'https://sepolia-rollup.arbitrum.io/rpc';
+    `https://arb-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 const baseURL =
     process.env.BASE_NODE_ADDR ??
     `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 const baseSepoliaURL =
     process.env.BASE_SEPOLIA_NODE_ADDR ??
     `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
+const optimismURL =
+    process.env.OPTIMISM_NODE_ADDR ??
+    `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 
 const deployerKey = process.env.SCRIPT_KEY ?? process.env.KEY;
 module.exports = {
@@ -46,7 +52,7 @@ module.exports = {
             accounts: [deployerKey],
         },
         sepolia: {
-            url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            url: sepoliaURL,
             chainId: 11155111,
             accounts: [deployerKey],
         },
@@ -66,7 +72,7 @@ module.exports = {
             accounts: [deployerKey],
         },
         optimism: {
-            url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            url: optimismURL,
             chainId: 10,
             accounts: [deployerKey],
         },
