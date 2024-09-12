@@ -5,7 +5,12 @@ require('@openzeppelin/hardhat-upgrades');
 require('@nomiclabs/hardhat-solhint');
 require('dotenv').config();
 
-const arbitrumURL = process.env.ARB_NODE_ADDR ?? 'https://arb1.arbitrum.io/rpc';
+const mainnetURL =
+    process.env.MAINNET_NODE_ADDR ??
+    `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
+const arbitrumURL =
+    process.env.ARB_NODE_ADDR ??
+    `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 const arbSepoliaURL =
     process.env.ARB_SEPOLIA_NODE_ADDR ??
     'https://sepolia-rollup.arbitrum.io/rpc';
@@ -36,12 +41,12 @@ module.exports = {
             gasPrice: 0x01,
         },
         mainnet: {
-            url: `https://mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+            url: mainnetURL,
             chainId: 1,
             accounts: [deployerKey],
         },
         sepolia: {
-            url: `https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+            url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
             chainId: 11155111,
             accounts: [deployerKey],
         },
@@ -61,7 +66,7 @@ module.exports = {
             accounts: [deployerKey],
         },
         optimism: {
-            url: `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+            url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
             chainId: 10,
             accounts: [deployerKey],
         },
