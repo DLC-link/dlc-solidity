@@ -648,4 +648,19 @@ contract DLCManager is
     function setBurnerOnTokenContract(address burner) external onlyAdmin {
         dlcBTC.setBurner(burner);
     }
+
+    // This function is only for testing purposes
+    function deleteVault(bytes32 uuid) external onlyAdmin {
+        DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
+        bytes32[] storage _userVaults = userVaults[dlc.creator];
+        for (uint i = 0; i < _userVaults.length; i++) {
+            if (_userVaults[i] == uuid) {
+                _userVaults[i] = _userVaults[_userVaults.length - 1];
+                _userVaults.pop();
+                break;
+            }
+        }
+        delete dlcs[dlcIDsByUUID[uuid]];
+        delete dlcIDsByUUID[uuid];
+    }
 }
