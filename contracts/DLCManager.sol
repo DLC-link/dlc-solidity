@@ -119,7 +119,7 @@ contract DLCManager is
     }
 
     modifier onlyVaultCreator(bytes32 _uuid) {
-        if (dlcs[dlcIDsByUUID[_uuid]].creator != tx.origin) revert NotOwner();
+        if (dlcs[dlcIDsByUUID[_uuid]].creator != msg.sender) revert NotOwner();
         _;
     }
 
@@ -282,7 +282,7 @@ contract DLCManager is
         onlyWhitelisted
         returns (bytes32)
     {
-        bytes32 _uuid = _generateUUID(tx.origin, _index);
+        bytes32 _uuid = _generateUUID(msg.sender, _index);
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
@@ -290,7 +290,7 @@ contract DLCManager is
             valueLocked: 0,
             valueMinted: 0,
             timestamp: block.timestamp,
-            creator: tx.origin,
+            creator: msg.sender,
             status: DLCLink.DLCStatus.READY,
             fundingTxId: "",
             closingTxId: "",
@@ -301,10 +301,10 @@ contract DLCManager is
             taprootPubKey: ""
         });
 
-        emit CreateDLC(_uuid, tx.origin, block.timestamp);
+        emit CreateDLC(_uuid, msg.sender, block.timestamp);
 
         dlcIDsByUUID[_uuid] = _index;
-        userVaults[tx.origin].push(_uuid);
+        userVaults[msg.sender].push(_uuid);
         _index++;
 
         return _uuid;
