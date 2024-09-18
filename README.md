@@ -1,18 +1,27 @@
-Join our Discord server for news and support!
+<!-- Join our Discord server for news and support!
 
-[![Discord Banner](https://discordapp.com/api/guilds/887360470955208745/widget.png?style=banner2)](https://discord.gg/TtzqyfPCvE)
+[![Discord Banner](https://discordapp.com/api/guilds/887360470955208745/widget.png?style=banner2)](https://discord.gg/TtzqyfPCvE) -->
+
+<div align="center">
+  <img src="./assets/dlcBTC_Token.svg" alt="icon" width="140" height="140" />
+</div>
 
 # dlc-solidity
 
-This repo contains the solidity smart contracts for the DLC.Link infrastructure.
+[![Build Status](https://github.com/DLC-link/dlc-solidity/actions/workflows/docker-build-and-push.yaml/badge.svg)](https://github.com/DLC-link/dlc-solidity/actions/workflows/docker-build-and-push.yaml)
+[![Tests Status](https://github.com/DLC-link/dlc-solidity/actions/workflows/hardhat-test.yaml/badge.svg)](https://github.com/DLC-link/dlc-solidity/actions/workflows/hardhat-test.yaml)
 
-Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) and [DLC.Link](https://dlc.link).
+This repo contains the solidity smart contracts for the DLC.Link infrastructure and the dlcBTC token.
+
+Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) and [dlcBTC](https://dlcbtc.com).
 
 ## Overview
 
 A DLC is a contract on Bitcoin that enables users to move/lock Bitcoin conditionally. The possible outcomes of a DLC are predefined and stored by the DLC.Link Attestor Layer. Bitcoin locked in such a way can be represented then on any EVM chain using these smart contracts. The outcome - that is, the value that will be 'attested' to - is supplied by smart contracts too.
 
 This way, any EVM chain can essentially move native Bitcoin in a safe, "bridgeless" way. Ethereum can leverage the power of DLCs and the trust-minimised Attestor Layer that DLC.Link provides.
+
+_dlcBTC_ is a token that represents Bitcoin locked in DLCs. It is minted when Bitcoin is locked in a DLC and burned when the DLC is settled.
 
 Learn more about the whole architecture on the documentation site here:
 https://docs.dlc.link/architecture/tech-stack
