@@ -68,7 +68,7 @@ contract DLCManager is
     mapping(address => bool) private _whitelistedAddresses;
     bool public porEnabled;
     AggregatorV3Interface public dlcBTCPoRFeed;
-    uint256[39] __gap;
+    uint256[40] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -103,6 +103,7 @@ contract DLCManager is
     error InsufficientMintedBalance(uint256 minted, uint256 amount);
     error FeeRateOutOfBounds(uint256 feeRate);
     error UnderCollateralized(uint256 newValueLocked, uint256 valueMinted);
+    error NotEnoughReserves(uint256 reserves, uint256 amount);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -281,6 +282,39 @@ contract DLCManager is
         }
     }
 
+    /**
+     * @notice  Checks mint eligibility.
+     * @dev     If PoR is disabled, returns true.
+     * @dev     If PoR is enabled, checks if the new total value minted is within bounds.
+     * @dev     If the PoR check fails, reverts with an error.
+     * @param   amount  dlcBTC to mint.
+     * @return  bool  whether a call to _mint should happen.
+     */
+    function _checkMint(
+        uint256 amount,
+        uint256 currentTotalMinted
+    ) internal view returns (bool) {
+        if (amount == 0) {
+            return false;
+        }
+
+        if (!porEnabled) {
+            return true;
+        }
+
+        (, int256 latestAnswer, , , ) = dlcBTCPoRFeed.latestRoundData();
+        uint256 newTotalValueMinted = currentTotalMinted + amount;
+
+        if (uint256(latestAnswer) >= newTotalValueMinted) {
+            return true;
+        } else {
+            revert NotEnoughReserves(
+                uint256(latestAnswer),
+                newTotalValueMinted
+            );
+        }
+    }
+
     function _mintTokens(address to, uint256 amount) internal {
         dlcBTC.mint(to, amount);
         emit Mint(to, amount);
@@ -375,6 +409,9 @@ contract DLCManager is
             revert DepositTooSmall(amountToLockDiff, minimumDeposit);
         }
 
+        // We fetch the current total minted value in all vaults before we update this Vault
+        uint256 currentTotalMinted = getTotalValueMintedInVaults();
+
         dlc.fundingTxId = btcTxId;
         dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
@@ -382,7 +419,9 @@ contract DLCManager is
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted = newValueLocked;
 
-        _mintTokens(dlc.creator, amountToMint);
+        if (_checkMint(amountToMint, currentTotalMinted)) {
+            _mintTokens(dlc.creator, amountToMint);
+        }
 
         emit SetStatusFunded(
             uuid,
@@ -523,6 +562,14 @@ contract DLCManager is
             vaults[i] = getVault(uuids[i]);
         }
         return vaults;
+    }
+
+    function getTotalValueMintedInVaults() public view returns (uint256) {
+        uint256 totalValueMinted = 0;
+        for (uint256 i = 0; i < _index; i++) {
+            totalValueMinted += dlcs[i].valueMinted;
+        }
+        return totalValueMinted;
     }
 
     function isWhitelisted(address account) external view returns (bool) {
