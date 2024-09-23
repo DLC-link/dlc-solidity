@@ -15,6 +15,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./DLCLinkLibrary.sol";
 import "./DLCBTC.sol";
 
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+
 /**
  * @author  DLC.Link 2024
  * @title   DLCManager
@@ -64,7 +66,9 @@ contract DLCManager is
 
     mapping(address => bytes32[]) public userVaults;
     mapping(address => bool) private _whitelistedAddresses;
-    uint256[41] __gap;
+    bool public porEnabled;
+    AggregatorV3Interface public dlcBTCPoRFeed;
+    uint256[39] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -147,6 +151,7 @@ contract DLCManager is
         btcMintFeeRate = 12; // 0.12% BTC fee for now
         btcRedeemFeeRate = 15; // 0.15% BTC fee for now
         btcFeeRecipient = btcFeeRecipientToSet;
+        porEnabled = false;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -191,6 +196,8 @@ contract DLCManager is
     event SetBtcFeeRecipient(string btcFeeRecipient);
     event SetWhitelistingEnabled(bool isWhitelistingEnabled);
     event TransferTokenContractOwnership(address newOwner);
+    event SetPorEnabled(bool enabled);
+    event SetDlcBTCPoRFeed(AggregatorV3Interface feed);
 
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
@@ -669,5 +676,15 @@ contract DLCManager is
 
     function setBurnerOnTokenContract(address burner) external onlyAdmin {
         dlcBTC.setBurner(burner);
+    }
+
+    function setPorEnabled(bool enabled) external onlyAdmin {
+        porEnabled = enabled;
+        emit SetPorEnabled(enabled);
+    }
+
+    function setDlcBTCPoRFeed(AggregatorV3Interface feed) external onlyAdmin {
+        dlcBTCPoRFeed = feed;
+        emit SetDlcBTCPoRFeed(feed);
     }
 }

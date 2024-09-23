@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV2V3Interface.sol";
 
@@ -21,7 +21,7 @@ contract MockV3Aggregator is AggregatorV2V3Interface {
 
     mapping(uint256 => int256) public override getAnswer;
     mapping(uint256 => uint256) public override getTimestamp;
-    mapping(uint256 => uint256) private _getStartedAt;
+    mapping(uint256 => uint256) private getStartedAt;
 
     constructor(uint8 _decimals, int256 _initialAnswer) {
         decimals = _decimals;
@@ -34,7 +34,7 @@ contract MockV3Aggregator is AggregatorV2V3Interface {
         latestRound++;
         getAnswer[latestRound] = _answer;
         getTimestamp[latestRound] = block.timestamp;
-        _getStartedAt[latestRound] = block.timestamp;
+        getStartedAt[latestRound] = block.timestamp;
     }
 
     function updateRoundData(
@@ -48,7 +48,7 @@ contract MockV3Aggregator is AggregatorV2V3Interface {
         latestTimestamp = _timestamp;
         getAnswer[latestRound] = _answer;
         getTimestamp[latestRound] = _timestamp;
-        _getStartedAt[latestRound] = _startedAt;
+        getStartedAt[latestRound] = _startedAt;
     }
 
     function getRoundData(
@@ -68,7 +68,7 @@ contract MockV3Aggregator is AggregatorV2V3Interface {
         return (
             _roundId,
             getAnswer[_roundId],
-            _getStartedAt[_roundId],
+            getStartedAt[_roundId],
             getTimestamp[_roundId],
             _roundId
         );
@@ -89,13 +89,13 @@ contract MockV3Aggregator is AggregatorV2V3Interface {
         return (
             uint80(latestRound),
             getAnswer[latestRound],
-            _getStartedAt[latestRound],
+            getStartedAt[latestRound],
             getTimestamp[latestRound],
             uint80(latestRound)
         );
     }
 
     function description() external pure override returns (string memory) {
-        return "v0.6/tests/MockV3Aggregator.sol";
+        return "v0.8/tests/MockV3Aggregator.sol";
     }
 }
