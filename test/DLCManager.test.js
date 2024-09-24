@@ -164,6 +164,36 @@ describe('DLCManager', () => {
                 'ThresholdMinimumReached'
             );
         });
+
+        it('it should be non-renounceable', async () => {
+            await setSigners(dlcManager, [attestor1, attestor2]);
+            // Check initial signer count
+            const initialSignerCount = await dlcManager.getSignerCount();
+            expect(initialSignerCount).to.equal(
+                2,
+                'Initial signer count should be 2'
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .renounceRole(
+                        ethers.utils.id('APPROVED_SIGNER'),
+                        attestor1.address
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'NoSignerRenouncement');
+            const hasRole = await dlcManager.hasRole(
+                ethers.utils.id('APPROVED_SIGNER'),
+                attestor1.address
+            );
+            // Can't be renounced
+            expect(hasRole).to.equal(true);
+            // Check signer count after renouncing
+            const finalSignerCount = await dlcManager.getSignerCount();
+            expect(finalSignerCount).to.equal(
+                2,
+                'Signer count should not change after failed renouncing'
+            );
+        });
     });
 
     describe('tssCommitment', async () => {
