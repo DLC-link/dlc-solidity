@@ -974,19 +974,15 @@ describe('DLCManager', () => {
                 attestors,
                 3
             );
-            await expect(
-                dlcManager
-                    .connect(attestor1)
-                    .setStatusFunded(
-                        uuid,
-                        btcTxId,
-                        signatureBytesForFunding,
-                        valueLocked
-                    )
-            ).to.not.be.revertedWithCustomError(
-                dlcManager,
-                'NotEnoughReserves'
-            );
+            await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForFunding,
+                    valueLocked
+                );
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(valueLocked);
         });
     });
 

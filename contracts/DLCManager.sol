@@ -284,10 +284,12 @@ contract DLCManager is
 
     /**
      * @notice  Checks mint eligibility.
+     * @dev     Checks if the amount is non-zero.
      * @dev     If PoR is disabled, returns true.
      * @dev     If PoR is enabled, checks if the new total value minted is within bounds.
      * @dev     If the PoR check fails, reverts with an error.
      * @param   amount  dlcBTC to mint.
+     * @param   currentTotalMinted  total minted value in all vaults.
      * @return  bool  whether a call to _mint should happen.
      */
     function _checkMint(
