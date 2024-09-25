@@ -85,6 +85,7 @@ contract DLCManager is
     error NotEnoughSignatures();
     error InvalidSigner();
     error DuplicateSignature();
+    error DuplicateSigner(address signer);
     error SignerNotApproved(address signer);
     error ClosingFundedVault();
 
@@ -229,13 +230,27 @@ contract DLCManager is
 
         if (_hasDuplicates(signatures)) revert DuplicateSignature();
 
+        address[] memory seenSigners = new address[](signatures.length); // to store unique signers
+        uint256 seenCount = 0;
+
         for (uint256 i = 0; i < signatures.length; i++) {
             address attestorPubKey = ECDSAUpgradeable.recover(
                 prefixedMessageHash,
                 signatures[i]
             );
-            if (!hasRole(APPROVED_SIGNER, attestorPubKey))
+
+            if (!hasRole(APPROVED_SIGNER, attestorPubKey)) {
                 revert InvalidSigner();
+            }
+
+            // Check if this address has already signed
+            for (uint256 j = 0; j < seenCount; j++) {
+                if (seenSigners[j] == attestorPubKey) {
+                    revert DuplicateSigner(attestorPubKey);
+                }
+            }
+            seenSigners[seenCount] = attestorPubKey;
+            seenCount++;
         }
     }
 
