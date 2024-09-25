@@ -468,9 +468,10 @@ describe('DLCManager', () => {
             const receipt = await tx.wait();
             const _uuid = await receipt.events[0].args.uuid;
 
+            // Hardhat account #9
             let maliciousAttestor = new ethers.Wallet(
                 ethers.utils.arrayify(
-                    '0x21001225a646a5829c452fe7597c5ea8b1dbe5978bb9d400f9eff2f167c100ef'
+                    '0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6'
                 )
             );
 
@@ -483,12 +484,6 @@ describe('DLCManager', () => {
             console.log(
                 `Malicious signer address: ${maliciousSigner.address}\n`
             );
-            // simulate that the malicious signer has native tokens
-            await attestor1.sendTransaction({
-                to: maliciousSigner.address,
-                value: ethers.utils.parseEther('1.0'),
-            });
-
             // Change threshold and add the new signer
             await dlcManager.connect(deployer).setThreshold(4);
             await setSigners(dlcManager, [maliciousAttestor]);
