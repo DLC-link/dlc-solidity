@@ -486,7 +486,7 @@ describe('DLCManager', () => {
             // simulate that the malicious signer has native tokens
             await attestor1.sendTransaction({
                 to: maliciousSigner.address,
-                value: ethers.utils.parseEther('10.0'),
+                value: ethers.utils.parseEther('1.0'),
             });
 
             // Change threshold and add the new signer
