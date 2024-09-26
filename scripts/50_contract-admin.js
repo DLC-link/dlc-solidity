@@ -225,6 +225,7 @@ module.exports = async function contractAdmin() {
                     proxyAddress,
                     newImplementation,
                     {
+                        timeout: 120,
                         txOverrides: {
                             maxFeePerGas: 1000000000,
                             maxPriorityFeePerGas: 1000000000,

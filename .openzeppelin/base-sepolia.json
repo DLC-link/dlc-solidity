@@ -1722,6 +1722,482 @@
         },
         "namespaces": {}
       }
+    },
+    "022b1ded43f192448e815e1b52fe14f7a8d172b09649c4d2a5cbfeada6a0d34e": {
+      "address": "0x183B9eFa4a71a20E3DDbafB1540a1111D4723199",
+      "txHash": "0xf67857c2f261511f4aac2ddd938cb03ce5fee6687f3a63d1a4f967b481b26a49",
+      "layout": {
+        "solcVersion": "0.8.18",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "_roles",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)747_storage)",
+            "contract": "AccessControlUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:62"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "AccessControlUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:260"
+          },
+          {
+            "label": "_pendingDefaultAdmin",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_address",
+            "contract": "AccessControlDefaultAdminRulesUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol:43"
+          },
+          {
+            "label": "_pendingDefaultAdminSchedule",
+            "offset": 20,
+            "slot": "151",
+            "type": "t_uint48",
+            "contract": "AccessControlDefaultAdminRulesUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol:44"
+          },
+          {
+            "label": "_currentDelay",
+            "offset": 26,
+            "slot": "151",
+            "type": "t_uint48",
+            "contract": "AccessControlDefaultAdminRulesUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol:46"
+          },
+          {
+            "label": "_currentDefaultAdmin",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_address",
+            "contract": "AccessControlDefaultAdminRulesUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol:47"
+          },
+          {
+            "label": "_pendingDelay",
+            "offset": 20,
+            "slot": "152",
+            "type": "t_uint48",
+            "contract": "AccessControlDefaultAdminRulesUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol:50"
+          },
+          {
+            "label": "_pendingDelaySchedule",
+            "offset": 26,
+            "slot": "152",
+            "type": "t_uint48",
+            "contract": "AccessControlDefaultAdminRulesUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol:51"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "153",
+            "type": "t_array(t_uint256)48_storage",
+            "contract": "AccessControlDefaultAdminRulesUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol:394"
+          },
+          {
+            "label": "_paused",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_bool",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:116"
+          },
+          {
+            "label": "_index",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_uint256",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:47"
+          },
+          {
+            "label": "dlcs",
+            "offset": 0,
+            "slot": "252",
+            "type": "t_mapping(t_uint256,t_struct(DLC)7554_storage)",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:48"
+          },
+          {
+            "label": "dlcIDsByUUID",
+            "offset": 0,
+            "slot": "253",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:49"
+          },
+          {
+            "label": "_minimumThreshold",
+            "offset": 0,
+            "slot": "254",
+            "type": "t_uint16",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:51"
+          },
+          {
+            "label": "_threshold",
+            "offset": 2,
+            "slot": "254",
+            "type": "t_uint16",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:52"
+          },
+          {
+            "label": "_signerCount",
+            "offset": 4,
+            "slot": "254",
+            "type": "t_uint16",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:53"
+          },
+          {
+            "label": "tssCommitment",
+            "offset": 0,
+            "slot": "255",
+            "type": "t_bytes32",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:54"
+          },
+          {
+            "label": "attestorGroupPubKey",
+            "offset": 0,
+            "slot": "256",
+            "type": "t_string_storage",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:55"
+          },
+          {
+            "label": "dlcBTC",
+            "offset": 0,
+            "slot": "257",
+            "type": "t_contract(DLCBTC)7512",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:57"
+          },
+          {
+            "label": "btcFeeRecipient",
+            "offset": 0,
+            "slot": "258",
+            "type": "t_string_storage",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:58"
+          },
+          {
+            "label": "minimumDeposit",
+            "offset": 0,
+            "slot": "259",
+            "type": "t_uint256",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:59"
+          },
+          {
+            "label": "maximumDeposit",
+            "offset": 0,
+            "slot": "260",
+            "type": "t_uint256",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:60"
+          },
+          {
+            "label": "btcMintFeeRate",
+            "offset": 0,
+            "slot": "261",
+            "type": "t_uint256",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:61"
+          },
+          {
+            "label": "btcRedeemFeeRate",
+            "offset": 0,
+            "slot": "262",
+            "type": "t_uint256",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:62"
+          },
+          {
+            "label": "whitelistingEnabled",
+            "offset": 0,
+            "slot": "263",
+            "type": "t_bool",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:63"
+          },
+          {
+            "label": "userVaults",
+            "offset": 0,
+            "slot": "264",
+            "type": "t_mapping(t_address,t_array(t_bytes32)dyn_storage)",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:65"
+          },
+          {
+            "label": "_whitelistedAddresses",
+            "offset": 0,
+            "slot": "265",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:66"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "266",
+            "type": "t_array(t_uint256)41_storage",
+            "contract": "DLCManager",
+            "src": "contracts/DLCManager.sol:67"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)41_storage": {
+            "label": "uint256[41]",
+            "numberOfBytes": "1312"
+          },
+          "t_array(t_uint256)48_storage": {
+            "label": "uint256[48]",
+            "numberOfBytes": "1536"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(DLCBTC)7512": {
+            "label": "contract DLCBTC",
+            "numberOfBytes": "20"
+          },
+          "t_enum(DLCStatus)7524": {
+            "label": "enum DLCLink.DLCStatus",
+            "members": [
+              "READY",
+              "FUNDED",
+              "CLOSING",
+              "CLOSED",
+              "AUX_STATE_1",
+              "AUX_STATE_2",
+              "AUX_STATE_3",
+              "AUX_STATE_4",
+              "AUX_STATE_5"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_array(t_bytes32)dyn_storage)": {
+            "label": "mapping(address => bytes32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)747_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(DLC)7554_storage)": {
+            "label": "mapping(uint256 => struct DLCLink.DLC)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(DLC)7554_storage": {
+            "label": "struct DLCLink.DLC",
+            "members": [
+              {
+                "label": "uuid",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "protocolContract",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "valueLocked",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "creator",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(DLCStatus)7524",
+                "offset": 20,
+                "slot": "4"
+              },
+              {
+                "label": "fundingTxId",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "closingTxId",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "btcFeeRecipient",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "btcMintFeeBasisPoints",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "btcRedeemFeeBasisPoints",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "taprootPubKey",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "10"
+              },
+              {
+                "label": "valueMinted",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "11"
+              },
+              {
+                "label": "wdTxId",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "12"
+              }
+            ],
+            "numberOfBytes": "416"
+          },
+          "t_struct(RoleData)747_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint48": {
+            "label": "uint48",
+            "numberOfBytes": "6"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
     }
   }
 }
