@@ -85,7 +85,7 @@ contract DLCManager is
     error NotEnoughSignatures();
     error InvalidSigner();
     error DuplicateSignature();
-    error DuplicateSigner();
+    error DuplicateSigner(address signer);
     error SignerNotApproved(address signer);
     error ClosingFundedVault();
 
@@ -235,12 +235,12 @@ contract DLCManager is
                 prefixedMessageHash,
                 signatures[i]
             );
-            seenSigners[i] = attestorPubKey;
             if (!hasRole(APPROVED_SIGNER, attestorPubKey)) {
                 revert InvalidSigner();
             }
+            _checkSignerUnique(seenSigners, attestorPubKey);
+            seenSigners[i] = attestorPubKey;
         }
-        if (_hasDuplicateSigners(seenSigners)) revert DuplicateSigner();
     }
 
     /**
@@ -262,23 +262,15 @@ contract DLCManager is
         return false;
     }
 
-    /**
-     * @notice  Checks for duplicate values in the signers.
-     * @dev     Used to check for duplicate Signers.
-     * @param   signers  Array of Attestor pubkeys.
-     * @return  bool  True if there are duplicates, false otherwise.
-     */
-    function _hasDuplicateSigners(
-        address[] memory signers
-    ) internal pure returns (bool) {
-        for (uint i = 0; i < signers.length - 1; i++) {
-            for (uint j = i + 1; j < signers.length; j++) {
-                if (signers[i] == signers[j]) {
-                    return true;
-                }
+    function _checkSignerUnique(
+        address[] memory seenSigners,
+        address attestorPubKey
+    ) internal pure {
+        for (uint256 j = 0; j < seenSigners.length; j++) {
+            if (seenSigners[j] == attestorPubKey) {
+                revert DuplicateSigner(attestorPubKey);
             }
         }
-        return false;
     }
 
     function _mintTokens(address to, uint256 amount) internal {
