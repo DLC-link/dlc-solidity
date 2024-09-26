@@ -72,6 +72,7 @@ contract DLCManager is
 
     error NotDLCAdmin();
     error IncompatibleRoles();
+    error NoSignerRenouncement();
     error ContractNotWhitelisted();
     error NotCreatorContract();
     error DLCNotFound();
@@ -566,6 +567,12 @@ contract DLCManager is
                 revert ThresholdMinimumReached(_minimumThreshold);
             _signerCount--;
         }
+    }
+
+    function renounceRole(bytes32 role, address account) public override {
+        if (account == msg.sender && role == APPROVED_SIGNER)
+            revert NoSignerRenouncement();
+        super.renounceRole(role, account);
     }
 
     function pauseContract() external onlyAdmin {
