@@ -85,6 +85,7 @@ contract DLCManager is
     error NotEnoughSignatures();
     error InvalidSigner();
     error DuplicateSignature();
+    error DuplicateSigner(address signer);
     error SignerNotApproved(address signer);
     error ClosingFundedVault();
 
@@ -213,7 +214,7 @@ contract DLCManager is
      * @notice  Checks the 'signatures' of Attestors for a given 'message'.
      * @dev     Recalculates the hash to make sure the signatures are for the same message.
      * @dev     Uses OpenZeppelin's ECDSA library to recover the public keys from the signatures.
-     * @dev     Signatures must be unique.
+     * @dev     Signatures must be unique, from unique signers.
      * @param   message  Original message that was signed.
      * @param   signatures  Byte array of at least 'threshold' number of signatures.
      */
@@ -222,20 +223,23 @@ contract DLCManager is
         bytes[] memory signatures
     ) internal view {
         if (signatures.length < _threshold) revert NotEnoughSignatures();
+        if (_hasDuplicates(signatures)) revert DuplicateSignature();
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
             keccak256(message)
         );
-
-        if (_hasDuplicates(signatures)) revert DuplicateSignature();
+        address[] memory seenSigners = new address[](signatures.length); // to store unique signers
 
         for (uint256 i = 0; i < signatures.length; i++) {
             address attestorPubKey = ECDSAUpgradeable.recover(
                 prefixedMessageHash,
                 signatures[i]
             );
-            if (!hasRole(APPROVED_SIGNER, attestorPubKey))
+            if (!hasRole(APPROVED_SIGNER, attestorPubKey)) {
                 revert InvalidSigner();
+            }
+            _checkSignerUnique(seenSigners, attestorPubKey);
+            seenSigners[i] = attestorPubKey;
         }
     }
 
@@ -256,6 +260,17 @@ contract DLCManager is
             }
         }
         return false;
+    }
+
+    function _checkSignerUnique(
+        address[] memory seenSigners,
+        address attestorPubKey
+    ) internal pure {
+        for (uint256 j = 0; j < seenSigners.length; j++) {
+            if (seenSigners[j] == attestorPubKey) {
+                revert DuplicateSigner(attestorPubKey);
+            }
+        }
     }
 
     function _mintTokens(address to, uint256 amount) internal {

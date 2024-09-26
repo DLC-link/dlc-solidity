@@ -3,7 +3,11 @@ const { ethers } = require('hardhat');
 const hardhat = require('hardhat');
 const crypto = require('crypto');
 
-const { getSignatures, setSigners } = require('./utils');
+const {
+    getSignatures,
+    setSigners,
+    getMultipleSignaturesForSameAttestorAndMessage,
+} = require('./utils');
 
 async function whitelistAddress(dlcManager, user) {
     await dlcManager.whitelistAddress(user.address);
@@ -455,6 +459,87 @@ describe('DLCManager', () => {
                     .connect(attestor1)
                     .setStatusFunded(uuid, btcTxId, signatureBytes, valueLocked)
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        });
+
+        it('should revert on nonce-manipulated signatures from the same signer', async () => {
+            const existingBalance = await dlcBtc.balanceOf(user.address);
+            const deposit = 100000000; // 1 BTC
+            const tx = await dlcManager.connect(user).setupVault();
+            const receipt = await tx.wait();
+            const _uuid = await receipt.events[0].args.uuid;
+
+            // Hardhat account #9
+            let maliciousAttestor = new ethers.Wallet(
+                ethers.utils.arrayify(
+                    '0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6'
+                )
+            );
+
+            const maliciousSigner = new ethers.Wallet(
+                maliciousAttestor,
+                ethers.provider
+            );
+            attestors.push(maliciousSigner);
+
+            console.log(
+                `Malicious signer address: ${maliciousSigner.address}\n`
+            );
+            // Change threshold and add the new signer
+            await dlcManager.connect(deployer).setThreshold(4);
+            await setSigners(dlcManager, [maliciousAttestor]);
+
+            // Sign pending status
+            console.log(`Wallet threshold: ${await dlcManager.getThreshold()}`);
+            console.log('Signing pending status:');
+            const signatureBytesForPending =
+                await getMultipleSignaturesForSameAttestorAndMessage(
+                    {
+                        uuid: _uuid,
+                        btcTxId,
+                        functionString: 'set-status-pending',
+                        newLockedAmount: 0,
+                    },
+                    maliciousSigner,
+                    4
+                );
+
+            // Fund with just one signature
+            console.log('\n');
+            console.log('Signing funded status:');
+
+            const signatureBytesForFunding =
+                await getMultipleSignaturesForSameAttestorAndMessage(
+                    {
+                        uuid: _uuid,
+                        btcTxId,
+                        functionString: 'set-status-funded',
+                        newLockedAmount: deposit,
+                    },
+                    maliciousSigner,
+                    4
+                );
+            await expect(
+                dlcManager
+                    .connect(maliciousSigner)
+                    .setStatusPending(
+                        _uuid,
+                        btcTxId,
+                        signatureBytesForPending,
+                        mockTaprootPubkey,
+                        0
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSigner');
+
+            await expect(
+                dlcManager
+                    .connect(maliciousSigner)
+                    .setStatusFunded(
+                        _uuid,
+                        btcTxId,
+                        signatureBytesForFunding,
+                        deposit
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSigner');
         });
 
         it('reverts if DLC is not in the right state', async () => {
