@@ -85,7 +85,7 @@ contract DLCManager is
     error NotEnoughSignatures();
     error InvalidSigner();
     error DuplicateSignature();
-    error DuplicateSigner(address signer);
+    error DuplicateSigner();
     error SignerNotApproved(address signer);
     error ClosingFundedVault();
 
@@ -214,7 +214,7 @@ contract DLCManager is
      * @notice  Checks the 'signatures' of Attestors for a given 'message'.
      * @dev     Recalculates the hash to make sure the signatures are for the same message.
      * @dev     Uses OpenZeppelin's ECDSA library to recover the public keys from the signatures.
-     * @dev     Signatures must be unique.
+     * @dev     Signatures must be unique, from unique signers.
      * @param   message  Original message that was signed.
      * @param   signatures  Byte array of at least 'threshold' number of signatures.
      */
@@ -223,35 +223,24 @@ contract DLCManager is
         bytes[] memory signatures
     ) internal view {
         if (signatures.length < _threshold) revert NotEnoughSignatures();
+        if (_hasDuplicates(signatures)) revert DuplicateSignature();
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
             keccak256(message)
         );
-
-        if (_hasDuplicates(signatures)) revert DuplicateSignature();
-
         address[] memory seenSigners = new address[](signatures.length); // to store unique signers
-        uint256 seenCount = 0;
 
         for (uint256 i = 0; i < signatures.length; i++) {
             address attestorPubKey = ECDSAUpgradeable.recover(
                 prefixedMessageHash,
                 signatures[i]
             );
-
+            seenSigners[i] = attestorPubKey;
             if (!hasRole(APPROVED_SIGNER, attestorPubKey)) {
                 revert InvalidSigner();
             }
-
-            // Check if this address has already signed
-            for (uint256 j = 0; j < seenCount; j++) {
-                if (seenSigners[j] == attestorPubKey) {
-                    revert DuplicateSigner(attestorPubKey);
-                }
-            }
-            seenSigners[seenCount] = attestorPubKey;
-            seenCount++;
         }
+        if (_hasDuplicateSigners(seenSigners)) revert DuplicateSigner();
     }
 
     /**
@@ -266,6 +255,25 @@ contract DLCManager is
         for (uint i = 0; i < signatures.length - 1; i++) {
             for (uint j = i + 1; j < signatures.length; j++) {
                 if (keccak256(signatures[i]) == keccak256(signatures[j])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @notice  Checks for duplicate values in the signers.
+     * @dev     Used to check for duplicate Signers.
+     * @param   signers  Array of Attestor pubkeys.
+     * @return  bool  True if there are duplicates, false otherwise.
+     */
+    function _hasDuplicateSigners(
+        address[] memory signers
+    ) internal pure returns (bool) {
+        for (uint i = 0; i < signers.length - 1; i++) {
+            for (uint j = i + 1; j < signers.length; j++) {
+                if (signers[i] == signers[j]) {
                     return true;
                 }
             }
