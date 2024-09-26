@@ -205,19 +205,31 @@ module.exports = async function contractAdmin() {
                 contractName,
                 network
             );
+            const proxyAdminAddress =
+                await hardhat.upgrades.erc1967.getAdminAddress(proxyAddress);
+
+            const proxyAdmin = new hardhat.ethers.Contract(
+                proxyAdminAddress,
+                ['function owner() view returns (address)'],
+                deployer
+            );
+            const proxyAdminOwner = await proxyAdmin.owner();
+            console.log('ProxyAdmin owner:', proxyAdminOwner);
+
             const newImplementation =
                 await hardhat.ethers.getContractFactory(contractName);
-            const newImplementationAddress =
-                await hardhat.upgrades.prepareUpgrade(
-                    proxyAddress,
-                    newImplementation
-                );
-            console.log('New implementation address', newImplementationAddress);
 
-            try {
+            if (proxyAdminOwner == deployer) {
+                console.log('deployer is ProxyAdmin owner, continuing...');
                 await hardhat.upgrades.upgradeProxy(
                     proxyAddress,
-                    newImplementation
+                    newImplementation,
+                    {
+                        txOverrides: {
+                            maxFeePerGas: 1000000000,
+                            maxPriorityFeePerGas: 1000000000,
+                        },
+                    }
                 );
                 console.log('Upgraded contract', contractName);
                 console.log('Updating DeploymentInfo...');
@@ -232,18 +244,57 @@ module.exports = async function contractAdmin() {
                 } catch (error) {
                     console.error(error);
                 }
-            } catch (error) {
-                console.error(error);
-                console.log(chalk.bgYellow('Upgrade through the SAFE!'));
+            } else {
+                const newImplementationAddress =
+                    await hardhat.upgrades.prepareUpgrade(
+                        proxyAddress,
+                        newImplementation,
+                        { timeout: 120 }
+                    );
                 console.log(
-                    'Dont forget to update the deployment info afterwards:'
-                );
-                const implObject = await hardhat.ethers.getContractAt(
-                    contractName,
+                    'New implementation address',
                     newImplementationAddress
                 );
-                const dI = deploymentInfo(network, implObject, contractName);
-                console.log(dI);
+
+                try {
+                    await hardhat.upgrades.upgradeProxy(
+                        proxyAddress,
+                        newImplementation
+                    );
+                    console.log('Upgraded contract', contractName);
+                    console.log('Updating DeploymentInfo...');
+                    try {
+                        const contractObject =
+                            await hardhat.ethers.getContractAt(
+                                contractName,
+                                proxyAddress
+                            );
+                        await saveDeploymentInfo(
+                            deploymentInfo(
+                                network,
+                                contractObject,
+                                contractName
+                            )
+                        );
+                    } catch (error) {
+                        console.error(error);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    console.log(chalk.bgYellow('Upgrade through the SAFE!'));
+                    const implObject = await hardhat.ethers.getContractAt(
+                        contractName,
+                        newImplementationAddress
+                    );
+                    const deploymentInfoToSave = deploymentInfo(
+                        network,
+                        { ...implObject, address: proxyAddress },
+                        contractName
+                    );
+                    await saveDeploymentInfo(deploymentInfoToSave);
+                    console.log(deploymentInfoToSave);
+                    console.log(chalk.bgRed('Upgrade through the SAFE!'));
+                }
             }
 
             break;
