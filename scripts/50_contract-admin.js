@@ -249,7 +249,7 @@ module.exports = async function contractAdmin() {
                     await hardhat.upgrades.prepareUpgrade(
                         proxyAddress,
                         newImplementation,
-                        { timeout: 120 }
+                        { timeout: 240 }
                     );
                 console.log(
                     'New implementation address',
