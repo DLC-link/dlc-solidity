@@ -205,10 +205,10 @@ contract DLCManager is
     //                    INTERNAL FUNCTIONS                      //
     ////////////////////////////////////////////////////////////////
 
-    function _generateUUID(
+    function generateUUID(
         address sender,
         uint256 nonce
-    ) private view returns (bytes32) {
+    ) public view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
@@ -330,7 +330,7 @@ contract DLCManager is
         onlyWhitelisted
         returns (bytes32)
     {
-        bytes32 _uuid = _generateUUID(msg.sender, _index);
+        bytes32 _uuid = generateUUID(msg.sender, _index);
 
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
@@ -356,6 +356,35 @@ contract DLCManager is
         _index++;
 
         return _uuid;
+    }
+
+    function setupPendingVault(
+        bytes32 _uuid,
+        string calldata _taprootPubKey,
+        string calldata _wdTxId
+    ) public onlyWhitelisted whenNotPaused {
+        dlcs[_index] = DLCLink.DLC({
+            uuid: _uuid,
+            protocolContract: msg.sender, // deprecated
+            valueLocked: 0,
+            valueMinted: 0,
+            timestamp: block.timestamp,
+            creator: msg.sender,
+            status: DLCLink.DLCStatus.AUX_STATE_1,
+            fundingTxId: "",
+            closingTxId: "",
+            wdTxId: _wdTxId,
+            btcFeeRecipient: btcFeeRecipient,
+            btcMintFeeBasisPoints: btcMintFeeRate,
+            btcRedeemFeeBasisPoints: btcRedeemFeeRate,
+            taprootPubKey: _taprootPubKey
+        });
+
+        emit CreateDLC(_uuid, msg.sender, block.timestamp);
+
+        dlcIDsByUUID[_uuid] = _index;
+        userVaults[msg.sender].push(_uuid);
+        _index++;
     }
 
     /**
