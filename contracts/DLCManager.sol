@@ -358,6 +358,7 @@ contract DLCManager is
         return _uuid;
     }
 
+    // TODO: auth
     function setupPendingVault(
         bytes32 _uuid,
         string calldata _taprootPubKey,
