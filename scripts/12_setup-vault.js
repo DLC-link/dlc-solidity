@@ -19,7 +19,7 @@ async function dlcManagerSetupVault(btcDeposit, hardhat) {
         accounts[0]
     );
 
-    const tx = await dlcManager.setupVault(btcDeposit);
+    const tx = await dlcManager.setupVault();
     const receipt = await tx.wait();
     console.dir(tx, { depth: 4 });
     console.dir(receipt, { depth: 4 });
