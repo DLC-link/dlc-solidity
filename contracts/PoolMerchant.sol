@@ -142,25 +142,73 @@ contract PoolMerchant is
                 // Approve the Enzyme vault to spend dlcBTC tokens
                 dlcBTC.approve(address(enzymeVault), difference);
 
-                // Simulate the call to buyShares to get the _minSharesQuantity
-                (bool success, bytes memory result) = address(enzymeVault)
-                    .staticcall(
-                        abi.encodeWithSignature(
-                            "buyShares(uint256,uint256)",
-                            difference,
-                            1
-                        )
-                    );
-
-                require(success, "Static call to buyShares failed");
-
-                uint256 minSharesQuantity = abi.decode(result, (uint256));
-
-                // Actual call to buyShares with the obtained minSharesQuantity
-                enzymeVault.buyShares(difference, minSharesQuantity);
+                enzymeVault.buyShares(difference, 1);
 
                 sweptAmounts[uuid] = currentValueMinted; // Update the local tracker
             }
         }
     }
+
+    // attestors call this
+    function withdraw(
+        bytes32 uuid,
+        uint256 amount,
+        string memory taprootPubkey,
+        string calldata /*wdTxId*/
+    ) public {
+        require(
+            keccak256(abi.encodePacked(uuidToTaprootPubkey[uuid])) ==
+                keccak256(abi.encodePacked(taprootPubkey)),
+            "Invalid taproot pubkey"
+        );
+
+        address[] memory payoutAssets = new address[](1);
+        payoutAssets[0] = address(dlcBTC);
+        uint256[] memory payoutPercentage = new uint256[](1);
+        payoutPercentage[0] = 10000;
+
+        enzymeVault.redeemSharesForSpecificAssets(
+            address(this),
+            amount,
+            payoutAssets,
+            payoutPercentage
+        );
+
+        dlcManager.withdraw(uuid, amount);
+        DLCLink.DLC memory _dlc = dlcManager.getDLC(uuid);
+        sweptAmounts[uuid] = _dlc.valueMinted; // Update the local tracker
+    }
+
+    // function sweepRedeem() public {
+    //     DLCLink.DLC[] memory _allDLCs = dlcManager.getAllVaultsForAddress(
+    //         address(this)
+    //     );
+
+    //     for (uint256 i = 0; i < _allDLCs.length; i++) {
+    //         bytes32 uuid = _allDLCs[i].uuid;
+    //         uint256 currentValueMinted = _allDLCs[i].valueMinted;
+    //         uint256 sweptAmount = sweptAmounts[uuid];
+
+    //         if (currentValueMinted < sweptAmount) {
+    //             uint256 difference = sweptAmount - currentValueMinted;
+
+    //             // Approve the Enzyme vault to spend dlcBTC tokens
+    //             // dlcBTC.approve(address(enzymeVault), difference);
+
+    //             address[] memory payoutAssets = new address[](1);
+    //             payoutAssets[0] = address(dlcBTC);
+    //             uint256[] memory payoutPercentage = new uint256[](1);
+    //             payoutPercentage[0] = 100;
+
+    //             enzymeVault.redeemSharesForSpecificAssets(
+    //                 address(this),
+    //                 difference,
+    //                 payoutAssets,
+    //                 payoutPercentage
+    //             );
+
+    //             sweptAmounts[uuid] = currentValueMinted; // Update the local tracker
+    //         }
+    //     }
+    // }
 }
