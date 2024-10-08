@@ -15,6 +15,19 @@ async function promptUser(message) {
     return response.continue;
 }
 
+async function promptUserForNumber(message, defaultValue) {
+    if (process.env.CLI_MODE === 'noninteractive') {
+        return 0;
+    }
+    const response = await prompts({
+        type: 'number',
+        name: 'number',
+        message,
+        initial: defaultValue,
+    });
+    return response.number;
+}
+
 async function loadContractAddress(requirement, network) {
     const deployment = await loadDeploymentInfo(network, requirement);
     if (!deployment) {
@@ -29,7 +42,21 @@ async function loadContractAddress(requirement, network) {
     return deployment.contract.address;
 }
 
+function getMinimumDelay(networkName) {
+    switch (networkName) {
+        case 'localhost':
+        case 'arbsepolia':
+        case 'sepolia':
+        case 'basesepolia':
+            return 60 * 2; // 2 minutes
+        default:
+            return 60 * 60 * 48; // 48 hours
+    }
+}
+
 module.exports = {
     promptUser,
+    promptUserForNumber,
     loadContractAddress,
+    getMinimumDelay,
 };
