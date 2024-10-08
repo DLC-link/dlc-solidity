@@ -15,19 +15,6 @@ async function promptUser(message) {
     return response.continue;
 }
 
-async function promptUserForNumber(message, defaultValue) {
-    if (process.env.CLI_MODE === 'noninteractive') {
-        return 0;
-    }
-    const response = await prompts({
-        type: 'number',
-        name: 'number',
-        message,
-        initial: defaultValue,
-    });
-    return response.number;
-}
-
 async function loadContractAddress(requirement, network) {
     const deployment = await loadDeploymentInfo(network, requirement);
     if (!deployment) {
@@ -56,7 +43,6 @@ function getMinimumDelay(networkName) {
 
 module.exports = {
     promptUser,
-    promptUserForNumber,
     loadContractAddress,
     getMinimumDelay,
 };

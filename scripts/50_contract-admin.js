@@ -241,6 +241,10 @@ module.exports = async function contractAdmin() {
                     await saveDeploymentInfo(
                         deploymentInfo(network, contractObject, contractName)
                     );
+                    const contractConfig = contractConfigs.find(
+                        (config) => config.name === contractName
+                    );
+                    await contractConfig.verify();
                 } catch (error) {
                     console.error(error);
                 }
@@ -255,6 +259,12 @@ module.exports = async function contractAdmin() {
                     'New implementation address',
                     newImplementationAddress
                 );
+
+                console.log('Verifying new implementation...');
+                await hardhat.run('verify:verify', {
+                    address: newImplementationAddress,
+                });
+                console.log('New implementation verified.');
 
                 try {
                     await hardhat.upgrades.upgradeProxy(
@@ -393,7 +403,18 @@ module.exports = async function contractAdmin() {
             console.log(
                 chalk.bgYellow('Current ProxyAdmin owner:', currentAdmin)
             );
-            if (currentAdmin == dlcAdminSafes.critical) return;
+            if (currentAdmin == dlcAdminSafes.critical) {
+                console.log(
+                    chalk.bgRed(
+                        'Current ProxyAdmin owner is the Critical Multisig Already!'
+                    )
+                );
+                if (
+                    (await promptUser('Are you sure you want to continue?')) ===
+                    false
+                )
+                    return;
+            }
 
             const newAdmin = await prompts({
                 type: 'text',
