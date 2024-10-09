@@ -15,7 +15,7 @@ async function whitelistAddress(dlcManager, user) {
 
 describe('DLCManager', () => {
     let dlcManager, dlcBtc;
-    let accounts, deployer, user, randomAccount, anotherAccount;
+    let accounts, deployer, user, randomAccount, anotherAccount, protocol;
     let attestor1, attestor2, attestor3;
     let attestors;
 
@@ -40,7 +40,7 @@ describe('DLCManager', () => {
         attestors = [attestor1, attestor2, attestor3];
 
         const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
-        dlcBtc = await upgrades.deployProxy(DLCBTC);
+        dlcBtc = await hardhat.upgrades.deployProxy(DLCBTC);
         await dlcBtc.deployed();
 
         // DLCManager
@@ -511,16 +511,11 @@ describe('DLCManager', () => {
             );
             attestors.push(maliciousSigner);
 
-            console.log(
-                `Malicious signer address: ${maliciousSigner.address}\n`
-            );
             // Change threshold and add the new signer
             await dlcManager.connect(deployer).setThreshold(4);
             await setSigners(dlcManager, [maliciousAttestor]);
 
             // Sign pending status
-            console.log(`Wallet threshold: ${await dlcManager.getThreshold()}`);
-            console.log('Signing pending status:');
             const signatureBytesForPending =
                 await getMultipleSignaturesForSameAttestorAndMessage(
                     {
@@ -534,9 +529,6 @@ describe('DLCManager', () => {
                 );
 
             // Fund with just one signature
-            console.log('\n');
-            console.log('Signing funded status:');
-
             const signatureBytesForFunding =
                 await getMultipleSignaturesForSameAttestorAndMessage(
                     {

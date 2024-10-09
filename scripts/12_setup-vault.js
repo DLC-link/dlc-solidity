@@ -3,9 +3,8 @@ const {
     loadDeploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
 
-async function dlcManagerSetupVault(btcDeposit, hardhat) {
+async function dlcManagerSetupVault(hardhat) {
     if (!hardhat || !hardhat.network) hardhat = require('hardhat');
-    if (!btcDeposit) btcDeposit = 1000000;
 
     const deployInfo = await loadDeploymentInfo(
         process.env.NETWORK_NAME ?? hardhat.network.name,
@@ -19,7 +18,7 @@ async function dlcManagerSetupVault(btcDeposit, hardhat) {
         accounts[0]
     );
 
-    const tx = await dlcManager.setupVault(btcDeposit);
+    const tx = await dlcManager.setupVault();
     const receipt = await tx.wait();
     console.dir(tx, { depth: 4 });
     console.dir(receipt, { depth: 4 });
@@ -29,5 +28,5 @@ module.exports = dlcManagerSetupVault;
 
 if (require.main === module) {
     const deposit = process.argv[2];
-    dlcManagerSetupVault(deposit).catch(console.error);
+    dlcManagerSetupVault().catch(console.error);
 }

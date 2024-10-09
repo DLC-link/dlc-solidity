@@ -10,4 +10,4 @@ dlc-link-eth add-signer 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
 dlc-link-eth set-whitelisting 'false'
 
 # Vault setup and print dlcUUID
-dlc-link-eth setup-vault 1200000 | grep dlcUUID
+dlc-link-eth setup-vault | grep dlcUUID
