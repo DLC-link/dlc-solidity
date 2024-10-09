@@ -82,10 +82,6 @@ async function getMultipleSignaturesForSameAttestorAndMessage(
     );
 
     let signatureBytes = [];
-    console.log(
-        `Signing ${numberOfSignatures} messages: ${hashedOriginalMessage} with private key: ${attestor.privateKey}`
-    );
-
     for (let i = 0; i < numberOfSignatures; i++) {
         const randomNonce = crypto.randomBytes(32);
         const sig = await signMessageCustom(
@@ -93,7 +89,6 @@ async function getMultipleSignaturesForSameAttestorAndMessage(
             ethers.utils.arrayify(hashedOriginalMessage),
             randomNonce
         );
-        console.log(`Signature ${i}: ${sig}`);
         signatureBytes.push(ethers.utils.arrayify(sig));
     }
     // Convert signatures from strings to bytes

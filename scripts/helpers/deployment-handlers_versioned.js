@@ -61,7 +61,7 @@ async function loadDeploymentInfo(networkName, contractName) {
     const content = await fs.readFile(deploymentConfigFile, {
         encoding: 'utf8',
     });
-    deployInfo = JSON.parse(content);
+    const deployInfo = JSON.parse(content);
     try {
         validateDeploymentInfo(deployInfo);
     } catch (e) {
@@ -72,32 +72,9 @@ async function loadDeploymentInfo(networkName, contractName) {
     return deployInfo;
 }
 
-async function fileExists(path) {
-    try {
-        await fs.access(path, F_OK);
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-async function confirmOverwrite(filename) {
-    const answers = await inquirer.prompt([
-        {
-            type: 'confirm',
-            name: 'overwrite',
-            message: `File ${filename} exists. Overwrite it?`,
-            default: false,
-        },
-    ]);
-    return answers.overwrite;
-}
-
 module.exports = {
     deploymentInfo,
     saveDeploymentInfo,
     validateDeploymentInfo,
     loadDeploymentInfo,
-    fileExists,
-    confirmOverwrite,
 };

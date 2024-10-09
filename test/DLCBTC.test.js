@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
+const { ethers, upgrades } = require('hardhat');
 
 const { getSignatures, setSigners } = require('./utils');
 
@@ -12,7 +12,7 @@ const mockTaprootPubkey =
 
 describe('DLCBTC', function () {
     let dlcBtc, dlcManager;
-    let deployer, user, someRandomAccount;
+    let accounts, deployer, user, someRandomAccount;
     let attestor1, attestor2, attestor3;
     let attestors;
 
