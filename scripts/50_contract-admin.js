@@ -1,11 +1,16 @@
 require('dotenv').config();
 const hardhat = require('hardhat');
+const fs = require('fs/promises');
 
 const prompts = require('prompts');
 const chalk = require('chalk');
 const dlcAdminSafesConfigs = require('./helpers/dlc-admin-safes');
 const getContractConfigs = require('./99_contract-configs');
-const { promptUser, loadContractAddress } = require('./helpers/utils');
+const {
+    promptUser,
+    loadContractAddress,
+    getMinimumDelay,
+} = require('./helpers/utils');
 const {
     saveDeploymentInfo,
     deploymentInfo,
@@ -45,8 +50,23 @@ module.exports = async function contractAdmin() {
                 value: 'deploy',
             },
             { title: 'Verify Contract On Etherscan', value: 'verify' },
-            { title: 'Validate an Upgrade', value: 'validate-upgrade' },
-            { title: 'Upgrade Proxy Implementation', value: 'upgrade' },
+            {
+                title: 'Validate an Upgrade',
+                value: 'validate-upgrade',
+                description:
+                    'Validate a potential contract upgrade without performing any deployments.',
+            },
+            {
+                title: 'Upgrade Proxy',
+                value: 'upgrade',
+                description:
+                    'Upgrade a contract. Either directly, or through a SAFE proposal through a TimelockController',
+            },
+            {
+                title: 'Execute Upgrade',
+                value: 'execute-upgrade',
+                description: 'Execute an upgrade after the delay period',
+            },
             {
                 title: 'Transfer DLCBTC Ownership',
                 value: 'transfer-dlcbtc',
@@ -55,10 +75,13 @@ module.exports = async function contractAdmin() {
             {
                 title: 'Begin Transfer DEFAULT_ADMIN_ROLE',
                 value: 'transfer-admin',
+                description:
+                    'Begin the transfer of DEFAULT_ADMIN_ROLE on the DLCManager contract',
             },
             {
                 title: 'Transfer ProxyAdmin Ownership',
                 value: 'transfer-proxyadmin',
+                description: 'Transfer ownership of the ProxyAdmin contract',
             },
         ],
         initial: 0,
@@ -137,19 +160,15 @@ module.exports = async function contractAdmin() {
             }
             const contractSelectPrompt = await prompts({
                 type: 'select',
-                name: 'contracts',
+                name: 'contract',
                 message: `Select contract to verify on ${network}`,
                 choices: contractConfigs.map((config) => ({
                     title: `${config.name}`,
-                    value: config.name,
+                    value: config,
                 })),
             });
-            const contractName = contractSelectPrompt.contracts;
-            const contractConfig = contractConfigs.find(
-                (config) => config.name === contractName
-            );
             try {
-                await contractConfig.verify();
+                await contractSelectPrompt.contract.verify();
             } catch (error) {
                 console.error(error);
             }
@@ -176,15 +195,16 @@ module.exports = async function contractAdmin() {
             );
             const newImplementation =
                 await hardhat.ethers.getContractFactory(contractName);
-            const validation = await hardhat.upgrades.validateUpgrade(
-                proxyAddress,
-                newImplementation
-            );
-            if (!validation) {
-                console.log('Upgrade is valid');
+            try {
+                await hardhat.upgrades.validateUpgrade(
+                    proxyAddress,
+                    newImplementation
+                );
+            } catch (error) {
+                console.error(error);
                 return;
             }
-            console.log(validation);
+            console.log('Upgrade is valid');
             break;
         }
         case 'upgrade': {
@@ -205,14 +225,8 @@ module.exports = async function contractAdmin() {
                 contractName,
                 network
             );
-            const proxyAdminAddress =
-                await hardhat.upgrades.erc1967.getAdminAddress(proxyAddress);
 
-            const proxyAdmin = new hardhat.ethers.Contract(
-                proxyAdminAddress,
-                ['function owner() view returns (address)'],
-                deployer
-            );
+            const proxyAdmin = await hardhat.upgrades.admin.getInstance();
             const proxyAdminOwner = await proxyAdmin.owner();
             console.log('ProxyAdmin owner:', proxyAdminOwner);
 
@@ -220,11 +234,13 @@ module.exports = async function contractAdmin() {
                 await hardhat.ethers.getContractFactory(contractName);
 
             if (proxyAdminOwner == deployer) {
+                // Deployer can perform the whole upgrade flow
                 console.log('deployer is ProxyAdmin owner, continuing...');
                 await hardhat.upgrades.upgradeProxy(
                     proxyAddress,
                     newImplementation,
                     {
+                        // @ts-ignore
                         txOverrides: {
                             maxFeePerGas: 1000000000,
                             maxPriorityFeePerGas: 1000000000,
@@ -244,11 +260,13 @@ module.exports = async function contractAdmin() {
                     const contractConfig = contractConfigs.find(
                         (config) => config.name === contractName
                     );
+                    // @ts-ignore
                     await contractConfig.verify();
                 } catch (error) {
                     console.error(error);
                 }
             } else {
+                // We need to propose the upgrade through the SAFE & timelock
                 const newImplementationAddress =
                     await hardhat.upgrades.prepareUpgrade(
                         proxyAddress,
@@ -266,46 +284,138 @@ module.exports = async function contractAdmin() {
                 });
                 console.log('New implementation verified.');
 
-                try {
-                    await hardhat.upgrades.upgradeProxy(
-                        proxyAddress,
-                        newImplementation
-                    );
-                    console.log('Upgraded contract', contractName);
-                    console.log('Updating DeploymentInfo...');
-                    try {
-                        const contractObject =
-                            await hardhat.ethers.getContractAt(
-                                contractName,
-                                proxyAddress
-                            );
-                        await saveDeploymentInfo(
-                            deploymentInfo(
-                                network,
-                                contractObject,
-                                contractName
-                            )
-                        );
-                    } catch (error) {
-                        console.error(error);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    console.log(chalk.bgYellow('Upgrade through the SAFE!'));
-                    const implObject = await hardhat.ethers.getContractAt(
-                        contractName,
-                        newImplementationAddress
-                    );
-                    const deploymentInfoToSave = deploymentInfo(
-                        network,
-                        { ...implObject, address: proxyAddress },
-                        contractName
-                    );
-                    await saveDeploymentInfo(deploymentInfoToSave);
-                    console.log(deploymentInfoToSave);
-                    console.log(chalk.bgRed('Upgrade through the SAFE!'));
-                }
+                // we prepare the tx to the ProxyAdmin to upgrade the contract
+                const proxyAdmin = await hardhat.upgrades.admin.getInstance();
+                // NOTE: we have to store this data for the actual execution
+                const upgradeTx = await proxyAdmin.populateTransaction.upgrade(
+                    proxyAddress,
+                    newImplementationAddress
+                );
+                console.log('proxyAddress', proxyAddress);
+                console.log(
+                    'newImplementationAddress',
+                    newImplementationAddress
+                );
+                console.log('proxyAdmin.address', proxyAdmin.address);
+                console.log(
+                    chalk.bgYellowBright('upgradeTx: (Store this!)'),
+                    upgradeTx
+                );
+
+                // Fetching the TimelockController contract
+                const timeLockContractDeployInfo = await loadDeploymentInfo(
+                    network,
+                    'TimelockController'
+                );
+                const timelockContract = new hardhat.ethers.Contract(
+                    timeLockContractDeployInfo.contract.address,
+                    timeLockContractDeployInfo.contract.abi,
+                    deployer
+                );
+
+                // Preparing the Multisig request to the TimelockController
+                const minimumDelay = getMinimumDelay(network);
+                const tlRequestParams = [
+                    proxyAdmin.address,
+                    0,
+                    upgradeTx.data,
+                    '0x0000000000000000000000000000000000000000000000000000000000000000',
+                    '0x0000000000000000000000000000000000000000000000000000000000000000',
+                    minimumDelay,
+                ];
+                const timelockContractTxRequest = await timelockContract
+                    .connect(deployer)
+                    .populateTransaction['schedule'](...tlRequestParams);
+                console.log(
+                    'timelockContractTxRequest',
+                    timelockContractTxRequest
+                );
+
+                // Proposing the upgrade through the SAFE
+                await safeContractProposal(
+                    timelockContractTxRequest,
+                    deployer,
+                    dlcAdminSafes.critical
+                );
+
+                const implObject = await hardhat.ethers.getContractAt(
+                    contractName,
+                    // @ts-ignore
+                    newImplementationAddress
+                );
+                const deploymentInfoToSave = deploymentInfo(
+                    network,
+                    { ...implObject, address: proxyAddress },
+                    contractName
+                );
+                await saveDeploymentInfo(
+                    deploymentInfoToSave,
+                    `deploymentFiles/${network}/${contractName}.proposed.json`
+                );
             }
+
+            break;
+        }
+        case 'execute-upgrade': {
+            const contractSelectPrompt = await prompts({
+                type: 'select',
+                name: 'contracts',
+                message: `Select contract to upgrade on ${network}`,
+                choices: contractConfigs
+                    .filter((config) => config.upgradeable)
+                    .map((config) => ({
+                        title: `${config.name}`,
+                        value: config.name,
+                    })),
+            });
+            const contractName = contractSelectPrompt.contracts;
+            const txData = await prompts({
+                type: 'text',
+                name: 'value',
+                message: 'Enter txRequest.data from the scheduled upgrade',
+            });
+            if (!txData.value) return;
+            // After the delay period...
+
+            // Fetching the TimelockController contract
+            const timeLockContractDeployInfo = await loadDeploymentInfo(
+                network,
+                'TimelockController'
+            );
+            const timelockContract = new hardhat.ethers.Contract(
+                timeLockContractDeployInfo.contract.address,
+                timeLockContractDeployInfo.contract.abi,
+                deployer
+            );
+            const proxyAdmin = await hardhat.upgrades.admin.getInstance();
+            const tlRequestParams = [
+                proxyAdmin.address,
+                0,
+                txData.value,
+                '0x0000000000000000000000000000000000000000000000000000000000000000',
+                '0x0000000000000000000000000000000000000000000000000000000000000000',
+            ];
+            const timelockContractTxRequestToExecute = await timelockContract
+                .connect(deployer)
+                .populateTransaction['execute'](...tlRequestParams);
+            console.log(
+                'timelockContractTxRequestToExecute',
+                timelockContractTxRequestToExecute
+            );
+
+            const proxyAdminOwner = await proxyAdmin.owner();
+            await safeContractProposal(
+                timelockContractTxRequestToExecute,
+                deployer,
+                dlcAdminSafes.critical
+            );
+
+            console.log('Updating DeploymentInfo...');
+            await fs.copyFile(
+                `deploymentFiles/${network}/${contractName}.proposed.json`,
+                `deploymentFiles/${network}/${contractName}.json`
+            );
+            console.log('DeploymentInfo updated.');
 
             break;
         }

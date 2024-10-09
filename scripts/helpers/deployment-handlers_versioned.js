@@ -24,7 +24,7 @@ function deploymentInfo(networkName, contract, contractName) {
     return deployInfo;
 }
 
-async function saveDeploymentInfo(info, filename = undefined) {
+async function saveDeploymentInfo(info, filename) {
     if (!filename) {
         filename = `deploymentFiles/${info.network}/${info.contract.name}.json`;
     }
