@@ -37,7 +37,7 @@ function getMinimumDelay(networkName) {
         case 'basesepolia':
             return 60 * 2; // 2 minutes
         default:
-            return 60 * 60 * 48; // 48 hours
+            return 60 * 60 * 24 * 7; // 1 week
     }
 }
 
