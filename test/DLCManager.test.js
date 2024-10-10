@@ -14,7 +14,7 @@ async function whitelistAddress(dlcManager, user) {
 }
 
 describe('DLCManager', () => {
-    let dlcManager, dlcBtc;
+    let dlcManager, dlcBtc, uuid;
     let accounts, deployer, user, randomAccount, anotherAccount, protocol;
     let attestor1, attestor2, attestor3;
     let attestors;
@@ -23,6 +23,12 @@ describe('DLCManager', () => {
     const btcTxId = '0x1234567890';
     const btcTxId2 = '0x1234567891';
     const someAddress = '0x1234567890123456789012345678901234567890';
+    const btcTxId3 = '0x1234567892';
+    const btcTxId4 = '0x1234567893';
+    const btcTxId5 = '0x1234567894';
+    const btcTxId6 = '0x1234567895';
+    const btcTxId7 = '0x1234567896';
+    const btcTxId8 = '0x1234567897';
     const mockTaprootPubkey =
         '0x1234567890123456789012345678901234567890123456789012345678901234';
     let btcFeeRecipient = '0x000001';
@@ -655,18 +661,18 @@ describe('DLCManager', () => {
                 dlcManager
                     .connect(attestor1)
                     .setStatusFunded(uuid, btcTxId, signatureBytes, valueLocked)
-            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSigner');
         });
 
-        it('reverts if deposit is too large', async () => {
+        it('reverts if attestors sign a different lockedAmount', async () => {
             const signatureBytes = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId8,
                     functionString: 'set-status-funded',
-                    newLockedAmount: valueLocked * 100,
+                    newLockedAmount: valueLocked + 100,
                 },
-                [attestor1, attestor1, attestor1],
+                [attestor1, attestor2, attestor3],
                 3
             );
             await expect(
@@ -674,29 +680,11 @@ describe('DLCManager', () => {
                     .connect(attestor1)
                     .setStatusFunded(
                         uuid,
-                        btcTxId,
+                        btcTxId8,
                         signatureBytes,
-                        valueLocked * 100
+                        valueLocked
                     )
-            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
-        });
-
-        it('reverts if deposit is too small', async () => {
-            const signatureBytes = await getSignatures(
-                {
-                    uuid,
-                    btcTxId,
-                    functionString: 'set-status-funded',
-                    newLockedAmount: 100,
-                },
-                [attestor1, attestor1, attestor1],
-                3
-            );
-            await expect(
-                dlcManager
-                    .connect(attestor1)
-                    .setStatusFunded(uuid, btcTxId, signatureBytes, 100)
-            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSignature');
+            ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
         it('mints dlcBTC tokens to the user', async () => {
@@ -1063,7 +1051,7 @@ describe('DLCManager', () => {
             const signatureBytesForPending = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId2,
                     functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
@@ -1074,7 +1062,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusPending(
                     uuid,
-                    btcTxId,
+                    btcTxId2,
                     signatureBytesForPending,
                     mockTaprootPubkey,
                     0
@@ -1084,7 +1072,7 @@ describe('DLCManager', () => {
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId2,
                     functionString: 'set-status-funded',
                     newLockedAmount: valueLocked / 2,
                 },
@@ -1095,7 +1083,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusFunded(
                     uuid,
-                    btcTxId,
+                    btcTxId2,
                     signatureBytesForFunding,
                     valueLocked / 2
                 );
@@ -1118,7 +1106,7 @@ describe('DLCManager', () => {
             const signatureBytesForPending = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId3,
                     functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
@@ -1129,7 +1117,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusPending(
                     uuid,
-                    btcTxId,
+                    btcTxId3,
                     signatureBytesForPending,
                     mockTaprootPubkey,
                     0
@@ -1139,7 +1127,7 @@ describe('DLCManager', () => {
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId3,
                     functionString: 'set-status-funded',
                     newLockedAmount: valueLocked / 2 - 1,
                 },
@@ -1151,7 +1139,7 @@ describe('DLCManager', () => {
                     .connect(attestor1)
                     .setStatusFunded(
                         uuid,
-                        btcTxId,
+                        btcTxId3,
                         signatureBytesForFunding,
                         valueLocked / 2 - 1
                     )
@@ -1166,7 +1154,7 @@ describe('DLCManager', () => {
             const signatureBytesForPending = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId4,
                     functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
@@ -1177,7 +1165,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusPending(
                     uuid,
-                    btcTxId,
+                    btcTxId4,
                     signatureBytesForPending,
                     mockTaprootPubkey,
                     0
@@ -1187,7 +1175,7 @@ describe('DLCManager', () => {
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId4,
                     functionString: 'set-status-funded',
                     newLockedAmount: valueLocked - 1,
                 },
@@ -1199,7 +1187,7 @@ describe('DLCManager', () => {
                     .connect(attestor1)
                     .setStatusFunded(
                         uuid,
-                        btcTxId,
+                        btcTxId4,
                         signatureBytesForFunding,
                         valueLocked - 1
                     )
@@ -1222,7 +1210,7 @@ describe('DLCManager', () => {
             const signatureBytesForPending = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId5,
                     functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
@@ -1233,7 +1221,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusPending(
                     uuid,
-                    btcTxId,
+                    btcTxId5,
                     signatureBytesForPending,
                     mockTaprootPubkey,
                     0
@@ -1243,7 +1231,7 @@ describe('DLCManager', () => {
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId5,
                     functionString: 'set-status-funded',
                     newLockedAmount: valueLocked,
                 },
@@ -1254,7 +1242,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusFunded(
                     uuid,
-                    btcTxId,
+                    btcTxId5,
                     signatureBytesForFunding,
                     valueLocked
                 );
@@ -1266,7 +1254,7 @@ describe('DLCManager', () => {
             const signatureBytesForPending = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId6,
                     functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
@@ -1277,7 +1265,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusPending(
                     uuid,
-                    btcTxId,
+                    btcTxId6,
                     signatureBytesForPending,
                     mockTaprootPubkey,
                     0
@@ -1287,7 +1275,7 @@ describe('DLCManager', () => {
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId6,
                     functionString: 'set-status-funded',
                     newLockedAmount: lockedAmountAfterDeposit,
                 },
@@ -1298,7 +1286,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusFunded(
                     uuid,
-                    btcTxId,
+                    btcTxId6,
                     signatureBytesForFunding,
                     lockedAmountAfterDeposit
                 );
@@ -1318,7 +1306,7 @@ describe('DLCManager', () => {
             const signatureBytesForPending = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId7,
                     functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
@@ -1329,7 +1317,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusPending(
                     uuid,
-                    btcTxId,
+                    btcTxId7,
                     signatureBytesForPending,
                     mockTaprootPubkey,
                     0
@@ -1339,7 +1327,7 @@ describe('DLCManager', () => {
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid,
-                    btcTxId,
+                    btcTxId: btcTxId7,
                     functionString: 'set-status-funded',
                     newLockedAmount: lockedAmountAfterDeposit,
                 },
@@ -1351,7 +1339,7 @@ describe('DLCManager', () => {
                     .connect(attestor1)
                     .setStatusFunded(
                         uuid,
-                        btcTxId,
+                        btcTxId7,
                         signatureBytesForFunding,
                         lockedAmountAfterDeposit
                     )

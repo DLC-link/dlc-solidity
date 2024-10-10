@@ -68,7 +68,8 @@ contract DLCManager is
     mapping(address => bool) private _whitelistedAddresses;
     bool public porEnabled;
     AggregatorV3Interface public dlcBTCPoRFeed;
-    uint256[40] __gap;
+    mapping(address => mapping(bytes32 => bool)) private _seenSigners;
+    uint256[39] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -230,14 +231,12 @@ contract DLCManager is
     function _attestorMultisigIsValid(
         bytes memory message,
         bytes[] memory signatures
-    ) internal view {
+    ) internal {
         if (signatures.length < _threshold) revert NotEnoughSignatures();
-        if (_hasDuplicates(signatures)) revert DuplicateSignature();
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
             keccak256(message)
         );
-        address[] memory seenSigners = new address[](signatures.length); // to store unique signers
 
         for (uint256 i = 0; i < signatures.length; i++) {
             address attestorPubKey = ECDSAUpgradeable.recover(
@@ -247,39 +246,18 @@ contract DLCManager is
             if (!hasRole(APPROVED_SIGNER, attestorPubKey)) {
                 revert InvalidSigner();
             }
-            _checkSignerUnique(seenSigners, attestorPubKey);
-            seenSigners[i] = attestorPubKey;
+            _checkSignerUnique(attestorPubKey, prefixedMessageHash);
         }
-    }
-
-    /**
-     * @notice  Checks for duplicate values in an array.
-     * @dev     Used to check for duplicate signatures.
-     * @param   signatures  Array of signatures.
-     * @return  bool  True if there are duplicates, false otherwise.
-     */
-    function _hasDuplicates(
-        bytes[] memory signatures
-    ) internal pure returns (bool) {
-        for (uint i = 0; i < signatures.length - 1; i++) {
-            for (uint j = i + 1; j < signatures.length; j++) {
-                if (keccak256(signatures[i]) == keccak256(signatures[j])) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     function _checkSignerUnique(
-        address[] memory seenSigners,
-        address attestorPubKey
-    ) internal pure {
-        for (uint256 j = 0; j < seenSigners.length; j++) {
-            if (seenSigners[j] == attestorPubKey) {
-                revert DuplicateSigner(attestorPubKey);
-            }
+        address attestorPubKey,
+        bytes32 messageHash
+    ) internal {
+        if (_seenSigners[attestorPubKey][messageHash]) {
+            revert DuplicateSigner(attestorPubKey);
         }
+        _seenSigners[attestorPubKey][messageHash] = true;
     }
 
     /**
