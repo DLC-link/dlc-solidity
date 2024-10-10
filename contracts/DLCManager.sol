@@ -289,7 +289,7 @@ contract DLCManager is
      * @dev     If PoR is enabled, checks if the new total value minted is within bounds.
      * @dev     If the PoR check fails, reverts with an error.
      * @param   amount  dlcBTC to mint.
-     * @param   currentTotalMinted  total minted value in all vaults.
+     * @param   currentTotalMinted  total minted value in all vaults on this chain.
      * @return  bool  whether a call to _mint should happen.
      */
     function _checkMint(
@@ -300,21 +300,32 @@ contract DLCManager is
             return false;
         }
 
+        uint256 proposedTotalValueMinted = currentTotalMinted + amount;
+        return _checkPoR(proposedTotalValueMinted);
+    }
+
+    /**
+     * @notice  Checks Proof of Reserves (PoR) eligibility.
+     * @dev     If PoR is disabled, returns true.
+     * @dev     If PoR is enabled, checks if the proposed total value minted is within bounds.
+     * @dev     If the PoR check fails, reverts with an error.
+     * @param   proposedTotalValueMinted  proposed total minted value in all vaults on this chain.
+     * @return  bool  whether the proposed total value minted is within bounds.
+     */
+    function _checkPoR(
+        uint256 proposedTotalValueMinted
+    ) internal view returns (bool) {
         if (!porEnabled) {
             return true;
         }
 
-        (, int256 latestAnswer, , , ) = dlcBTCPoRFeed.latestRoundData();
-        uint256 newTotalValueMinted = currentTotalMinted + amount;
+        (, int256 porValue, , , ) = dlcBTCPoRFeed.latestRoundData();
+        uint256 porValueUint = uint256(porValue);
 
-        if (uint256(latestAnswer) >= newTotalValueMinted) {
-            return true;
-        } else {
-            revert NotEnoughReserves(
-                uint256(latestAnswer),
-                newTotalValueMinted
-            );
+        if (porValueUint < proposedTotalValueMinted) {
+            revert NotEnoughReserves(porValueUint, proposedTotalValueMinted);
         }
+        return true;
     }
 
     function _mintTokens(address to, uint256 amount) internal {
