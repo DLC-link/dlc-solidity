@@ -22,6 +22,7 @@ describe('DLCManager', () => {
     const valueLocked = 100000000; // 1 BTC
     const btcTxId = '0x1234567890';
     const btcTxId2 = '0x1234567891';
+    const someAddress = '0x1234567890123456789012345678901234567890';
     const mockTaprootPubkey =
         '0x1234567890123456789012345678901234567890123456789012345678901234';
     let btcFeeRecipient = '0x000001';
@@ -742,6 +743,246 @@ describe('DLCManager', () => {
             expect(event.event).to.equal('SetStatusFunded');
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.btcTxId).to.equal(btcTxId);
+        });
+    });
+
+    describe('getTotalValueMintedInVaults', async () => {
+        beforeEach(async () => {
+            await whitelistAddress(dlcManager, user);
+
+            const tx = await dlcManager.connect(user).setupVault();
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+
+            await setSigners(dlcManager, attestors);
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForPending,
+                    mockTaprootPubkey,
+                    0
+                );
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+            const tx3 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForFunding,
+                    valueLocked
+                );
+            await tx3.wait();
+        });
+
+        it('returns the correct value for 1 vault', async () => {
+            const totalValueMinted =
+                await dlcManager.getTotalValueMintedInVaults();
+            expect(totalValueMinted).to.equal(valueLocked);
+        });
+
+        it('returns the correct value for multiple vaults', async () => {
+            await whitelistAddress(dlcManager, anotherAccount);
+
+            const tx = await dlcManager.connect(anotherAccount).setupVault();
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            const uuid2 = decodedEvent.args.uuid;
+
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid: uuid2,
+                    btcTxId,
+                    functionString: 'set-status-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(
+                    uuid2,
+                    btcTxId,
+                    signatureBytesForPending,
+                    mockTaprootPubkey,
+                    0
+                );
+            await tx2.wait();
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid: uuid2,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+            const tx3 = await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid2,
+                    btcTxId,
+                    signatureBytesForFunding,
+                    valueLocked
+                );
+            await tx3.wait();
+
+            const totalValueMinted =
+                await dlcManager.getTotalValueMintedInVaults();
+            expect(totalValueMinted).to.equal(valueLocked * 2);
+        });
+    });
+
+    describe('Proof of Reserves', async () => {
+        let uuid;
+        beforeEach(async () => {
+            // We set up a single Pending Vault for each testcase
+            await whitelistAddress(dlcManager, user);
+
+            const tx = await dlcManager.connect(user).setupVault();
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+
+            await setSigners(dlcManager, attestors);
+            const signatureBytesForPending = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-pending',
+                    newLockedAmount: 0,
+                },
+                attestors,
+                3
+            );
+            const tx2 = await dlcManager
+                .connect(attestor1)
+                .setStatusPending(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForPending,
+                    mockTaprootPubkey,
+                    0
+                );
+            await tx2.wait();
+        });
+
+        it('can be toggled', async () => {
+            const porEnabled = await dlcManager.porEnabled();
+            expect(porEnabled).to.equal(false);
+            await dlcManager.connect(deployer).setPorEnabled(true);
+            const porEnabledAfter = await dlcManager.porEnabled();
+            expect(porEnabledAfter).to.equal(true);
+            await dlcManager.connect(deployer).setPorEnabled(false);
+            const porEnabledAfter2 = await dlcManager.porEnabled();
+            expect(porEnabledAfter2).to.equal(false);
+        });
+
+        it('can be set by the owner', async () => {
+            const porFeed = await dlcManager.dlcBTCPoRFeed();
+            expect(porFeed).to.equal(ethers.constants.AddressZero);
+            await dlcManager.connect(deployer).setDlcBTCPoRFeed(someAddress);
+            const porFeedAfter = await dlcManager.dlcBTCPoRFeed();
+            expect(porFeedAfter).to.equal(someAddress);
+        });
+
+        it('prevents a mint if reserves are too low', async () => {
+            await dlcManager.connect(deployer).setPorEnabled(true);
+            const MockV3Aggregator =
+                await ethers.getContractFactory('MockV3Aggregator');
+            // NOTE: we set the reserves to 0
+            const mockV3Aggregator = await MockV3Aggregator.deploy(8, 0);
+            await mockV3Aggregator.deployed();
+
+            await dlcManager
+                .connect(deployer)
+                .setDlcBTCPoRFeed(mockV3Aggregator.address);
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        signatureBytesForFunding,
+                        valueLocked
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'NotEnoughReserves');
+        });
+
+        it('allows a mint if reserves are high enough', async () => {
+            await dlcManager.connect(deployer).setPorEnabled(true);
+            const MockV3Aggregator =
+                await ethers.getContractFactory('MockV3Aggregator');
+            // NOTE: we set the reserves to valueLocked
+            const mockV3Aggregator = await MockV3Aggregator.deploy(
+                8,
+                valueLocked
+            );
+            await mockV3Aggregator.deployed();
+
+            await dlcManager
+                .connect(deployer)
+                .setDlcBTCPoRFeed(mockV3Aggregator.address);
+
+            const signatureBytesForFunding = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+            await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(
+                    uuid,
+                    btcTxId,
+                    signatureBytesForFunding,
+                    valueLocked
+                );
+            expect(await dlcBtc.balanceOf(user.address)).to.equal(valueLocked);
         });
     });
 

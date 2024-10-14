@@ -15,6 +15,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./DLCLinkLibrary.sol";
 import "./DLCBTC.sol";
 
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+
 /**
  * @author  DLC.Link 2024
  * @title   DLCManager
@@ -64,7 +66,9 @@ contract DLCManager is
 
     mapping(address => bytes32[]) public userVaults;
     mapping(address => bool) private _whitelistedAddresses;
-    uint256[41] __gap;
+    bool public porEnabled;
+    AggregatorV3Interface public dlcBTCPoRFeed;
+    uint256[40] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -99,6 +103,7 @@ contract DLCManager is
     error InsufficientMintedBalance(uint256 minted, uint256 amount);
     error FeeRateOutOfBounds(uint256 feeRate);
     error UnderCollateralized(uint256 newValueLocked, uint256 valueMinted);
+    error NotEnoughReserves(uint256 reserves, uint256 amount);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -147,6 +152,7 @@ contract DLCManager is
         btcMintFeeRate = 12; // 0.12% BTC fee for now
         btcRedeemFeeRate = 15; // 0.15% BTC fee for now
         btcFeeRecipient = btcFeeRecipientToSet;
+        porEnabled = false;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -191,6 +197,8 @@ contract DLCManager is
     event SetBtcFeeRecipient(string btcFeeRecipient);
     event SetWhitelistingEnabled(bool isWhitelistingEnabled);
     event TransferTokenContractOwnership(address newOwner);
+    event SetPorEnabled(bool enabled);
+    event SetDlcBTCPoRFeed(AggregatorV3Interface feed);
 
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
@@ -272,6 +280,52 @@ contract DLCManager is
                 revert DuplicateSigner(attestorPubKey);
             }
         }
+    }
+
+    /**
+     * @notice  Checks mint eligibility.
+     * @dev     Checks if the amount is non-zero.
+     * @dev     If PoR is disabled, returns true.
+     * @dev     If PoR is enabled, checks if the new total value minted is within bounds.
+     * @dev     If the PoR check fails, reverts with an error.
+     * @param   amount  dlcBTC to mint.
+     * @param   currentTotalMinted  total minted value in all vaults on this chain.
+     * @return  bool  whether a call to _mint should happen.
+     */
+    function _checkMint(
+        uint256 amount,
+        uint256 currentTotalMinted
+    ) internal view returns (bool) {
+        if (amount == 0) {
+            return false;
+        }
+
+        uint256 proposedTotalValueMinted = currentTotalMinted + amount;
+        return _checkPoR(proposedTotalValueMinted);
+    }
+
+    /**
+     * @notice  Checks Proof of Reserves (PoR) eligibility.
+     * @dev     If PoR is disabled, returns true.
+     * @dev     If PoR is enabled, checks if the proposed total value minted is within bounds.
+     * @dev     If the PoR check fails, reverts with an error.
+     * @param   proposedTotalValueMinted  proposed total minted value in all vaults on this chain.
+     * @return  bool  whether the proposed total value minted is within bounds.
+     */
+    function _checkPoR(
+        uint256 proposedTotalValueMinted
+    ) internal view returns (bool) {
+        if (!porEnabled) {
+            return true;
+        }
+
+        (, int256 porValue, , , ) = dlcBTCPoRFeed.latestRoundData();
+        uint256 porValueUint = uint256(porValue);
+
+        if (porValueUint < proposedTotalValueMinted) {
+            revert NotEnoughReserves(porValueUint, proposedTotalValueMinted);
+        }
+        return true;
     }
 
     function _mintTokens(address to, uint256 amount) internal {
@@ -368,6 +422,9 @@ contract DLCManager is
             revert DepositTooSmall(amountToLockDiff, minimumDeposit);
         }
 
+        // We fetch the current total minted value in all vaults before we update this Vault
+        uint256 currentTotalMinted = getTotalValueMintedInVaults();
+
         dlc.fundingTxId = btcTxId;
         dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
@@ -375,7 +432,9 @@ contract DLCManager is
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted = newValueLocked;
 
-        _mintTokens(dlc.creator, amountToMint);
+        if (_checkMint(amountToMint, currentTotalMinted)) {
+            _mintTokens(dlc.creator, amountToMint);
+        }
 
         emit SetStatusFunded(
             uuid,
@@ -516,6 +575,14 @@ contract DLCManager is
             vaults[i] = getVault(uuids[i]);
         }
         return vaults;
+    }
+
+    function getTotalValueMintedInVaults() public view returns (uint256) {
+        uint256 totalValueMinted = 0;
+        for (uint256 i = 0; i < _index; i++) {
+            totalValueMinted += dlcs[i].valueMinted;
+        }
+        return totalValueMinted;
     }
 
     function isWhitelisted(address account) external view returns (bool) {
@@ -669,5 +736,15 @@ contract DLCManager is
 
     function setBurnerOnTokenContract(address burner) external onlyAdmin {
         dlcBTC.setBurner(burner);
+    }
+
+    function setPorEnabled(bool enabled) external onlyAdmin {
+        porEnabled = enabled;
+        emit SetPorEnabled(enabled);
+    }
+
+    function setDlcBTCPoRFeed(AggregatorV3Interface feed) external onlyAdmin {
+        dlcBTCPoRFeed = feed;
+        emit SetDlcBTCPoRFeed(feed);
     }
 }
