@@ -12,7 +12,10 @@ module.exports = async function safeContractProposal(
     signer,
     safeAddress
 ) {
-    const network = hardhat.network.name;
+    let network = hardhat.network.name;
+
+    if (network === 'basesepolia') network = 'base-sepolia';
+
     console.log('Network', network);
 
     const ethAdapter = new EthersAdapter({

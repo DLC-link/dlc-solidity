@@ -1,6 +1,7 @@
 /** @type import('hardhat/config').HardhatUserConfig */
 
 require('@nomicfoundation/hardhat-toolbox');
+require('@nomiclabs/hardhat-ethers');
 require('@openzeppelin/hardhat-upgrades');
 require('@nomiclabs/hardhat-solhint');
 require('dotenv').config();

@@ -13,3 +13,4 @@ extra_args="${@:2}"
 HARDHAT_NETWORK=base dlc-link-eth $command $extra_args
 HARDHAT_NETWORK=arbitrum dlc-link-eth $command $extra_args
 HARDHAT_NETWORK=mainnet dlc-link-eth $command $extra_args
+HARDHAT_NETWORK=optimism dlc-link-eth $command $extra_args
