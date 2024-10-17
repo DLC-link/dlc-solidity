@@ -36,3 +36,4 @@ dlc-link-eth whitelist-account 0xff200709bf9bbc5209ba4b5dd767913a8a06b73f # Ambe
 dlc-link-eth whitelist-account 0x46166fA874AAEDEA8d98b15F9A72C84e22Abe2A1 # SBL
 dlc-link-eth whitelist-account 0x14Ee510Ebd4E5273e83Ad88f6cd2dc228BE40D12 # Tokkalabs
 dlc-link-eth whitelist-account 0xFc62319bCdfeDB6e55295F3723005593b16A3f9c # Garden
+dlc-link-eth whitelist-account 0x2816f3528AD324E6089714DA8E89455f58739e68 # Jademont

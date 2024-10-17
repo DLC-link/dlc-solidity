@@ -1,4 +1,4 @@
-module.exports = DLCAdminSafeAddresses = {
+module.exports = {
     arbitrum: {
         medium: process.env.ARB_MEDIUM_SAFE,
         critical: process.env.ARB_CRITICAL_SAFE,

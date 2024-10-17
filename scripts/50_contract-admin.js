@@ -225,7 +225,6 @@ module.exports = async function contractAdmin() {
                     proxyAddress,
                     newImplementation,
                     {
-                        timeout: 120,
                         txOverrides: {
                             maxFeePerGas: 1000000000,
                             maxPriorityFeePerGas: 1000000000,
@@ -250,7 +249,7 @@ module.exports = async function contractAdmin() {
                     await hardhat.upgrades.prepareUpgrade(
                         proxyAddress,
                         newImplementation,
-                        { timeout: 120 }
+                        { timeout: 240 }
                     );
                 console.log(
                     'New implementation address',
@@ -415,74 +414,4 @@ module.exports = async function contractAdmin() {
         default:
             break;
     }
-
-    let mockDLCManager, dlcBtc, tokenManager;
-
-    // const MockDLCManager =
-    //     await hardhat.ethers.getContractFactory('MockDLCManager');
-    // mockDLCManager = await MockDLCManager.deploy();
-    // await mockDLCManager.deployed();
-    // console.log(
-    //     `deployed contract MockDLCManager to ${mockDLCManager.address}`
-    // );
-
-    // const DLCBTC = await hardhat.ethers.getContractFactory('DLCBTC', deployer);
-    // dlcBtc = await DLCBTC.deploy();
-    // await dlcBtc.deployed();
-    // console.log(`deployed contract DLCBTC to ${dlcBtc.address}`);
-
-    // try {
-    //     await hardhat.run('verify:verify', {
-    //         address: '0x5A1F3122F1Fe39954C9333FC21cBEfcD34b1953c',
-    //         constructorArguments: [],
-    //     });
-    // } catch (error) {
-    //     console.error(error);
-    // }
-
-    // const TokenManager = await hardhat.ethers.getContractFactory(
-    //     'TokenManager',
-    //     deployer
-    // );
-    // tokenManager = await hardhat.upgrades.deployProxy(TokenManager, [
-    //     '0x8A322400B76a6eaE7A8A95b2318AfeFa67f1aaDB',
-    //     '0x5A1F3122F1Fe39954C9333FC21cBEfcD34b1953c',
-    //     routerWallet.address,
-    // ]);
-    // console.log(`deployed contract TokenManager to ${tokenManager.address}`);
-
-    // dlcBtc = await hardhat.ethers.getContractAt(
-    //     'DLCBTC',
-    //     '0x5A1F3122F1Fe39954C9333FC21cBEfcD34b1953c'
-    // );
-    // 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853
-    // await dlcBtc.transferOwnership(tokenManager.address);
-    // await dlcBtc.transferOwnership(
-    //     '0x650D9c6Ecd07A207e5982F0355C8AFB35eEE03Ac'
-    // );
-    // console.log(`transferred ownership of DLCBTC to TokenManager`);
-
-    // this takes the proxy address.
-    // try {
-    //     await hardhat.run('verify:verify', {
-    //         address: '0x650D9c6Ecd07A207e5982F0355C8AFB35eEE03Ac',
-    //     });
-    // } catch (error) {
-    //     console.error(error);
-    // }
-
-    // const V1 = await hardhat.ethers.getContractFactory('TokenManager');
-    // const address = await hardhat.upgrades.prepareUpgrade(
-    //     '0x650D9c6Ecd07A207e5982F0355C8AFB35eEE03Ac',
-    //     V1
-    // );
-    // console.log(address);
-    // 0xf97EAb55C5958877b794498dfE34976ED2BE34f7 -- v2 address
-
-    // const gnosisSafe = '0x7bE48abb024eC70bd3E74521589a94657eF03986';
-
-    // console.log('Transferring ownership of ProxyAdmin...');
-    // // The owner of the ProxyAdmin can upgrade our contracts
-    // await hardhat.upgrades.admin.transferProxyAdminOwnership(gnosisSafe);
-    // console.log('Transferred ownership of ProxyAdmin to:', gnosisSafe);
 };
