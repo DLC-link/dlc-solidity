@@ -18,7 +18,7 @@ module.exports = async function getPoRAddress(network) {
         case 'arbitrum':
             return '0x47A2fBEb46553F01E7133686Fb1b5349d4823a0C';
         case 'arbsepolia':
-            return '';
+            return '0xeA7cE82EC8568a19E8a92b9E588f52a1bEC96F3D';
         case 'base':
             return '';
         case 'basesepolia':
