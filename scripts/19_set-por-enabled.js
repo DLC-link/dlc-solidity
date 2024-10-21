@@ -4,7 +4,7 @@ const {
 
 async function setPoREnabled(enabled) {
     const toSet = enabled === 'true' ? true : false;
-    await callManagerContractFunction('setPoREnabled', [toSet]);
+    await callManagerContractFunction('setPorEnabled', [toSet]);
 }
 
 module.exports = setPoREnabled;
