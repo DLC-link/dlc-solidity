@@ -31,6 +31,7 @@ const setBTCFee = require('./15_set-btc-fee');
 const setDepositLimit = require('./16_set-deposit-limit');
 const setMinterOrBurner = require('./17_set-minter-or-burner');
 const withdraw = require('./18_withdraw');
+const setPoREnabled = require('./19_set-por-enabled');
 
 const contractAdmin = require('./50_contract-admin');
 
@@ -210,6 +211,12 @@ async function main() {
         .argument('<uuid>', 'UUID of vault')
         .argument('<amount>', 'amount to withdraw')
         .action(withdraw);
+
+    program
+        .command('set-por-enabled')
+        .description('[admin] enable Proof of Reserve')
+        .argument('<por-enabled>', 'por enabled')
+        .action(setPoREnabled);
 
     // The hardhat and getconfig modules both expect to be running from the root directory of the project,
     // so we change the current directory to the parent dir of this script file to make things work
