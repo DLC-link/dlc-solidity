@@ -1,7 +1,7 @@
 const fs = require('fs/promises');
 const { execSync } = require('child_process');
 
-function deploymentInfo(networkName, contract, contractName) {
+function deploymentInfo(networkName, contract, contractName, upgradeData) {
     let _gitSHA;
     try {
         _gitSHA = execSync('git rev-parse --short HEAD').toString().trim();
@@ -19,6 +19,7 @@ function deploymentInfo(networkName, contract, contractName) {
             signerAddress: contract.signer.address,
             abi: contract.interface.format(),
         },
+        upgradeData: upgradeData || '',
     };
     console.log(deployInfo);
     return deployInfo;
@@ -56,8 +57,10 @@ function validateDeploymentInfo(deployInfo) {
     required('abi');
 }
 
-async function loadDeploymentInfo(networkName, contractName) {
-    const deploymentConfigFile = `deploymentFiles/${networkName}/${contractName}.json`;
+async function loadDeploymentInfo(networkName, contractName, proposed) {
+    const deploymentConfigFile = `deploymentFiles/${networkName}/${contractName}${
+        proposed ? '.proposed' : ''
+    }.json`;
     const content = await fs.readFile(deploymentConfigFile, {
         encoding: 'utf8',
     });

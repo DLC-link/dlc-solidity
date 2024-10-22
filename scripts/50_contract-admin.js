@@ -285,7 +285,6 @@ module.exports = async function contractAdmin() {
                 console.log('New implementation verified.');
 
                 // we prepare the tx to the ProxyAdmin to upgrade the contract
-                const proxyAdmin = await hardhat.upgrades.admin.getInstance();
                 // NOTE: we have to store this data for the actual execution
                 const upgradeTx = await proxyAdmin.populateTransaction.upgrade(
                     proxyAddress,
@@ -346,7 +345,8 @@ module.exports = async function contractAdmin() {
                 const deploymentInfoToSave = deploymentInfo(
                     network,
                     { ...implObject, address: proxyAddress },
-                    contractName
+                    contractName,
+                    upgradeTx.data
                 );
                 await saveDeploymentInfo(
                     deploymentInfoToSave,
@@ -369,13 +369,12 @@ module.exports = async function contractAdmin() {
                     })),
             });
             const contractName = contractSelectPrompt.contracts;
-            const txData = await prompts({
-                type: 'text',
-                name: 'value',
-                message: 'Enter txRequest.data from the scheduled upgrade',
-            });
-            if (!txData.value) return;
-            // After the delay period...
+
+            const contractDeployInfo = await loadDeploymentInfo(
+                network,
+                contractName,
+                true
+            );
 
             // Fetching the TimelockController contract
             const timeLockContractDeployInfo = await loadDeploymentInfo(
@@ -391,29 +390,23 @@ module.exports = async function contractAdmin() {
             const tlRequestParams = [
                 proxyAdmin.address,
                 0,
-                txData.value,
+                contractDeployInfo.upgradeData,
                 '0x0000000000000000000000000000000000000000000000000000000000000000',
                 '0x0000000000000000000000000000000000000000000000000000000000000000',
             ];
-            const timelockContractTxRequestToExecute = await timelockContract
-                .connect(deployer)
-                .populateTransaction['execute'](...tlRequestParams);
-            console.log(
-                'timelockContractTxRequestToExecute',
-                timelockContractTxRequestToExecute
-            );
 
-            const proxyAdminOwner = await proxyAdmin.owner();
-            await safeContractProposal(
-                timelockContractTxRequestToExecute,
-                deployer,
-                dlcAdminSafes.critical
-            );
+            console.log('Executing upgrade...');
+            await timelockContract
+                .connect(deployer)
+                .execute(...tlRequestParams);
 
             console.log('Updating DeploymentInfo...');
             await fs.copyFile(
                 `deploymentFiles/${network}/${contractName}.proposed.json`,
                 `deploymentFiles/${network}/${contractName}.json`
+            );
+            await fs.rm(
+                `deploymentFiles/${network}/${contractName}.proposed.json`
             );
             console.log('DeploymentInfo updated.');
 
