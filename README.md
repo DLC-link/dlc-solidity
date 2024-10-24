@@ -15,7 +15,7 @@ This repo contains the solidity smart contracts for the DLC.Link infrastructure 
 
 Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) and [dlcBTC](https://dlcbtc.com).
 
-## Overview
+# Overview
 
 A DLC is a contract on Bitcoin that enables users to move/lock Bitcoin conditionally. The possible outcomes of a DLC are predefined and stored by the DLC.Link Attestor Layer. Bitcoin locked in such a way can be represented then on any EVM chain using these smart contracts. The outcome - that is, the value that will be 'attested' to - is supplied by smart contracts too.
 
@@ -25,6 +25,12 @@ _dlcBTC_ is a token that represents Bitcoin locked in DLCs. It is minted when Bi
 
 Learn more about the whole architecture on the documentation site here:
 https://docs.dlc.link/architecture/tech-stack
+
+## Timelocked Upgrades
+
+Some of the contracts in this repository are upgradeable. They can be changed by a multisig of dlcBTC team and external members. The upgrade process is timelocked, meaning that the upgrade will only happen after a certain time has passed (minimum 7 days). This is to ensure that the community has time to review the changes and react if necessary.
+
+<img src="./assets/timelockArchitecture.svg" alt="architecture" width="100%" />
 
 # Dev notes
 
