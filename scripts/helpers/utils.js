@@ -29,7 +29,20 @@ async function loadContractAddress(requirement, network) {
     return deployment.contract.address;
 }
 
+function getMinimumDelay(networkName) {
+    switch (networkName) {
+        case 'localhost':
+        case 'arbsepolia':
+        case 'sepolia':
+        case 'basesepolia':
+            return 60 * 2; // 2 minutes
+        default:
+            return 60 * 60 * 24 * 7; // 1 week
+    }
+}
+
 module.exports = {
     promptUser,
     loadContractAddress,
+    getMinimumDelay,
 };

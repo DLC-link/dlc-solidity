@@ -4,7 +4,11 @@ const {
     saveDeploymentInfo,
     deploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
-const { promptUser, loadContractAddress } = require('./helpers/utils');
+const {
+    promptUser,
+    loadContractAddress,
+    getMinimumDelay,
+} = require('./helpers/utils');
 
 // This is a pure function that just logs
 async function beforeDeployment(contractName, constructorArguments, network) {
@@ -37,6 +41,15 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
     const btcFeeRecipient =
         _btcFeeRecipient ?? '0014e60f61fa2f2941217934d5f9976bf27381b3b036';
     const threshold = 2;
+    const minimumDelay = getMinimumDelay(networkName);
+    const proposers = [dlcAdminSafes.critical];
+    const executors = [dlcAdminSafes.critical, deployer.address];
+    const timelockConstructorArgs = [
+        minimumDelay,
+        proposers,
+        executors,
+        hardhat.ethers.constants.AddressZero, // no admin
+    ];
 
     return [
         {
@@ -63,6 +76,46 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                 );
                 await hardhat.run('verify:verify', {
                     address: address,
+                });
+            },
+        },
+        {
+            name: 'TimelockController',
+            deployer: deployer.address,
+            upgradeable: false,
+            requirements: [],
+            deploy: async (requirementAddresses) => {
+                await beforeDeployment(
+                    'TimelockController',
+                    timelockConstructorArgs,
+                    networkName
+                );
+
+                const TimelockController =
+                    await hardhat.ethers.getContractFactory(
+                        'TimelockController'
+                    );
+                const timelockController = await TimelockController.deploy(
+                    ...timelockConstructorArgs
+                );
+                await timelockController.deployed();
+
+                await afterDeployment(
+                    'TimelockController',
+                    timelockController,
+                    networkName
+                );
+
+                return timelockController.address;
+            },
+            verify: async () => {
+                const address = await loadContractAddress(
+                    'TimelockController',
+                    networkName
+                );
+                await hardhat.run('verify:verify', {
+                    address: address,
+                    constructorArguments: timelockConstructorArgs,
                 });
             },
         },
