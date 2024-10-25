@@ -405,8 +405,9 @@ module.exports = async function contractAdmin() {
                 `deploymentFiles/${network}/${contractName}.proposed.json`,
                 `deploymentFiles/${network}/${contractName}.json`
             );
-            await fs.rm(
-                `deploymentFiles/${network}/${contractName}.proposed.json`
+            await fs.rename(
+                `deploymentFiles/${network}/${contractName}.proposed.json`,
+                `deploymentFiles/${network}/${contractName}.${new Date().toISOString()}.json`
             );
             console.log('DeploymentInfo updated.');
 
