@@ -29,6 +29,6 @@ module.exports = {
     },
     basesepolia: {
         medium: '0x9506Ea24038609679732855F757041a3C1C06623',
-        critical: '0x9506Ea24038609679732855F757041a3C1C06623',
+        critical: '0xebDC2027D3ee493B49553Befc1200e1cce9e2E08',
     },
 };
