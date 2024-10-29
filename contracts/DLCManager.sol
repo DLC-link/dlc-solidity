@@ -84,6 +84,7 @@ contract DLCManager is
     error DLCNotPending();
     error DLCNotReadyOrFunded();
     error DLCNotFunded();
+    error DLCAlreadyExists(bytes32 uuid);
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
     error ThresholdTooLow(uint16 _minimumThreshold);
@@ -364,6 +365,8 @@ contract DLCManager is
         string calldata _taprootPubKey,
         string calldata _wdTxId
     ) public onlyWhitelisted whenNotPaused {
+        if (dlcs[dlcIDsByUUID[_uuid]].uuid == _uuid)
+            revert DLCAlreadyExists(_uuid);
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender, // deprecated

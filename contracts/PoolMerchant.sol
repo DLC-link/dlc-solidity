@@ -152,10 +152,6 @@ contract PoolMerchant is
         string calldata taprootPubKey,
         string calldata withdrawalTxId
     ) external onlyRole(OPERATOR_ROLE) whenNotPaused {
-        // Check if vault exists by querying DLCManager
-        DLCLink.DLC memory dlc = dlcManager.getDLC(vaultId);
-        require(dlc.uuid == bytes32(0), "Vault exists");
-
         // Create pending vault in DLCManager
         dlcManager.setupPendingVault(vaultId, taprootPubKey, withdrawalTxId);
 
