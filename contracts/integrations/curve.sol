@@ -1,6 +1,7 @@
 pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IIntegration {
     function deposit(uint256 amount) external returns (uint256 shares);
@@ -33,31 +34,35 @@ interface ICurveGauge {
     function withdraw(uint256 _value, bool _claim_rewards) external;
 }
 
-contract CurveIntegration is IIntegration {
+contract CurveIntegration is IIntegration, Ownable {
     address public curvePoolAddress;
     address public curveGaugeAddress;
     ICurvePool public curvePool;
     ICurveGauge public curveGauge;
 
-    constructor(address _curvePoolAddress, address _curveGaugeAddress) {
+    constructor(
+        address _curvePoolAddress,
+        address _curveGaugeAddress,
+        address _poolMerchant
+    ) Ownable() {
         curvePoolAddress = _curvePoolAddress;
         curveGaugeAddress = _curveGaugeAddress;
         curvePool = ICurvePool(curvePoolAddress);
         curveGauge = ICurveGauge(curveGaugeAddress);
+        transferOwnership(_poolMerchant);
     }
 
     function deposit(
         uint256 amount
-    ) external override returns (uint256 shares) {
+    ) external override onlyOwner returns (uint256 shares) {
         uint256[] memory amounts; // Create a dynamic array with 2 elements
         amounts[0] = 0; // Set the first element to 0 for the first coin
         amounts[1] = amount; // Set the second element to `amount` for the second coin
 
         uint256 minMintAmount = 0; // Set the acceptable minimum for LP tokens
-        address receiver = address(this); // The contract itself will receive the LP tokens
 
         // Step 1: Add liquidity to the Curve pool
-        shares = curvePool.add_liquidity(amounts, minMintAmount, receiver);
+        shares = curvePool.add_liquidity(amounts, minMintAmount, msg.sender);
 
         // Step 2: Approve the Gauge to spend LP tokens
         IERC20(curvePoolAddress).approve(curveGaugeAddress, shares);
@@ -70,7 +75,7 @@ contract CurveIntegration is IIntegration {
 
     function withdraw(
         uint256 shares
-    ) external override returns (uint256 amount) {
+    ) external override onlyOwner returns (uint256 amount) {
         // Step 1: Withdraw LP tokens from the Gauge
         curveGauge.withdraw(shares, false);
 
