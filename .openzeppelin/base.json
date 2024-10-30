@@ -1077,7 +1077,7 @@
             "label": "_roles",
             "offset": 0,
             "slot": "101",
-            "type": "t_mapping(t_bytes32,t_struct(RoleData)747_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)852_storage)",
             "contract": "AccessControlUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:62"
           },
@@ -1173,7 +1173,7 @@
             "label": "dlcs",
             "offset": 0,
             "slot": "252",
-            "type": "t_mapping(t_uint256,t_struct(DLC)7554_storage)",
+            "type": "t_mapping(t_uint256,t_struct(DLC)9373_storage)",
             "contract": "DLCManager",
             "src": "contracts/DLCManager.sol:48"
           },
@@ -1229,7 +1229,7 @@
             "label": "dlcBTC",
             "offset": 0,
             "slot": "257",
-            "type": "t_contract(DLCBTC)7512",
+            "type": "t_contract(DLCBTC)9331",
             "contract": "DLCManager",
             "src": "contracts/DLCManager.sol:57"
           },
@@ -1339,11 +1339,11 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(DLCBTC)7512": {
+          "t_contract(DLCBTC)9331": {
             "label": "contract DLCBTC",
             "numberOfBytes": "20"
           },
-          "t_enum(DLCStatus)7524": {
+          "t_enum(DLCStatus)9343": {
             "label": "enum DLCLink.DLCStatus",
             "members": [
               "READY",
@@ -1366,7 +1366,7 @@
             "label": "mapping(address => bool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_bytes32,t_struct(RoleData)747_storage)": {
+          "t_mapping(t_bytes32,t_struct(RoleData)852_storage)": {
             "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
             "numberOfBytes": "32"
           },
@@ -1374,7 +1374,7 @@
             "label": "mapping(bytes32 => uint256)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint256,t_struct(DLC)7554_storage)": {
+          "t_mapping(t_uint256,t_struct(DLC)9373_storage)": {
             "label": "mapping(uint256 => struct DLCLink.DLC)",
             "numberOfBytes": "32"
           },
@@ -1382,7 +1382,7 @@
             "label": "string",
             "numberOfBytes": "32"
           },
-          "t_struct(DLC)7554_storage": {
+          "t_struct(DLC)9373_storage": {
             "label": "struct DLCLink.DLC",
             "members": [
               {
@@ -1417,7 +1417,7 @@
               },
               {
                 "label": "status",
-                "type": "t_enum(DLCStatus)7524",
+                "type": "t_enum(DLCStatus)9343",
                 "offset": 20,
                 "slot": "4"
               },
@@ -1472,7 +1472,7 @@
             ],
             "numberOfBytes": "416"
           },
-          "t_struct(RoleData)747_storage": {
+          "t_struct(RoleData)852_storage": {
             "label": "struct AccessControlUpgradeable.RoleData",
             "members": [
               {
