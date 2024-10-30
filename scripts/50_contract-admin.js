@@ -219,6 +219,7 @@ module.exports = async function contractAdmin() {
                         value: config.name,
                     })),
             });
+            await hardhat.run('clean');
             await hardhat.run('compile');
             const contractName = contractSelectPrompt.contracts;
             const proxyAddress = await loadContractAddress(
@@ -233,13 +234,14 @@ module.exports = async function contractAdmin() {
             const newImplementation =
                 await hardhat.ethers.getContractFactory(contractName);
 
-            if (proxyAdminOwner == deployer) {
+            if (proxyAdminOwner == deployer.address) {
                 // Deployer can perform the whole upgrade flow
                 console.log('deployer is ProxyAdmin owner, continuing...');
                 await hardhat.upgrades.upgradeProxy(
                     proxyAddress,
                     newImplementation,
                     {
+                        timeout: 240,
                         // @ts-ignore
                         txOverrides: {
                             maxFeePerGas: 1000000000,
