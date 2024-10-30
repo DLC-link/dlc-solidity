@@ -73,19 +73,21 @@ contract CurveIntegration is IIntegration, Ownable {
     function deposit(
         uint256 amount
     ) external override onlyOwner returns (uint256 shares) {
+        // The dlcBTC tokens are still in the PoolMerchant, which has approved us to spend them
+
+        // First approve the curve pool to spend the dlcBTC that we'll transferFrom
+        IERC20(dlcBTC).approve(curvePoolAddress, amount);
+
         uint256[] memory amounts = new uint256[](2);
         amounts[uint256(uint128(dlcBTCIndex))] = amount;
 
-        uint256 minMintAmount = 0; // Set the acceptable minimum for LP tokens
+        // Transfer the dlcBTC from PoolMerchant and add liquidity to the pool
+        IERC20(dlcBTC).transferFrom(msg.sender, address(this), amount);
+        shares = curvePool.add_liquidity(amounts, 0, address(this));
 
-        // Step 1: Add liquidity to the Curve pool
-        shares = curvePool.add_liquidity(amounts, minMintAmount, msg.sender);
-
-        // Step 2: Approve the Gauge to spend LP tokens
+        // Approve and deposit LP tokens into gauge
         IERC20(curvePoolAddress).approve(curveGaugeAddress, shares);
-
-        // Step 3: Deposit LP tokens into Curve Gauge for rewards
-        curveGauge.deposit(shares, msg.sender);
+        curveGauge.deposit(shares, address(this));
 
         return shares;
     }

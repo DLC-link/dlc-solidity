@@ -328,11 +328,10 @@ contract PoolMerchant is
         uint256 unallocated = dlc.valueMinted - _vaults[uuid].totalAllocated;
         require(unallocated > 0, "Nothing to allocate");
 
-        // Approve and deposit to integration
-        require(
-            dlcBTC.approve(address(integration), unallocated),
-            "Approval failed"
-        );
+        // First approve the integration to spend dlcBTC
+        require(dlcBTC.approve(integration, unallocated), "Approval failed");
+
+        // Then deposit through the integration
         uint256 shares = integrations[integration].strategy.deposit(
             unallocated
         );

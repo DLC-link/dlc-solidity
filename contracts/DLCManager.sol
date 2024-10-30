@@ -69,7 +69,11 @@ contract DLCManager is
     bool public porEnabled;
     AggregatorV3Interface public dlcBTCPoRFeed;
     mapping(address => mapping(bytes32 => bool)) private _seenSigners;
-    uint256[39] __gap;
+
+    // TODO: FIXME: NOTE: Remove this for production
+    bool public skipSignatureVerification; // Add state variable
+
+    uint256[38] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -233,6 +237,10 @@ contract DLCManager is
         bytes memory message,
         bytes[] memory signatures
     ) internal {
+        // TODO: FIXME: NOTE: Remove this for production
+        if (skipSignatureVerification) {
+            return;
+        }
         if (signatures.length < _threshold) revert NotEnoughSignatures();
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
@@ -757,5 +765,10 @@ contract DLCManager is
     function setDlcBTCPoRFeed(AggregatorV3Interface feed) external onlyAdmin {
         dlcBTCPoRFeed = feed;
         emit SetDlcBTCPoRFeed(feed);
+    }
+
+    // Add function to toggle (only owner/admin)
+    function setSkipSignatureVerification(bool skip) external onlyAdmin {
+        skipSignatureVerification = skip;
     }
 }
