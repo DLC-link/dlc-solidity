@@ -361,12 +361,10 @@ contract DLCManager is
 
     // TODO: auth
     function setupPendingVault(
-        bytes32 _uuid,
         string calldata _taprootPubKey,
         string calldata _wdTxId
-    ) public onlyWhitelisted whenNotPaused {
-        if (dlcs[dlcIDsByUUID[_uuid]].uuid == _uuid)
-            revert DLCAlreadyExists(_uuid);
+    ) public onlyWhitelisted whenNotPaused returns (bytes32) {
+        bytes32 _uuid = generateUUID(msg.sender, _index);
         dlcs[_index] = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender, // deprecated
@@ -389,6 +387,8 @@ contract DLCManager is
         dlcIDsByUUID[_uuid] = _index;
         userVaults[msg.sender].push(_uuid);
         _index++;
+
+        return _uuid;
     }
 
     /**

@@ -95,8 +95,13 @@ async function getMultipleSignaturesForSameAttestorAndMessage(
     return signatureBytes;
 }
 
+async function whitelistAddress(dlcManager, user) {
+    await dlcManager.whitelistAddress(user.address);
+}
+
 module.exports = {
     getSignatures,
     setSigners,
     getMultipleSignaturesForSameAttestorAndMessage,
+    whitelistAddress,
 };

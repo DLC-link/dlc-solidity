@@ -7,11 +7,8 @@ const {
     getSignatures,
     setSigners,
     getMultipleSignaturesForSameAttestorAndMessage,
+    whitelistAddress,
 } = require('./utils');
-
-async function whitelistAddress(dlcManager, user) {
-    await dlcManager.whitelistAddress(user.address);
-}
 
 describe('DLCManager', () => {
     let dlcManager, dlcBtc, uuid;

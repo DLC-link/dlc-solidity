@@ -1,13 +1,9 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-interface IIntegration {
-    function deposit(uint256 amount) external returns (uint256 shares);
-
-    function withdraw(uint256 shares) external returns (uint256 amount);
-}
+import "../interfaces/IIntegration.sol";
 
 interface ICurvePool {
     function add_liquidity(
@@ -22,16 +18,22 @@ interface ICurvePool {
         uint256 _min_received,
         address _receiver
     ) external returns (uint256);
+
+    function coins(uint256 i) external view returns (address);
 }
 
+// NOTE: https://curve.readthedocs.io/dao-gauges.html#liquiditygaugev3
+// @Rayerleier: I am not fully sure all of these will work. Let's try and test tomorrow.
 interface ICurveGauge {
-    function deposit(
-        uint256 _value,
-        address _user,
-        bool _claim_rewards
-    ) external;
-
+    function deposit(uint256 _value, address _user) external;
     function withdraw(uint256 _value, bool _claim_rewards) external;
+    function claim_rewards(address _addr) external;
+    function reward_tokens(uint256 i) external view returns (address);
+    function reward_count() external view returns (uint256);
+    function claimable_reward(
+        address _user,
+        address _reward_token
+    ) external view returns (uint256);
 }
 
 contract CurveIntegration is IIntegration, Ownable {
@@ -39,25 +41,40 @@ contract CurveIntegration is IIntegration, Ownable {
     address public curveGaugeAddress;
     ICurvePool public curvePool;
     ICurveGauge public curveGauge;
+    address public dlcBTC;
+    int128 public dlcBTCIndex;
 
     constructor(
         address _curvePoolAddress,
         address _curveGaugeAddress,
-        address _poolMerchant
+        address _poolMerchant,
+        address _dlcBTC
     ) Ownable() {
         curvePoolAddress = _curvePoolAddress;
         curveGaugeAddress = _curveGaugeAddress;
         curvePool = ICurvePool(curvePoolAddress);
         curveGauge = ICurveGauge(curveGaugeAddress);
+        dlcBTC = _dlcBTC;
+
+        // Find dlcBTC index in pool
+        if (curvePool.coins(0) == dlcBTC) {
+            dlcBTCIndex = 0;
+        } else if (curvePool.coins(1) == dlcBTC) {
+            dlcBTCIndex = 1;
+        } else {
+            revert("dlcBTC not found in pool");
+        }
+
         transferOwnership(_poolMerchant);
     }
 
+    // NOTE: we might have to change how shares/amounts translate...
+    // since dlcBTC is 8 decimals and the curve pool is 18 decimals
     function deposit(
         uint256 amount
     ) external override onlyOwner returns (uint256 shares) {
-        uint256[] memory amounts; // Create a dynamic array with 2 elements
-        amounts[0] = 0; // Set the first element to 0 for the first coin
-        amounts[1] = amount; // Set the second element to `amount` for the second coin
+        uint256[] memory amounts = new uint256[](2);
+        amounts[uint256(uint128(dlcBTCIndex))] = amount;
 
         uint256 minMintAmount = 0; // Set the acceptable minimum for LP tokens
 
@@ -68,7 +85,7 @@ contract CurveIntegration is IIntegration, Ownable {
         IERC20(curvePoolAddress).approve(curveGaugeAddress, shares);
 
         // Step 3: Deposit LP tokens into Curve Gauge for rewards
-        curveGauge.deposit(shares, msg.sender, false);
+        curveGauge.deposit(shares, msg.sender);
 
         return shares;
     }
@@ -76,21 +93,69 @@ contract CurveIntegration is IIntegration, Ownable {
     function withdraw(
         uint256 shares
     ) external override onlyOwner returns (uint256 amount) {
-        // Step 1: Withdraw LP tokens from the Gauge
-        curveGauge.withdraw(shares, false);
+        // Step 1: Withdraw LP tokens from gauge
+        curveGauge.withdraw(shares, true); // Claim rewards during withdrawal
 
-        // Step 2: Withdraw the second coin from Curve pool
-        int128 coinIndex = 1; // Set to 1 for the second coin
-        uint256 minReceived = 0; // Minimum amount of coin to receive
-        address receiver = msg.sender;
-
+        // Step 2: Remove liquidity for dlcBTC
         amount = curvePool.remove_liquidity_one_coin(
             shares,
-            coinIndex,
-            minReceived,
-            receiver
+            dlcBTCIndex,
+            0,
+            msg.sender
         );
 
         return amount;
+    }
+
+    function claimRewards()
+        external
+        override
+        onlyOwner
+        returns (uint256[] memory amounts)
+    {
+        curveGauge.claim_rewards(address(this));
+
+        uint256 rewardCount = curveGauge.reward_count();
+        amounts = new uint256[](rewardCount);
+
+        for (uint256 i = 0; i < rewardCount; i++) {
+            address rewardToken = curveGauge.reward_tokens(i);
+            amounts[i] = IERC20(rewardToken).balanceOf(address(this));
+            if (amounts[i] > 0) {
+                IERC20(rewardToken).transfer(msg.sender, amounts[i]);
+            }
+        }
+    }
+
+    function getRewardTokens()
+        external
+        view
+        override
+        returns (address[] memory tokens)
+    {
+        uint256 rewardCount = curveGauge.reward_count();
+        tokens = new address[](rewardCount);
+
+        for (uint256 i = 0; i < rewardCount; i++) {
+            tokens[i] = curveGauge.reward_tokens(i);
+        }
+    }
+
+    function getPendingRewards()
+        external
+        view
+        override
+        returns (uint256[] memory amounts)
+    {
+        uint256 rewardCount = curveGauge.reward_count();
+        amounts = new uint256[](rewardCount);
+
+        for (uint256 i = 0; i < rewardCount; i++) {
+            address rewardToken = curveGauge.reward_tokens(i);
+            amounts[i] = curveGauge.claimable_reward(
+                address(this),
+                rewardToken
+            );
+        }
     }
 }
