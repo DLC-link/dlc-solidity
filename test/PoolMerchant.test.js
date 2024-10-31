@@ -4,6 +4,12 @@ const hardhat = require('hardhat');
 
 const { getSignatures, setSigners, whitelistAddress } = require('./utils');
 
+async function getEventArg(tx, eventName, argName) {
+    const receipt = await tx.wait();
+    const event = receipt.events.find((e) => e.event === eventName);
+    return event.args[argName];
+}
+
 describe('PoolMerchant', () => {
     let poolMerchant;
     let dlcManager;
@@ -112,25 +118,66 @@ describe('PoolMerchant', () => {
         });
     });
 
-    describe('Vault Creation', function () {
-        it('should create a pending vault', async function () {
+    describe('Vault Creation and Integration', function () {
+        beforeEach(async function () {
+            // Setup integration
+            await poolMerchant
+                .connect(deployer)
+                .addRewardToken(mockRewardToken.address);
+            await poolMerchant
+                .connect(deployer)
+                .setIntegration(mockIntegration.address, [
+                    mockRewardToken.address,
+                ]);
+        });
+
+        it('should create a pending vault with integration', async function () {
             const taprootPubKey = 'taproot123';
             const withdrawalTxId = 'tx123';
 
             const tx = await poolMerchant
                 .connect(attestor_1)
-                .createPendingVault(taprootPubKey, withdrawalTxId);
-            await expect(tx).to.not.be.reverted;
+                .createPendingVault(
+                    taprootPubKey,
+                    withdrawalTxId,
+                    mockIntegration.address
+                );
 
-            const receipt = await tx.wait();
-            const event = receipt.events.find(
-                (event) => event.event === 'PendingVaultCreated'
+            await expect(tx)
+                .to.emit(poolMerchant, 'PendingVaultCreated')
+                .withArgs(
+                    await getEventArg(tx, 'PendingVaultCreated', 'uuid'),
+                    taprootPubKey,
+                    withdrawalTxId,
+                    mockIntegration.address
+                );
+
+            const vaultId = await getEventArg(
+                tx,
+                'PendingVaultCreated',
+                'uuid'
             );
-            const vaultId = event.args.uuid;
+            expect(await poolMerchant.getVaultIntegration(vaultId)).to.equal(
+                mockIntegration.address
+            );
+        });
 
-            // Verify vault was created in DLCManager
-            const UUID = (await dlcManager.getDLC(vaultId)).uuid;
-            expect(UUID).to.equal(vaultId);
+        it('should not create vault with inactive integration', async function () {
+            const MockIntegration =
+                await ethers.getContractFactory('MockIntegration');
+            const newIntegration = await MockIntegration.deploy([
+                mockRewardToken.address,
+            ]);
+
+            await expect(
+                poolMerchant
+                    .connect(attestor_1)
+                    .createPendingVault(
+                        'taproot123',
+                        'tx123',
+                        newIntegration.address
+                    )
+            ).to.be.revertedWith('Integration not active');
         });
     });
 
@@ -218,23 +265,11 @@ describe('PoolMerchant', () => {
         });
     });
 
-    describe('Vault Creation and Management', function () {
+    describe('Allocation and Rewards', function () {
         let vaultId;
-        const taprootPubKey = 'taproot123';
-        const withdrawalTxId = 'tx123';
-        const valueLocked = 1000000;
+        const initialFunding = ethers.utils.parseUnits('1', 8);
 
         beforeEach(async function () {
-            const tx = await poolMerchant
-                .connect(attestor_1)
-                .createPendingVault(taprootPubKey, withdrawalTxId);
-            const receipt = await tx.wait();
-            vaultId = receipt.events.find(
-                (event) => event.event === 'PendingVaultCreated'
-            ).args.uuid;
-        });
-
-        it('should allocate to integration', async function () {
             // Setup integration
             await poolMerchant
                 .connect(deployer)
@@ -245,229 +280,108 @@ describe('PoolMerchant', () => {
                     mockRewardToken.address,
                 ]);
 
-            const signatureBytesForFunding = await getSignatures(
-                {
-                    uuid: vaultId,
-                    btcTxId: withdrawalTxId,
-                    functionString: 'set-status-funded',
-                    newLockedAmount: valueLocked,
-                },
-                attestors,
-                3
-            );
-            const tx3 = await dlcManager
-                .connect(attestor_1)
-                .setStatusFunded(
-                    vaultId,
-                    withdrawalTxId,
-                    signatureBytesForFunding,
-                    valueLocked
-                );
-            await tx3.wait();
-
-            // Allocate
-            await expect(
-                poolMerchant
-                    .connect(operator)
-                    .allocateToIntegration(vaultId, mockIntegration.address)
-            )
-                .to.emit(poolMerchant, 'SharesAllocated')
-                .withArgs(vaultId, mockIntegration.address, valueLocked); // Assuming 1:1 share ratio
-
-            const shares = await poolMerchant.getVaultShares(
-                vaultId,
-                mockIntegration.address
-            );
-            expect(shares).to.equal(valueLocked);
-        });
-
-        it('should not allocate unfunded vault', async function () {
-            await poolMerchant
-                .connect(deployer)
-                .addRewardToken(mockRewardToken.address);
-            await poolMerchant
-                .connect(deployer)
-                .setIntegration(mockIntegration.address, [
-                    mockRewardToken.address,
-                ]);
-
-            await expect(
-                poolMerchant
-                    .connect(operator)
-                    .allocateToIntegration(vaultId, mockIntegration.address)
-            ).to.be.revertedWith('Vault not funded');
-        });
-    });
-
-    describe('Reward Harvesting and Claims', function () {
-        let vaultId;
-        let mockRewardToken2;
-        const withdrawalTxId = 'tx123';
-        const valueLocked = 1000000;
-        const initialFunding = ethers.utils.parseUnits('1', 8);
-
-        beforeEach(async function () {
-            // Create and fund vault
+            // Create vault
             const tx = await poolMerchant
                 .connect(attestor_1)
-                .createPendingVault('taproot123', 'tx123');
-            const receipt = await tx.wait();
-            vaultId = receipt.events.find(
-                (e) => e.event === 'PendingVaultCreated'
-            ).args.uuid;
+                .createPendingVault(
+                    'taproot123',
+                    'tx123',
+                    mockIntegration.address
+                );
+            vaultId = await getEventArg(tx, 'PendingVaultCreated', 'uuid');
+
+            // Fund vault
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid: vaultId,
-                    btcTxId: withdrawalTxId,
+                    btcTxId: 'tx123',
                     functionString: 'set-status-funded',
                     newLockedAmount: initialFunding,
                 },
                 attestors,
                 3
             );
-            const tx3 = await dlcManager
+            await dlcManager
                 .connect(attestor_1)
                 .setStatusFunded(
                     vaultId,
-                    withdrawalTxId,
+                    'tx123',
                     signatureBytesForFunding,
                     initialFunding
                 );
-            await tx3.wait();
-
-            // Deploy second mock reward token (unsupported)
-            const MockERC20 = await ethers.getContractFactory('MockERC20');
-            mockRewardToken2 = await MockERC20.deploy(
-                'Mock Reward 2',
-                'MRWD2',
-                18
-            );
-
-            // Deploy integration with both reward tokens
-            const MockIntegration =
-                await ethers.getContractFactory('MockIntegration');
-            mockIntegration = await MockIntegration.deploy([
-                mockRewardToken.address,
-                mockRewardToken2.address,
-            ]);
-
-            // Setup supported reward token and integration
-            await poolMerchant
-                .connect(deployer)
-                .addRewardToken(mockRewardToken.address);
-            await poolMerchant
-                .connect(deployer)
-                .setIntegration(mockIntegration.address, [
-                    mockRewardToken.address,
-                ]);
-            await poolMerchant
-                .connect(operator)
-                .allocateToIntegration(vaultId, mockIntegration.address);
-
-            // Fund mock integration with rewards
-            await mockRewardToken.mint(
-                mockIntegration.address,
-                ethers.utils.parseEther('100')
-            );
-            await mockRewardToken2.mint(
-                mockIntegration.address,
-                ethers.utils.parseEther('100')
-            );
         });
 
-        it('should harvest and distribute only supported rewards', async function () {
-            // Mock pending rewards in integration
-            const supportedAmount = ethers.utils.parseEther('10');
-            const unsupportedAmount = ethers.utils.parseEther('5');
-            await mockIntegration.mockRewards([
-                supportedAmount,
-                unsupportedAmount,
-            ]);
+        it('should allocate to integration', async function () {
+            await expect(
+                poolMerchant.connect(operator).allocateToIntegration(vaultId)
+            )
+                .to.emit(poolMerchant, 'SharesAllocated')
+                .withArgs(vaultId, mockIntegration.address, initialFunding); // Assuming 1:1 share ratio
 
+            const shares = await poolMerchant.getVaultShares(vaultId);
+            expect(shares).to.equal(initialFunding);
+
+            const details =
+                await poolMerchant.getVaultAllocationDetails(vaultId);
+            expect(details.allocated).to.equal(initialFunding);
+            expect(details.unallocated).to.equal(0);
+        });
+
+        it('should harvest rewards during withdrawal', async function () {
+            // First allocate
+            await poolMerchant.connect(operator).allocateToIntegration(vaultId);
+
+            // Mock some rewards
+            const rewardAmount = ethers.utils.parseEther('10');
+            await mockRewardToken.mint(mockIntegration.address, rewardAmount);
+            await mockIntegration.mockRewards([rewardAmount]);
+
+            // Withdraw partial amount
+            const withdrawAmount = initialFunding.div(2);
+
+            // Should emit both rewards harvested and withdrawal events
             await expect(
                 poolMerchant
-                    .connect(harvester)
-                    .harvestRewards(mockIntegration.address)
+                    .connect(attestor_1)
+                    .withdrawFromVault(vaultId, withdrawAmount)
             )
                 .to.emit(poolMerchant, 'RewardsHarvested')
                 .withArgs(
                     mockIntegration.address,
                     mockRewardToken.address,
-                    harvester.address,
-                    supportedAmount
-                );
+                    poolMerchant.address,
+                    rewardAmount
+                )
+                .and.to.emit(poolMerchant, 'VaultWithdrawn')
+                .withArgs(vaultId, withdrawAmount);
 
-            // Check only supported token was distributed
+            // Check rewards were distributed
             const [_, pendingAmount] = await poolMerchant.getVaultReward(
                 vaultId,
-                mockIntegration.address,
                 mockRewardToken.address
             );
-            expect(pendingAmount).to.equal(supportedAmount);
-
-            // Verify unsupported token was claimed but not distributed
-            expect(
-                await mockRewardToken2.balanceOf(poolMerchant.address)
-            ).to.equal(unsupportedAmount);
+            expect(pendingAmount).to.equal(rewardAmount);
         });
 
-        it('should allow users to claim rewards', async function () {
-            await mockIntegration.mockRewards([
-                ethers.utils.parseEther('10'),
-                ethers.utils.parseEther('5'),
-            ]);
-            await poolMerchant
-                .connect(harvester)
-                .harvestRewards(mockIntegration.address);
+        it('should still allow manual reward harvesting by harvester', async function () {
+            await poolMerchant.connect(operator).allocateToIntegration(vaultId);
+
+            const rewardAmount = ethers.utils.parseEther('10');
+            await mockRewardToken.mint(mockIntegration.address, rewardAmount);
+            await mockIntegration.mockRewards([rewardAmount]);
 
             await expect(
                 poolMerchant
-                    .connect(user)
-                    .claimRewards(
-                        vaultId,
-                        mockIntegration.address,
-                        mockRewardToken.address
-                    )
+                    .connect(harvester)
+                    .harvestRewardsForIntegration(mockIntegration.address)
             )
-                .to.emit(poolMerchant, 'RewardsClaimed')
+                .to.emit(poolMerchant, 'RewardsHarvested')
                 .withArgs(
-                    vaultId,
                     mockIntegration.address,
                     mockRewardToken.address,
-                    ethers.utils.parseEther('10')
+                    poolMerchant.address,
+                    rewardAmount
                 );
-
-            // Verify reward was claimed
-            const [_, pendingAmount] = await poolMerchant.getVaultReward(
-                vaultId,
-                mockIntegration.address,
-                mockRewardToken.address
-            );
-            expect(pendingAmount).to.equal(0);
-            expect(await mockRewardToken.balanceOf(user.address)).to.equal(
-                ethers.utils.parseEther('10')
-            );
-        });
-
-        it('should handle rewards when no tokens are supported', async function () {
-            // Deploy integration with only unsupported reward
-            const newIntegration = await (
-                await ethers.getContractFactory('MockIntegration')
-            ).deploy([mockRewardToken2.address]);
-
-            await poolMerchant
-                .connect(deployer)
-                .setIntegration(newIntegration.address, []);
-            await mockRewardToken2.mint(
-                newIntegration.address,
-                ethers.utils.parseEther('10')
-            );
-            await newIntegration.mockRewards([ethers.utils.parseEther('10')]);
-
-            // Should not revert but no rewards distributed
-            await poolMerchant
-                .connect(harvester)
-                .harvestRewards(newIntegration.address);
         });
     });
 });

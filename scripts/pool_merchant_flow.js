@@ -62,13 +62,11 @@ async function main() {
     ];
 
     console.log('\n💰 Funding impersonated accounts...');
-    await fundAccount(dlcAdmin.address);
-    await fundAccount(attestor_1.address);
-    await fundAccount(attestor_2.address);
-    await fundAccount(attestor_3.address);
-    await fundAccount(attestor_4.address);
-    await fundAccount(attestor_5.address);
+    for (const account of [dlcAdmin, ...attestors]) {
+        await fundAccount(account.address);
+    }
 
+    // DLCManager upgrade remains the same
     console.log('\n🔄 Upgrading DLCManager...');
     const proxyAdminAddress = await upgrades.erc1967.getAdminAddress(
         MAINNET_ADDRESSES.DLC_MANAGER
@@ -87,7 +85,6 @@ async function main() {
     const dlcManagerImpl = await DLCManager.deploy();
     await dlcManagerImpl.deployed();
 
-    // Upgrade using ProxyAdmin
     await connectedProxyAdmin.upgrade(
         MAINNET_ADDRESSES.DLC_MANAGER,
         dlcManagerImpl.address
@@ -118,11 +115,8 @@ async function main() {
     await poolMerchant.deployed();
     console.log('PoolMerchant deployed to:', poolMerchant.address);
 
-    // Whitelisting PoolMerchant
-    const whitelistTx = await dlcManager
-        .connect(dlcAdmin)
-        .whitelistAddress(poolMerchant.address);
-    await whitelistTx.wait();
+    // Whitelist PoolMerchant
+    await dlcManager.connect(dlcAdmin).whitelistAddress(poolMerchant.address);
 
     // Deploy CurveIntegration
     console.log('\n🏗️ Deploying CurveIntegration...');
@@ -137,8 +131,8 @@ async function main() {
     await curveIntegration.deployed();
     console.log('CurveIntegration deployed to:', curveIntegration.address);
 
-    // Setup roles
-    console.log('\n🔑 Setting up roles...');
+    // Setup roles and integration
+    console.log('\n🔑 Setting up roles and integration...');
     await poolMerchant.grantRole(
         await poolMerchant.ATTESTOR_ROLE(),
         attestor_1.address
@@ -152,26 +146,29 @@ async function main() {
         harvester.address
     );
 
-    // Add CRV as reward token
     console.log('\n🪙 Adding CRV as reward token...');
     await poolMerchant.addRewardToken(MAINNET_ADDRESSES.CRV_TOKEN);
 
-    // Setup integration
     console.log('\n🔄 Setting up CurveIntegration...');
     await poolMerchant.setIntegration(curveIntegration.address, [
         MAINNET_ADDRESSES.CRV_TOKEN,
     ]);
 
-    // Create vault
-    console.log('\n📦 Creating vault...');
-    const mockBtcTxId = '0x123'; // Mock BTC tx ID
-    const mockTaprootPubkey = '0x12345'; // Mock taproot pubkey
+    // Create vault with integration
+    console.log('\n📦 Creating vault with Curve integration...');
+    const mockBtcTxId = '0x123';
+    const mockTaprootPubkey = '0x12345';
 
     const tx = await poolMerchant
         .connect(attestor_1)
-        .createPendingVault(mockTaprootPubkey, mockBtcTxId, {
-            gasLimit: 1000000,
-        });
+        .createPendingVault(
+            mockTaprootPubkey,
+            mockBtcTxId,
+            curveIntegration.address,
+            {
+                gasLimit: 1000000,
+            }
+        );
 
     const receipt = await tx.wait();
     const vaultId = receipt.events.find(
@@ -181,25 +178,9 @@ async function main() {
 
     // Fund vault
     console.log('\n💰 Funding vault...');
-
     const fundAmount = ethers.utils.parseUnits('1', 8); // 1 BTC
-    console.log('Funding amount:', fundAmount);
+    console.log('Funding amount:', fundAmount.toString());
 
-    // NOTE: I have added an early return to the multisig checking in the DLCManager
-    // Because on forked networks its very hard to produce valid signatures
-    // with the impersonated attestors... so we will skip this part for now
-
-    // const signatureBytesForFunding = await getSignatures(
-    //     {
-    //         uuid: vaultId,
-    //         btcTxId: mockBtcTxId,
-    //         functionString: 'set-status-funded',
-    //         newLockedAmount: fundAmount,
-    //     },
-    //     attestors,
-    //     5
-    // );
-    // console.log('Signatures for funding:', signatureBytesForFunding);
     const tx3 = await dlcManager
         .connect(attestor_1)
         .setStatusFunded(vaultId, mockBtcTxId, [], fundAmount);
@@ -207,35 +188,92 @@ async function main() {
 
     // Allocate to Curve
     console.log('\n📈 Allocating to Curve...');
-    await poolMerchant
-        .connect(operator)
-        .allocateToIntegration(vaultId, curveIntegration.address);
-    const shares = await poolMerchant.getVaultShares(
-        vaultId,
-        curveIntegration.address
-    );
+    await poolMerchant.connect(operator).allocateToIntegration(vaultId);
+
+    const shares = await poolMerchant.getVaultShares(vaultId);
     console.log('Allocated shares:', shares.toString());
 
-    // Wait for some blocks to accrue rewards
+    // Mine blocks and check initial state
     console.log('\n⏳ Mining blocks to accrue rewards...');
     await hre.network.provider.send('hardhat_mine', ['0x100']); // Mine 256 blocks
 
-    // Harvest rewards
-    console.log('\n🌾 Harvesting rewards...');
-    await poolMerchant
-        .connect(harvester)
-        .harvestRewards(curveIntegration.address);
-    const [lastClaimed, pendingAmount] = await poolMerchant.getVaultReward(
-        vaultId,
-        curveIntegration.address,
-        MAINNET_ADDRESSES.CRV_TOKEN
-    );
+    // Perform partial withdrawal to trigger reward harvest
     console.log(
-        'Pending CRV rewards:',
-        ethers.utils.formatEther(pendingAmount)
+        '\n🏦 Performing partial withdrawal to trigger reward harvest...'
     );
+    const withdrawAmount = fundAmount.div(2);
 
-    console.log('\n✅ Happy path integration test complete!');
+    console.log('\n🔍 Testing withdrawal process...');
+
+    // Step 1: Check initial state
+    const vaultBefore = await poolMerchant.getVaultAllocationDetails(vaultId);
+    const sharesBefore = await poolMerchant.getVaultShares(vaultId);
+    console.log('\nInitial state:');
+    console.log(' - Total minted:', vaultBefore.valueMinted.toString());
+    console.log(' - Allocated:', vaultBefore.allocated.toString());
+    console.log(' - Shares:', sharesBefore.toString());
+
+    // Step 2: Perform withdrawal
+    console.log('\nAttempting withdrawal of:', withdrawAmount.toString());
+
+    try {
+        // First just try the withdrawal
+        const withdrawTx = await poolMerchant
+            .connect(attestor_1)
+            .withdrawFromVault(vaultId, withdrawAmount, {
+                gasLimit: 2000000,
+            });
+
+        await withdrawTx.wait();
+        console.log('Withdrawal successful!');
+
+        // Check post-withdrawal state
+        const vaultAfter =
+            await poolMerchant.getVaultAllocationDetails(vaultId);
+        const sharesAfter = await poolMerchant.getVaultShares(vaultId);
+        console.log('\nPost-withdrawal state:');
+        console.log(' - Total minted:', vaultAfter.valueMinted.toString());
+        console.log(' - Allocated:', vaultAfter.allocated.toString());
+        console.log(' - Shares:', sharesAfter.toString());
+
+        // Step 3: Check DLC BTC balances
+        const dlcBTCBalance = await dlcBTC.balanceOf(poolMerchant.address);
+        console.log('\nDLC BTC balances:');
+        console.log(' - PoolMerchant:', dlcBTCBalance.toString());
+
+        // Step 4: Separately check for rewards
+        console.log('\n🌾 Checking reward state...');
+        const [lastClaimed, pendingAmount] = await poolMerchant.getVaultReward(
+            vaultId,
+            MAINNET_ADDRESSES.CRV_TOKEN
+        );
+        console.log('Current reward state:');
+        console.log(
+            ' - Last claimed:',
+            new Date(lastClaimed * 1000).toISOString()
+        );
+        console.log(
+            ' - Pending amount:',
+            ethers.utils.formatEther(pendingAmount)
+        );
+
+        // Step 5: Try harvesting rewards separately
+        console.log('\nTrying manual reward harvest...');
+        try {
+            await poolMerchant
+                .connect(harvester)
+                .harvestRewardsForIntegration(curveIntegration.address, {
+                    gasLimit: 2000000,
+                });
+            console.log('Manual harvest successful');
+        } catch (harvestError) {
+            console.log('Manual harvest failed:', harvestError.message);
+        }
+    } catch (error) {
+        console.log('\n❌ Initial withdrawal failed:', error.message);
+    }
+
+    console.log('\n✅ Test sequence complete');
 }
 
 main()

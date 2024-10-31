@@ -60,13 +60,15 @@ contract PoolMerchant is
 
     struct UserReward {
         uint256 lastClaimedAt;
-        uint256 pendingAmount; // For ERC20s
+        uint256 pendingAmount;
     }
 
     struct VaultInfo {
-        mapping(address => uint256) integrationShares; // integration -> shares
-        mapping(address => mapping(address => UserReward)) rewards; // integration -> token -> reward
-        uint256 totalAllocated; // Track total amount allocated to integrations
+        address integration;
+        uint256 shares;
+        uint256 allocated;
+        mapping(address => UserReward) rewards; // token -> reward
+        uint256 integrationIndex; // Index in the integration's vault array + 1 (0 means not in array)
     }
 
     struct Integration {
@@ -74,14 +76,13 @@ contract PoolMerchant is
         bool isActive;
         uint256 totalShares;
         address[] supportedRewardTokens;
+        bytes32[] vaults; // Array of vault UUIDs using this integration
     }
 
     mapping(bytes32 => VaultInfo) internal _vaults;
     mapping(address => Integration) public integrations;
     mapping(address => RewardToken) public rewardTokens;
     address[] public activeIntegrations;
-    mapping(address => bytes32[]) private _integrationVaults; // integration -> array of vault IDs
-    mapping(address => mapping(bytes32 => uint256)) private _vaultIndices; // integration -> vault -> index in array
 
     uint256 public totalValueLocked;
     uint256[50] private __gap;
@@ -93,7 +94,8 @@ contract PoolMerchant is
     event PendingVaultCreated(
         bytes32 indexed uuid,
         string taprootPubKey,
-        string withdrawalTxId
+        string withdrawalTxId,
+        address integration
     );
     event VaultWithdrawn(bytes32 indexed uuid, uint256 amount);
     event IntegrationAdded(
@@ -114,7 +116,6 @@ contract PoolMerchant is
     );
     event RewardsClaimed(
         bytes32 indexed uuid,
-        address indexed integration,
         address indexed rewardToken,
         uint256 amount
     );
@@ -148,7 +149,8 @@ contract PoolMerchant is
 
     function createPendingVault(
         string calldata taprootPubKey,
-        string calldata withdrawalTxId
+        string calldata withdrawalTxId,
+        address integration
     )
         external
         onlyRole(ATTESTOR_ROLE)
@@ -156,16 +158,22 @@ contract PoolMerchant is
         whenNotPaused
         returns (bytes32)
     {
-        // Create pending vault in DLCManager
+        require(integrations[integration].isActive, "Integration not active");
+
         bytes32 _uuid = dlcManager.setupPendingVault(
             taprootPubKey,
             withdrawalTxId
         );
 
-        // Initialize our tracking (no need to store DLC data)
-        _vaults[_uuid].integrationShares[address(0)] = 0; // Just initialize the mapping
+        _vaults[_uuid].integration = integration;
+        _addVaultToIntegration(_uuid, integration);
 
-        emit PendingVaultCreated(_uuid, taprootPubKey, withdrawalTxId);
+        emit PendingVaultCreated(
+            _uuid,
+            taprootPubKey,
+            withdrawalTxId,
+            integration
+        );
         return _uuid;
     }
 
@@ -176,26 +184,68 @@ contract PoolMerchant is
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         require(dlc.uuid != bytes32(0), "Vault does not exist");
 
-        // First withdraw from any active integrations
-        _withdrawFromIntegrations(dlc.uuid, amount);
+        VaultInfo storage vault = _vaults[uuid];
+        address integration = vault.integration;
+        require(integration != address(0), "No integration set");
+        require(amount <= vault.allocated, "Amount exceeds allocation");
 
-        // Then withdraw from DLCManager
-        dlcManager.withdraw(dlc.uuid, amount);
-
-        emit VaultWithdrawn(dlc.uuid, amount);
-    }
-
-    // Harvesting rewards explained:
-    // 1. External protocols (like Enzyme, YieldNest) generate rewards
-    // 2. A harvester (automated or manual) collects these rewards
-    // 3. The harvester calls this function to distribute rewards to vault holders
-    function harvestRewards(
-        address integration
-    ) external onlyRole(HARVESTER_ROLE) nonReentrant whenNotPaused {
-        require(integrations[integration].isActive, "Integration not active");
         Integration storage integ = integrations[integration];
 
-        // Claim rewards from integration
+        // Harvest any pending rewards
+        if (vault.shares > 0) {
+            _harvestRewardsForVault(uuid);
+        }
+
+        // Calculate shares to withdraw based on requested amount
+        uint256 sharesToWithdraw;
+        if (amount == vault.allocated) {
+            // If withdrawing all, withdraw all shares
+            sharesToWithdraw = vault.shares;
+        } else {
+            // Otherwise, withdraw proportional shares
+            sharesToWithdraw = (vault.shares * amount) / vault.allocated;
+        }
+
+        // Withdraw from integration
+        uint256 received = integ.strategy.withdraw(sharesToWithdraw);
+
+        // Update state based on what we actually received
+        vault.shares -= sharesToWithdraw;
+        integrations[integration].totalShares -= sharesToWithdraw;
+
+        // If we received less than requested, we need to adjust the withdrawal amount
+        uint256 withdrawAmount;
+        if (received < amount) {
+            // We can only withdraw what we actually received
+            withdrawAmount = received;
+            // Adjust allocation down based on what we actually received
+            vault.allocated -= received;
+        } else {
+            // We got enough or more than requested
+            withdrawAmount = amount;
+            vault.allocated -= amount;
+            if (received > amount) {
+                // If we got extra, add it to allocation
+                vault.allocated += (received - amount);
+            }
+        }
+
+        // Clean up if fully withdrawn
+        if (vault.shares == 0) {
+            _removeVaultFromIntegration(uuid, integration);
+        }
+
+        // Withdraw from DLCManager with adjusted amount
+        dlcManager.withdraw(uuid, withdrawAmount);
+        emit VaultWithdrawn(uuid, withdrawAmount);
+    }
+
+    function _harvestRewardsForVault(bytes32 uuid) internal {
+        VaultInfo storage vault = _vaults[uuid];
+        address integration = vault.integration;
+        Integration storage integ = integrations[integration];
+
+        // Get and claim rewards from integration
         uint256[] memory amounts = integ.strategy.claimRewards();
         address[] memory rewardAddresses = integ.strategy.getRewardTokens();
         require(
@@ -203,59 +253,44 @@ contract PoolMerchant is
             "Invalid reward data"
         );
 
-        uint256 totalShares = integ.totalShares;
-        bytes32[] memory activeVaults = _getActiveVaultsForIntegration(
-            integration
-        );
-
-        // Distribute each reward token
+        // Process each reward token
         for (uint256 i = 0; i < amounts.length; i++) {
             address rewardAddress = rewardAddresses[i];
             uint256 amount = amounts[i];
 
-            // Skip unsupported reward tokens instead of reverting
             if (!rewardTokens[rewardAddress].isActive) {
                 continue;
             }
 
-            // Only distribute and emit events for supported tokens
-            for (uint256 j = 0; j < activeVaults.length; j++) {
-                bytes32 uuid = activeVaults[j];
-                uint256 vaultShares = _vaults[uuid].integrationShares[
-                    integration
-                ];
+            // Calculate this vault's share of the rewards
+            if (amount > 0 && vault.shares > 0) {
+                UserReward storage reward = vault.rewards[rewardAddress];
+                uint256 vaultReward = (amount * vault.shares) /
+                    integ.totalShares;
+                reward.pendingAmount += vaultReward;
+                reward.lastClaimedAt = block.timestamp;
 
-                if (vaultShares > 0) {
-                    UserReward storage reward = _vaults[uuid].rewards[
-                        integration
-                    ][rewardAddress];
-                    uint256 vaultReward = (amount * vaultShares) / totalShares;
-                    reward.pendingAmount += vaultReward;
-                    reward.lastClaimedAt = block.timestamp;
-                }
+                emit RewardsHarvested(
+                    integration,
+                    rewardAddress,
+                    address(this),
+                    vaultReward
+                );
             }
-
-            emit RewardsHarvested(
-                integration,
-                rewardAddress,
-                msg.sender,
-                amount
-            );
         }
     }
 
-    function getPendingIntegrationRewards(
+    function harvestRewardsForIntegration(
         address integration
-    )
-        external
-        view
-        returns (address[] memory tokens, uint256[] memory amounts)
-    {
+    ) external onlyRole(HARVESTER_ROLE) nonReentrant whenNotPaused {
         require(integrations[integration].isActive, "Integration not active");
-        Integration storage integ = integrations[integration];
 
-        tokens = integ.strategy.getRewardTokens();
-        amounts = integ.strategy.getPendingRewards();
+        bytes32[] memory activeVaults = _getVaultsForIntegration(integration);
+        for (uint256 i = 0; i < activeVaults.length; i++) {
+            if (_vaults[activeVaults[i]].shares > 0) {
+                _harvestRewardsForVault(activeVaults[i]);
+            }
+        }
     }
 
     // Claim rewards (ERC20s only)
@@ -263,12 +298,10 @@ contract PoolMerchant is
     // So, it would not be msg.sender who gets this
     function claimRewards(
         bytes32 uuid,
-        address integration,
         address rewardToken
     ) external nonReentrant whenNotPaused {
-        UserReward storage reward = _vaults[uuid].rewards[integration][
-            rewardToken
-        ];
+        VaultInfo storage vault = _vaults[uuid];
+        UserReward storage reward = vault.rewards[rewardToken];
         require(reward.pendingAmount > 0, "No rewards to claim");
 
         uint256 amount = reward.pendingAmount;
@@ -279,7 +312,7 @@ contract PoolMerchant is
             "Reward transfer failed"
         );
 
-        emit RewardsClaimed(uuid, integration, rewardToken, amount);
+        emit RewardsClaimed(uuid, rewardToken, amount);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -302,7 +335,8 @@ contract PoolMerchant is
             strategy: IIntegration(integration),
             isActive: true,
             totalShares: integrations[integration].totalShares, // Preserve existing shares if any
-            supportedRewardTokens: supportedRewards
+            supportedRewardTokens: supportedRewards,
+            vaults: _getVaultsForIntegration(integration)
         });
 
         // Update active integrations list if new
@@ -313,37 +347,69 @@ contract PoolMerchant is
         emit IntegrationAdded(integration, supportedRewards);
     }
 
-    // Allocate dlcBTC to an integration
+    // Allocate dlcBTC to the vault's integration
     function allocateToIntegration(
-        bytes32 uuid,
-        address integration
+        bytes32 uuid
     ) external onlyRole(OPERATOR_ROLE) nonReentrant whenNotPaused {
+        VaultInfo storage vault = _vaults[uuid];
+        address integration = vault.integration;
+        require(integration != address(0), "No integration set");
         require(integrations[integration].isActive, "Integration not active");
 
-        // Get current vault state
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         require(dlc.valueMinted > 0, "Vault not funded");
 
-        // Calculate amount available to allocate
-        uint256 unallocated = dlc.valueMinted - _vaults[uuid].totalAllocated;
+        uint256 unallocated = dlc.valueMinted - vault.allocated;
         require(unallocated > 0, "Nothing to allocate");
 
-        // First approve the integration to spend dlcBTC
         require(dlcBTC.approve(integration, unallocated), "Approval failed");
 
-        // Then deposit through the integration
         uint256 shares = integrations[integration].strategy.deposit(
             unallocated
         );
 
-        // Update share accounting
-        _vaults[uuid].integrationShares[integration] += shares;
-        _vaults[uuid].totalAllocated += unallocated;
+        vault.shares += shares;
+        vault.allocated += unallocated;
         integrations[integration].totalShares += shares;
 
-        _addVaultToIntegration(integration, uuid);
-
         emit SharesAllocated(uuid, integration, shares);
+    }
+
+    function _addVaultToIntegration(
+        bytes32 uuid,
+        address integration
+    ) internal {
+        VaultInfo storage vault = _vaults[uuid];
+        if (vault.integrationIndex == 0) {
+            integrations[integration].vaults.push(uuid);
+            vault.integrationIndex = integrations[integration].vaults.length;
+        }
+    }
+
+    function _removeVaultFromIntegration(
+        bytes32 uuid,
+        address integration
+    ) internal {
+        VaultInfo storage vault = _vaults[uuid];
+        uint256 index = vault.integrationIndex;
+
+        if (index > 0) {
+            index--; // Convert from 1-based to 0-based
+
+            // Get the array of vaults for this integration
+            bytes32[] storage vaults = integrations[integration].vaults;
+
+            // If this isn't the last element, move the last element to this position
+            if (index != vaults.length - 1) {
+                bytes32 lastVault = vaults[vaults.length - 1];
+                vaults[index] = lastVault;
+                _vaults[lastVault].integrationIndex = index + 1; // Update to 1-based index
+            }
+
+            // Remove the last element
+            vaults.pop();
+            vault.integrationIndex = 0;
+        }
     }
 
     function _isInActiveIntegrations(
@@ -357,113 +423,36 @@ contract PoolMerchant is
         return false;
     }
 
-    function _withdrawFromIntegrations(
-        bytes32 uuid,
-        uint256 totalAmount
-    ) internal {
-        uint256 remainingAmount = totalAmount;
-
-        for (
-            uint256 i = 0;
-            i < activeIntegrations.length && remainingAmount > 0;
-            i++
-        ) {
-            address integration = activeIntegrations[i];
-            uint256 shareAmount = _vaults[uuid].integrationShares[integration];
-
-            if (shareAmount > 0) {
-                Integration storage integ = integrations[integration];
-                uint256 withdrawAmount = (shareAmount * totalAmount) /
-                    integ.totalShares;
-
-                if (withdrawAmount > 0) {
-                    uint256 received = integ.strategy.withdraw(withdrawAmount);
-                    remainingAmount -= received;
-                    _vaults[uuid].integrationShares[
-                        integration
-                    ] -= withdrawAmount;
-                    _vaults[uuid].totalAllocated -= received; // Update allocated tracking
-                    integ.totalShares -= withdrawAmount;
-
-                    if (_vaults[uuid].integrationShares[integration] == 0) {
-                        _removeVaultFromIntegration(integration, uuid);
-                    }
-                }
-            }
-        }
-
-        require(remainingAmount == 0, "Insufficient liquidity in integrations");
+    function getIntegrationVaults(
+        address integration
+    ) external view returns (bytes32[] memory) {
+        return integrations[integration].vaults;
     }
 
-    // Helper function to get active _vaults for an integration
-    function _getActiveVaultsForIntegration(
+    function _getVaultsForIntegration(
         address integration
     ) internal view returns (bytes32[] memory) {
-        bytes32[] memory allVaults = _integrationVaults[integration];
-        uint256 activeCount = 0;
-
-        // First count active vaults
-        for (uint256 i = 0; i < allVaults.length; i++) {
-            if (_vaults[allVaults[i]].integrationShares[integration] > 0) {
-                activeCount++;
-            }
-        }
-
-        // Create result array with exact size
-        bytes32[] memory activeVaults = new bytes32[](activeCount);
-        uint256 currentIndex = 0;
-
-        // Fill result array
-        for (
-            uint256 i = 0;
-            i < allVaults.length && currentIndex < activeCount;
-            i++
-        ) {
-            if (_vaults[allVaults[i]].integrationShares[integration] > 0) {
-                activeVaults[currentIndex] = allVaults[i];
-                currentIndex++;
-            }
-        }
-
-        return activeVaults;
+        return integrations[integration].vaults;
     }
 
     ////////////////////////////////////////////////////////////////
     //                      VAULT FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
 
-    function getVaultShares(
-        bytes32 uuid,
-        address integration
-    ) external view returns (uint256) {
-        return _vaults[uuid].integrationShares[integration];
+    function getVaultShares(bytes32 uuid) external view returns (uint256) {
+        return _vaults[uuid].shares;
+    }
+
+    function getVaultIntegration(bytes32 uuid) external view returns (address) {
+        return _vaults[uuid].integration;
     }
 
     function getVaultReward(
         bytes32 uuid,
-        address integration,
         address rewardToken
     ) external view returns (uint256 lastClaimedAt, uint256 pendingAmount) {
-        UserReward storage reward = _vaults[uuid].rewards[integration][
-            rewardToken
-        ];
+        UserReward storage reward = _vaults[uuid].rewards[rewardToken];
         return (reward.lastClaimedAt, reward.pendingAmount);
-    }
-
-    // Helper function to get total shares in an integration for a vault
-    function getVaultTotalShares(
-        bytes32 uuid
-    ) external view returns (uint256 totalShares) {
-        for (uint256 i = 0; i < activeIntegrations.length; i++) {
-            totalShares += _vaults[uuid].integrationShares[
-                activeIntegrations[i]
-            ];
-        }
-    }
-
-    function getUnallocatedAmount(bytes32 uuid) public view returns (uint256) {
-        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
-        return dlc.valueMinted - _vaults[uuid].totalAllocated;
     }
 
     function getVaultAllocationDetails(
@@ -471,52 +460,33 @@ contract PoolMerchant is
     )
         external
         view
-        returns (
-            uint256 totalMinted,
-            uint256 totalAllocated,
-            uint256 unallocated
-        )
+        returns (uint256 valueMinted, uint256 allocated, uint256 unallocated)
     {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
-        totalMinted = dlc.valueMinted;
-        totalAllocated = _vaults[uuid].totalAllocated;
-        unallocated = totalMinted - totalAllocated;
+        VaultInfo storage vault = _vaults[uuid];
+
+        valueMinted = dlc.valueMinted;
+        allocated = vault.allocated;
+        unallocated = valueMinted - allocated;
     }
 
-    function _addVaultToIntegration(
-        address integration,
-        bytes32 uuid
-    ) internal {
-        if (_vaultIndices[integration][uuid] == 0) {
-            // 0 means not found
-            _integrationVaults[integration].push(uuid);
-            _vaultIndices[integration][uuid] = _integrationVaults[integration]
-                .length;
-        }
+    function getUnallocatedAmount(bytes32 uuid) public view returns (uint256) {
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        return dlc.valueMinted - _vaults[uuid].allocated;
     }
 
-    function _removeVaultFromIntegration(
-        address integration,
-        bytes32 uuid
-    ) internal {
-        uint256 index = _vaultIndices[integration][uuid];
-        if (index > 0) {
-            // If vault exists in array
-            index--; // Convert from 1-based to 0-based index
+    function getPendingIntegrationRewards(
+        address integration
+    )
+        external
+        view
+        returns (address[] memory tokens, uint256[] memory amounts)
+    {
+        require(integrations[integration].isActive, "Integration not active");
+        Integration storage integ = integrations[integration];
 
-            // Get the last element
-            uint256 lastIndex = _integrationVaults[integration].length - 1;
-            if (index != lastIndex) {
-                // Move last element to the removed element's position
-                bytes32 lastVault = _integrationVaults[integration][lastIndex];
-                _integrationVaults[integration][index] = lastVault;
-                _vaultIndices[integration][lastVault] = index + 1; // Update to 1-based index
-            }
-
-            // Remove last element
-            _integrationVaults[integration].pop();
-            delete _vaultIndices[integration][uuid];
-        }
+        tokens = integ.strategy.getRewardTokens();
+        amounts = integ.strategy.getPendingRewards();
     }
 
     ////////////////////////////////////////////////////////////////
