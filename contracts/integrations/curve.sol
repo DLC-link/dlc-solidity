@@ -22,14 +22,26 @@ interface ICurvePool {
     function coins(uint256 i) external view returns (address);
 }
 
-// NOTE: https://curve.readthedocs.io/dao-gauges.html#liquiditygaugev3
-// @Rayerleier: I am not fully sure all of these will work. Let's try and test tomorrow.
+// NOTE: I've altered deposit、withdraw、claim_rewards make up to date.
 interface ICurveGauge {
-    function deposit(uint256 _value, address _user) external;
-    function withdraw(uint256 _value, bool _claim_rewards) external;
-    function claim_rewards(address _addr) external;
+    function deposit(
+        uint256 _value,
+        address _user,
+        bool _claim_rewards
+    ) external;
+
+    function withdraw(
+        uint256 _value,
+        address _user,
+        bool _claim_rewards
+    ) external;
+
+    function claim_rewards(address _addr, address _receiver) external;
+
     function reward_tokens(uint256 i) external view returns (address);
+
     function reward_count() external view returns (uint256);
+
     function claimable_reward(
         address _user,
         address _reward_token
@@ -70,6 +82,7 @@ contract CurveIntegration is IIntegration, Ownable {
 
     // NOTE: we might have to change how shares/amounts translate...
     // since dlcBTC is 8 decimals and the curve pool is 18 decimals
+    // NOTE: decimals changed
     function deposit(
         uint256 amount
     ) external override onlyOwner returns (uint256 shares) {
@@ -87,7 +100,8 @@ contract CurveIntegration is IIntegration, Ownable {
 
         // Approve and deposit LP tokens into gauge
         IERC20(curvePoolAddress).approve(curveGaugeAddress, shares);
-        curveGauge.deposit(shares, address(this));
+        curveGauge.deposit(shares, address(this), false);
+        shares = _fromPoolDecimals(shares);
 
         return shares;
     }
@@ -95,8 +109,9 @@ contract CurveIntegration is IIntegration, Ownable {
     function withdraw(
         uint256 shares
     ) external override onlyOwner returns (uint256 amount) {
+        shares = _toPoolDecimals(shares);
         // Step 1: Withdraw LP tokens from gauge
-        curveGauge.withdraw(shares, true); // Claim rewards during withdrawal
+        curveGauge.withdraw(shares, address(this), true); // Claim rewards during withdrawal
 
         // Step 2: Remove liquidity for dlcBTC
         amount = curvePool.remove_liquidity_one_coin(
@@ -115,7 +130,7 @@ contract CurveIntegration is IIntegration, Ownable {
         onlyOwner
         returns (uint256[] memory amounts)
     {
-        curveGauge.claim_rewards(address(this));
+        curveGauge.claim_rewards(address(this), msg.sender);
 
         uint256 rewardCount = curveGauge.reward_count();
         amounts = new uint256[](rewardCount);
@@ -159,5 +174,13 @@ contract CurveIntegration is IIntegration, Ownable {
                 rewardToken
             );
         }
+    }
+
+    function _toPoolDecimals(uint256 amount) internal pure returns (uint256) {
+        return amount * 1e10;
+    }
+
+    function _fromPoolDecimals(uint256 amount) internal pure returns (uint256) {
+        return amount / 1e10;
     }
 }
