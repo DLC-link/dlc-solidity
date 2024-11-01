@@ -10,6 +10,7 @@ const {
     promptUser,
     loadContractAddress,
     getMinimumDelay,
+    getExpectedContractAddress,
 } = require('./helpers/utils');
 const {
     saveDeploymentInfo,
@@ -268,6 +269,16 @@ module.exports = async function contractAdmin() {
                     console.error(error);
                 }
             } else {
+                console.log('New implementation:', newImplementation);
+                console.log(
+                    'Expected contract address: ',
+                    await getExpectedContractAddress(deployer)
+                );
+                if (
+                    (await promptUser('Are you sure you want to continue?')) ===
+                    false
+                )
+                    return;
                 // We need to propose the upgrade through the SAFE & timelock
                 const newImplementationAddress =
                     await hardhat.upgrades.prepareUpgrade(
