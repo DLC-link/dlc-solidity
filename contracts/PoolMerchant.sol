@@ -27,6 +27,7 @@ interface IDLCManager {
     ) external returns (bytes32);
 
     function withdraw(bytes32 uuid, uint256 amount) external;
+
     function getDLC(bytes32 uuid) external view returns (DLCLink.DLC memory);
 }
 
@@ -197,14 +198,14 @@ contract PoolMerchant is
         }
 
         // Calculate shares to withdraw based on requested amount
-        uint256 sharesToWithdraw;
-        if (amount == vault.allocated) {
-            // If withdrawing all, withdraw all shares
-            sharesToWithdraw = vault.shares;
-        } else {
-            // Otherwise, withdraw proportional shares
-            sharesToWithdraw = (vault.shares * amount) / vault.allocated;
-        }
+        uint256 sharesToWithdraw = amount;
+        // if (amount == vault.allocated) {
+        //     // If withdrawing all, withdraw all shares
+        //     sharesToWithdraw = vault.shares;
+        // } else {
+        //     // Otherwise, withdraw proportional shares
+        //     sharesToWithdraw = (vault.shares * amount) / vault.allocated;
+        // }
 
         // Withdraw from integration
         uint256 received = integ.strategy.withdraw(sharesToWithdraw);
