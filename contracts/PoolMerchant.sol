@@ -19,6 +19,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "./DLCLinkLibrary.sol";
 import "./interfaces/IIntegration.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 interface IDLCManager {
     function setupPendingVault(
@@ -42,6 +43,7 @@ contract PoolMerchant is
 {
     using DLCLink for DLCLink.DLC;
     using DLCLink for DLCLink.DLCStatus;
+    using SafeMath for uint256;
 
     ////////////////////////////////////////////////////////////////
     //                      STATE VARIABLES                       //
@@ -199,48 +201,26 @@ contract PoolMerchant is
             _harvestRewardsForVault(uuid);
         }
 
-        // Calculate shares to withdraw based on requested amount
-        uint256 sharesToWithdraw = amount;
-        // if (amount == vault.allocated) {
-        //     // If withdrawing all, withdraw all shares
-        //     sharesToWithdraw = vault.shares;
-        // } else {
-        //     // Otherwise, withdraw proportional shares
-        //     sharesToWithdraw = (vault.shares * amount) / vault.allocated;
-        // }
-
         // Withdraw from integration
-        uint256 received = integ.strategy.withdraw(sharesToWithdraw);
+        uint256 received = integ.strategy.withdraw(amount);
 
-        // Update state based on what we actually received
-        vault.shares -= sharesToWithdraw;
-        integrations[integration].totalShares -= sharesToWithdraw;
-
-        // If we received less than requested, we need to adjust the withdrawal amount
-        uint256 withdrawAmount;
-        if (received < amount) {
-            // We can only withdraw what we actually received
-            withdrawAmount = received;
-            // Adjust allocation down based on what we actually received
-            vault.allocated -= received;
-        } else {
-            // We got enough or more than requested
-            withdrawAmount = amount;
-            vault.allocated -= amount;
-            if (received > amount) {
-                // If we got extra, add it to allocation
-                vault.allocated += (received - amount);
-            }
-        }
+        vault.shares = vault.shares.sub(received, "Insufficient shares");
+        vault.allocated = vault.allocated.sub(
+            received,
+            "Insufficient allocation"
+        );
+        integrations[integration].totalShares = integrations[integration]
+            .totalShares
+            .sub(received, "Insufficient total shares");
 
         // Clean up if fully withdrawn
         if (vault.shares == 0) {
             _removeVaultFromIntegration(uuid, integration);
         }
 
-        // Withdraw from DLCManager with adjusted amount
-        dlcManager.withdraw(uuid, withdrawAmount);
-        emit VaultWithdrawn(uuid, withdrawAmount);
+        // Withdraw from DLCManager with adjusted received
+        dlcManager.withdraw(uuid, received);
+        emit VaultWithdrawn(uuid, received);
     }
 
     function _harvestRewardsForVault(bytes32 uuid) internal {
@@ -268,9 +248,10 @@ contract PoolMerchant is
             // Calculate this vault's share of the rewards
             if (amount > 0 && vault.shares > 0) {
                 UserReward storage reward = vault.rewards[rewardAddress];
-                uint256 vaultReward = (amount * vault.shares) /
-                    integ.totalShares;
-                reward.pendingAmount += vaultReward;
+                uint256 vaultReward = amount.mul(vault.shares).div(
+                    integ.totalShares
+                );
+                reward.pendingAmount = reward.pendingAmount.add(vaultReward);
 
                 emit RewardsHarvested(
                     integration,
@@ -362,7 +343,10 @@ contract PoolMerchant is
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         require(dlc.valueMinted > 0, "Vault not funded");
 
-        uint256 unallocated = dlc.valueMinted - vault.allocated;
+        uint256 unallocated = dlc.valueMinted.sub(
+            vault.allocated,
+            "Already fully allocated"
+        );
         require(unallocated > 0, "Nothing to allocate");
 
         require(dlcBTC.approve(integration, unallocated), "Approval failed");
@@ -371,9 +355,11 @@ contract PoolMerchant is
             unallocated
         );
 
-        vault.shares += shares;
-        vault.allocated += unallocated;
-        integrations[integration].totalShares += shares;
+        vault.shares = vault.shares.add(shares);
+        vault.allocated = vault.allocated.add(unallocated);
+        integrations[integration].totalShares = integrations[integration]
+            .totalShares
+            .add(shares);
 
         emit SharesAllocated(uuid, integration, shares);
     }
@@ -470,12 +456,19 @@ contract PoolMerchant is
 
         valueMinted = dlc.valueMinted;
         allocated = vault.allocated;
-        unallocated = valueMinted - allocated;
+        unallocated = valueMinted.sub(
+            allocated,
+            "Allocation exceeds minted value"
+        );
     }
 
     function getUnallocatedAmount(bytes32 uuid) public view returns (uint256) {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
-        return dlc.valueMinted - _vaults[uuid].allocated;
+        return
+            dlc.valueMinted.sub(
+                _vaults[uuid].allocated,
+                "Allocation exceeds minted value"
+            );
     }
 
     function getPendingIntegrationRewards(

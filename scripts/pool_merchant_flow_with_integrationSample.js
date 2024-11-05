@@ -95,8 +95,11 @@ async function main() {
     );
 
     await dlcManager.connect(dlcAdmin).setSkipSignatureVerification(true);
+    await dlcManager
+        .connect(dlcAdmin)
+        .setMinterOnTokenContract(deployer.address);
 
-    console.log('\n🏗️ Deploying PoolMerchant...');
+    console.log('\n🏗️  Deploying PoolMerchant...');
     const PoolMerchant = await ethers.getContractFactory('PoolMerchant');
     const poolMerchant = await upgrades.deployProxy(PoolMerchant, [
         MAINNET_ADDRESSES.DLC_MANAGER,
@@ -108,23 +111,25 @@ async function main() {
 
     await dlcManager.connect(dlcAdmin).whitelistAddress(poolMerchant.address);
 
-    console.log('\n🏗️ Deploying MockERC4626Vault...');
+    console.log('\n🏗️  Deploying MockERC4626Vault...');
     const MockERC4626Vault =
         await ethers.getContractFactory('MockERC4626Vault');
     const mockVault = await MockERC4626Vault.deploy(MAINNET_ADDRESSES.DLC_BTC);
     await mockVault.deployed();
     console.log('MockERC4626Vault deployed to:', mockVault.address);
 
-    console.log('\n🏗️ Deploying IntegrationSample...');
+    console.log('\n🏗️  Deploying IntegrationSample...');
     const IntegrationSample =
         await ethers.getContractFactory('IntegrationSample');
-    const rewardRatePerSecond = ethers.utils.parseUnits('1', 8);
+
+    const rewardRatePerSecond = ethers.BigNumber.from('317');
 
     const integrationSample = await IntegrationSample.deploy(
         mockVault.address,
         MAINNET_ADDRESSES.DLC_BTC,
         rewardRatePerSecond,
-        poolMerchant.address
+        poolMerchant.address,
+        dlcBTC.address
     );
     await integrationSample.deployed();
     console.log('IntegrationSample deployed to:', integrationSample.address);
@@ -147,7 +152,7 @@ async function main() {
         harvester.address
     );
 
-    console.log('\n🪙 Adding DLCBTC as reward token...');
+    console.log('\n🪙  Adding DLCBTC as reward token...');
     await poolMerchant.addRewardToken(MAINNET_ADDRESSES.DLC_BTC);
 
     console.log('\n🔄 Setting up IntegrationSample...');
@@ -185,34 +190,26 @@ async function main() {
         .setStatusFunded(vaultId, mockBtcTxId, [], fundAmount);
     await tx3.wait();
 
-    console.log(
-        '\n🔄 PoolMerchant transferring dlcBTC to IntegrationSample...'
-    );
-    await poolMerchant
-        .connect(operator)
-        .transferDLCBTC(integrationSample.address, fundAmount);
-    console.log('Transfer successful');
-
     console.log('\n📈 Allocating to IntegrationSample...');
 
     const integrationSharesBefore = await mockVault.balanceOf(
         integrationSample.address
     );
     console.log(
-        'IntegrationSample shares before allocation:',
+        'IntegrationSample ERC4626 shares before allocation:',
         integrationSharesBefore.toString()
     );
 
     await poolMerchant.connect(operator).allocateToIntegration(vaultId);
 
     const shares = await poolMerchant.getVaultShares(vaultId);
-    console.log('Allocated shares:', shares.toString());
+    console.log('Allocated shares for vaultID:', shares.toString());
 
     const integrationSharesAfter = await mockVault.balanceOf(
         integrationSample.address
     );
     console.log(
-        'IntegrationSample shares after allocation:',
+        'IntegrationSample ERC4626 shares after allocation:',
         integrationSharesAfter.toString()
     );
 
@@ -223,7 +220,6 @@ async function main() {
         '\n🏦 Performing partial withdrawal to trigger reward harvest...'
     );
     const withdrawAmount = fundAmount.div(2);
-    const sharesToWithdraw = withdrawAmount;
 
     console.log('\n🔍 Testing withdrawal process...');
 
@@ -234,44 +230,43 @@ async function main() {
     console.log(' - Allocated:', vaultBefore.allocated.toString());
     console.log(' - Shares:', sharesBefore.toString());
 
-    const assetToken = await ethers.getContractAt(
-        'IERC20',
-        MAINNET_ADDRESSES.DLC_BTC
-    );
-
-    const integrationBalance = await assetToken.balanceOf(
+    const integrationBalance = await dlcBTC.balanceOf(
         integrationSample.address
     );
     console.log(
-        'IntegrationSample asset balance:',
+        'IntegrationSample dlcBTC balance:',
         integrationBalance.toString()
     );
 
-    const vaultBalance = await assetToken.balanceOf(mockVault.address);
-    console.log('MockERC4626Vault asset balance:', vaultBalance.toString());
+    const vaultBalance = await dlcBTC.balanceOf(mockVault.address);
+    console.log('MockERC4626Vault dlcBTC balance:', vaultBalance.toString());
 
     console.log(
         '\nAttempting withdrawal of shares:',
-        sharesToWithdraw.toString()
+        withdrawAmount.toString()
     );
+
+    const previewRedeem = await mockVault.previewRedeem(withdrawAmount);
+    console.log('Preview redeem amount:', previewRedeem.toString());
+    const maxRedeem = await mockVault.maxRedeem(integrationSample.address);
+
     try {
-        const integrationAssetBalance = await mockVault.balanceOf(
+        const integrationSampleSharesBalance = await mockVault.balanceOf(
             integrationSample.address
         );
         console.log(
-            'IntegrationSample asset balance before withdrawal:',
-            integrationAssetBalance.toString()
+            'IntegrationSample ERC4626 shares balance before withdrawal:',
+            integrationSampleSharesBalance.toString()
         );
 
-        if (integrationAssetBalance.lt(withdrawAmount)) {
+        if (integrationSampleSharesBalance.lt(withdrawAmount)) {
             console.log(
                 '⚠️ IntegrationSample does not have enough balance to withdraw'
             );
         }
-
         const withdrawTx = await poolMerchant
             .connect(operator)
-            .withdrawFromVault(vaultId, sharesToWithdraw, {
+            .withdrawFromVault(vaultId, withdrawAmount, {
                 gasLimit: 2000000,
             });
 
@@ -308,7 +303,7 @@ async function main() {
     } catch (error) {
         console.log('\n❌ Withdrawal failed:', error.message);
 
-        const integrationBalanceAfter = await assetToken.balanceOf(
+        const integrationBalanceAfter = await dlcBTC.balanceOf(
             integrationSample.address
         );
         console.log(
@@ -316,12 +311,149 @@ async function main() {
             integrationBalanceAfter.toString()
         );
 
-        const vaultBalanceAfter = await assetToken.balanceOf(mockVault.address);
+        const vaultBalanceAfter = await dlcBTC.balanceOf(mockVault.address);
         console.log(
             'MockERC4626Vault asset balance after withdrawal attempt:',
             vaultBalanceAfter.toString()
         );
     }
+    // First mint some reward tokens to the integration
+    const rewardAmount = ethers.utils.parseUnits('1000', 8); // 1000 DLC
+    console.log(
+        '\n💰 Minting rewards to IntegrationSample:',
+        rewardAmount.toString()
+    );
+    await dlcBTC.mint(integrationSample.address, rewardAmount);
+
+    // Check initial rewards state
+    console.log('\n📊 Checking initial rewards state...');
+    const initialState = await integrationSample.getRewardState();
+    console.log('Integration reward state:', {
+        totalShares: initialState.totalShares.toString(),
+        currentRewardBalance: initialState.currentRewardBalance.toString(),
+        trackedRewardBalance: initialState.trackedRewardBalance.toString(),
+        accRewardPerShare: initialState.accRewardPerShare.toString(),
+    });
+
+    // Check vault's initial reward state
+    console.log('\n📊 Checking vault initial rewards...');
+    const [lastClaimedAt, pendingAmount] = await poolMerchant.getVaultReward(
+        vaultId,
+        MAINNET_ADDRESSES.DLC_BTC
+    );
+    console.log('Vault reward state:', {
+        lastClaimedAt: lastClaimedAt.toString(),
+        pendingAmount: pendingAmount.toString(),
+    });
+
+    // Mine blocks to accrue rewards
+    console.log('\n⏳ Mining blocks to accrue rewards...');
+    await hre.network.provider.send('hardhat_mine', ['0x100']);
+
+    // Check pending rewards for vault
+    console.log('\n🔍 Checking pending integration rewards...');
+    const pendingRewards = await integrationSample.getPendingRewards();
+    console.log('Pending integration rewards:', pendingRewards[0].toString());
+
+    // Get vault's allocation details before harvest
+    console.log('\n📊 Vault allocation before harvest:');
+    const vaultAllocationBefore =
+        await poolMerchant.getVaultAllocationDetails(vaultId);
+    console.log({
+        valueMinted: vaultAllocationBefore.valueMinted.toString(),
+        allocated: vaultAllocationBefore.allocated.toString(),
+        unallocated: vaultAllocationBefore.unallocated.toString(),
+    });
+
+    // Check PoolMerchant's DLC balance before harvest
+    const poolMerchantBalanceBefore = await dlcBTC.balanceOf(
+        poolMerchant.address
+    );
+    console.log(
+        '\n💰 PoolMerchant DLC balance before harvest:',
+        poolMerchantBalanceBefore.toString()
+    );
+
+    // Harvest rewards
+    console.log('\n🌾 Harvesting rewards...');
+    const harvestTx = await poolMerchant
+        .connect(harvester)
+        .harvestRewardsForIntegration(integrationSample.address);
+    const harvestReceipt = await harvestTx.wait();
+
+    // Get harvest events
+    console.log('\n📜 Checking harvest events...');
+    const harvestEvents = harvestReceipt.events.filter(
+        (e) => e.event === 'RewardsHarvested'
+    );
+    for (const event of harvestEvents) {
+        console.log('Harvest event:', {
+            integration: event.args.integration,
+            rewardToken: event.args.rewardToken,
+            harvester: event.args.harvester,
+            amount: event.args.amount.toString(),
+        });
+    }
+
+    // Check final reward states
+    console.log('\n📊 Checking final states...');
+
+    // Integration final state
+    const finalState = await integrationSample.getRewardState();
+    console.log('Integration final state:', {
+        totalShares: finalState.totalShares.toString(),
+        currentRewardBalance: finalState.currentRewardBalance.toString(),
+        trackedRewardBalance: finalState.trackedRewardBalance.toString(),
+        accRewardPerShare: finalState.accRewardPerShare.toString(),
+    });
+
+    // Vault's final reward state
+    const [finalLastClaimedAt, finalPendingAmount] =
+        await poolMerchant.getVaultReward(vaultId, MAINNET_ADDRESSES.DLC_BTC);
+    console.log('Vault final reward state:', {
+        lastClaimedAt: finalLastClaimedAt.toString(),
+        pendingAmount: finalPendingAmount.toString(),
+    });
+
+    // PoolMerchant's final balance
+    const poolMerchantBalanceAfter = await dlcBTC.balanceOf(
+        poolMerchant.address
+    );
+    console.log(
+        '\n💰 PoolMerchant DLC balance after harvest:',
+        poolMerchantBalanceAfter.toString()
+    );
+
+    // Check if rewards can be claimed
+    console.log('\n🎯 Attempting to claim rewards...');
+    try {
+        const claimTx = await poolMerchant
+            .connect(operator)
+            .claimRewards(vaultId, MAINNET_ADDRESSES.DLC_BTC);
+        const claimReceipt = await claimTx.wait();
+
+        const claimEvents = claimReceipt.events.filter(
+            (e) => e.event === 'RewardsClaimed'
+        );
+        for (const event of claimEvents) {
+            console.log('Claim event:', {
+                uuid: event.args.uuid,
+                rewardToken: event.args.rewardToken,
+                amount: event.args.amount.toString(),
+            });
+        }
+    } catch (error) {
+        console.log('❌ Claim failed:', error.message);
+    }
+
+    // Final balance check
+    console.log('\n📊 Final balance check:');
+    const finalBalances = {
+        poolMerchant: await dlcBTC.balanceOf(poolMerchant.address),
+        integration: await dlcBTC.balanceOf(integrationSample.address),
+        vault: await dlcBTC.balanceOf(mockVault.address),
+    };
+    console.log(finalBalances);
 }
 
 main()
