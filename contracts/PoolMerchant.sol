@@ -81,11 +81,11 @@ contract PoolMerchant is
     }
 
     mapping(bytes32 => VaultInfo) internal _vaults;
+    mapping(string => bytes32[]) public vaultsByBitcoinAddress;
     mapping(address => Integration) public integrations;
     mapping(address => RewardToken) public rewardTokens;
     address[] public activeIntegrations;
 
-    uint256 public totalValueLocked;
     uint256[50] private __gap;
 
     ////////////////////////////////////////////////////////////////
@@ -168,6 +168,8 @@ contract PoolMerchant is
 
         _vaults[_uuid].integration = integration;
         _addVaultToIntegration(_uuid, integration);
+
+        vaultsByBitcoinAddress[taprootPubKey].push(_uuid);
 
         emit PendingVaultCreated(
             _uuid,
@@ -269,7 +271,6 @@ contract PoolMerchant is
                 uint256 vaultReward = (amount * vault.shares) /
                     integ.totalShares;
                 reward.pendingAmount += vaultReward;
-                reward.lastClaimedAt = block.timestamp;
 
                 emit RewardsHarvested(
                     integration,
@@ -307,6 +308,7 @@ contract PoolMerchant is
 
         uint256 amount = reward.pendingAmount;
         reward.pendingAmount = 0;
+        reward.lastClaimedAt = block.timestamp;
 
         require(
             IERC20(rewardToken).transfer(msg.sender, amount),
@@ -488,6 +490,57 @@ contract PoolMerchant is
 
         tokens = integ.strategy.getRewardTokens();
         amounts = integ.strategy.getPendingRewards();
+    }
+
+    ////////////////////////////////////////////////////////////////
+    //                      VAULT QUERIES                         //
+    ////////////////////////////////////////////////////////////////
+
+    // Get all vault UUIDs for a taproot public key
+    function getVaultsByBitcoinAddress(
+        string calldata taprootPubKey
+    ) external view returns (bytes32[] memory) {
+        return vaultsByBitcoinAddress[taprootPubKey];
+    }
+
+    // Get details for a specific vault by UUID
+    function getVaultDetails(
+        bytes32 uuid,
+        address[] calldata _rewardTokens
+    )
+        external
+        view
+        returns (
+            address integration,
+            uint256 shares,
+            uint256 valueMinted,
+            uint256 allocated,
+            uint256 unallocated,
+            uint256[] memory lastClaimedAt,
+            uint256[] memory pendingAmounts
+        )
+    {
+        require(uuid != bytes32(0), "Invalid UUID");
+        VaultInfo storage vault = _vaults[uuid];
+        require(vault.integration != address(0), "Vault not found");
+
+        DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+
+        integration = vault.integration;
+        shares = vault.shares;
+        valueMinted = dlc.valueMinted;
+        allocated = vault.allocated;
+        unallocated = valueMinted - allocated;
+
+        // Get reward data
+        lastClaimedAt = new uint256[](_rewardTokens.length);
+        pendingAmounts = new uint256[](_rewardTokens.length);
+
+        for (uint256 i = 0; i < _rewardTokens.length; i++) {
+            UserReward storage reward = vault.rewards[_rewardTokens[i]];
+            lastClaimedAt[i] = reward.lastClaimedAt;
+            pendingAmounts[i] = reward.pendingAmount;
+        }
     }
 
     ////////////////////////////////////////////////////////////////
