@@ -1,6 +1,10 @@
 const hre = require('hardhat');
 const { ethers, upgrades } = require('hardhat');
 const { loadContractAddress } = require('./helpers/utils');
+const {
+    saveDeploymentInfo,
+    deploymentInfo,
+} = require('./helpers/deployment-handlers_versioned');
 
 async function main() {
     // Compile contracts
@@ -23,10 +27,21 @@ async function main() {
     const newImplementation = await ethers.getContractFactory('DLCManager');
     await upgrades.upgradeProxy(proxyAddress, newImplementation);
 
+    await hre.run('verify:verify', {
+        address: proxyAddress,
+    });
     console.log('DLCManager upgraded');
 
     console.log('\n📝 Getting contract instances...');
     const dlcManager = await ethers.getContractAt('DLCManager', proxyAddress);
+
+    try {
+        await saveDeploymentInfo(
+            deploymentInfo(network, dlcManager, 'DLCManager')
+        );
+    } catch (error) {
+        console.error(error);
+    }
 
     const dlcBTCAddress = await loadContractAddress('DLCBTC', network);
     const dlcBTC = await ethers.getContractAt('DLCBTC', dlcBTCAddress);
@@ -41,6 +56,16 @@ async function main() {
     ]);
     await poolMerchant.deployed();
     console.log('PoolMerchant deployed to:', poolMerchant.address);
+    try {
+        await saveDeploymentInfo(
+            deploymentInfo(network, poolMerchant, 'PoolMerchant')
+        );
+    } catch (error) {
+        console.error(error);
+    }
+    await hre.run('verify:verify', {
+        address: poolMerchant.address,
+    });
 
     // Whitelist PoolMerchant
     await dlcManager.connect(dlcAdmin).whitelistAddress(poolMerchant.address);
@@ -51,6 +76,9 @@ async function main() {
     const mockVault = await MockERC4626Vault.deploy(dlcBTCAddress);
     await mockVault.deployed();
     console.log('MockERC4626Vault deployed to:', mockVault.address);
+    await hre.run('verify:verify', {
+        address: mockVault.address,
+    });
 
     console.log('\n🏗️  Deploying IntegrationSample...');
     const IntegrationSample =
@@ -67,6 +95,9 @@ async function main() {
     );
     await integrationSample.deployed();
     console.log('IntegrationSample deployed to:', integrationSample.address);
+    await hre.run('verify:verify', {
+        address: integrationSample.address,
+    });
 
     // Setup roles and integration
     console.log('\n🔑 Setting up roles and integration...');

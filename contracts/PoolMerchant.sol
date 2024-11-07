@@ -74,6 +74,7 @@ contract PoolMerchant is
     }
 
     struct VaultDetails {
+        bytes32 uuid;
         address integration;
         uint256 shares;
         uint256 valueMinted;
@@ -354,7 +355,7 @@ contract PoolMerchant is
     function allocateToIntegration(
         string calldata taprootPubKey,
         address integration
-    ) external onlyRole(ATTESTOR_ROLE) nonReentrant whenNotPaused {
+    ) public nonReentrant whenNotPaused {
         bytes32 uuid = uuidByTaprootAndIntegration[
             _createMappingKey(taprootPubKey, integration)
         ];
@@ -650,6 +651,7 @@ contract PoolMerchant is
 
         return
             VaultDetails({
+                uuid: uuid,
                 integration: vault.integration,
                 shares: vault.shares,
                 valueMinted: dlc.valueMinted,
