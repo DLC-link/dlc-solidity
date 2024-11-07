@@ -62,7 +62,7 @@ contract PoolMerchant is
 
     struct UserReward {
         uint256 lastClaimedAt;
-        uint256 pendingAmount;
+        uint256 harvestedAmount;
     }
 
     struct VaultInfo {
@@ -71,6 +71,18 @@ contract PoolMerchant is
         uint256 allocated;
         mapping(address => UserReward) rewards; // token -> reward
         uint256 integrationIndex; // Index in the integration's vault array + 1 (0 means not in array)
+    }
+
+    struct VaultDetails {
+        address integration;
+        uint256 shares;
+        uint256 valueMinted;
+        uint256 allocated;
+        uint256 unallocated;
+        address[] rewardTokens;
+        uint256[] lastClaimedAt;
+        uint256[] harvestedRewards; // Already harvested rewards
+        uint256[] pendingRewards; // Rewards that can be harvested now
     }
 
     struct Integration {
@@ -252,7 +264,9 @@ contract PoolMerchant is
                 uint256 vaultReward = amount.mul(vault.shares).div(
                     integ.totalShares
                 );
-                reward.pendingAmount = reward.pendingAmount.add(vaultReward);
+                reward.harvestedAmount = reward.harvestedAmount.add(
+                    vaultReward
+                );
 
                 emit RewardsHarvested(
                     integration,
@@ -290,10 +304,10 @@ contract PoolMerchant is
         ];
         VaultInfo storage vault = _vaults[uuid];
         UserReward storage reward = vault.rewards[rewardToken];
-        require(reward.pendingAmount > 0, "No rewards to claim");
+        require(reward.harvestedAmount > 0, "No rewards to claim");
 
-        uint256 amount = reward.pendingAmount;
-        reward.pendingAmount = 0;
+        uint256 amount = reward.harvestedAmount;
+        reward.harvestedAmount = 0;
         reward.lastClaimedAt = block.timestamp;
 
         require(
@@ -480,22 +494,22 @@ contract PoolMerchant is
     function getVaultReward(
         bytes32 uuid,
         address rewardToken
-    ) external view returns (uint256 lastClaimedAt, uint256 pendingAmount) {
+    ) external view returns (uint256 lastClaimedAt, uint256 harvestedAmount) {
         UserReward storage reward = _vaults[uuid].rewards[rewardToken];
-        return (reward.lastClaimedAt, reward.pendingAmount);
+        return (reward.lastClaimedAt, reward.harvestedAmount);
     }
 
     function getVaultRewardByTaprootAndIntegration(
         string calldata taprootPubKey,
         address integration,
         address rewardToken
-    ) external view returns (uint256 lastClaimedAt, uint256 pendingAmount) {
+    ) external view returns (uint256 lastClaimedAt, uint256 harvestedAmount) {
         UserReward storage reward = _vaults[
             uuidByTaprootAndIntegration[
                 _createMappingKey(taprootPubKey, integration)
             ]
         ].rewards[rewardToken];
-        return (reward.lastClaimedAt, reward.pendingAmount);
+        return (reward.lastClaimedAt, reward.harvestedAmount);
     }
 
     function getVaultAllocationDetails(
@@ -567,6 +581,32 @@ contract PoolMerchant is
     //                      VAULT QUERIES                         //
     ////////////////////////////////////////////////////////////////
 
+    function _calculateVaultPendingRewards(
+        bytes32 uuid,
+        uint256[] memory integrationPendingRewards,
+        address[] memory _rewardTokens
+    ) internal view returns (uint256[] memory) {
+        VaultInfo storage vault = _vaults[uuid];
+        Integration storage integ = integrations[vault.integration];
+
+        uint256[] memory vaultPendingRewards = new uint256[](
+            _rewardTokens.length
+        );
+
+        // Only calculate if vault has shares
+        if (vault.shares > 0 && integ.totalShares > 0) {
+            for (uint256 i = 0; i < _rewardTokens.length; i++) {
+                if (integrationPendingRewards[i] > 0) {
+                    vaultPendingRewards[i] = integrationPendingRewards[i]
+                        .mul(vault.shares)
+                        .div(integ.totalShares);
+                }
+            }
+        }
+
+        return vaultPendingRewards;
+    }
+
     // Get all vault UUIDs for a taproot public key
     function getVaultsByTaprootPubKey(
         string calldata taprootPubKey
@@ -577,19 +617,7 @@ contract PoolMerchant is
     // Get details for a specific vault by UUID
     function getVaultDetails(
         bytes32 uuid
-    )
-        public
-        view
-        returns (
-            address integration,
-            uint256 shares,
-            uint256 valueMinted,
-            uint256 allocated,
-            uint256 unallocated,
-            uint256[] memory lastClaimedAt,
-            uint256[] memory pendingAmounts
-        )
-    {
+    ) public view returns (VaultDetails memory details) {
         require(uuid != bytes32(0), "Invalid UUID");
         VaultInfo storage vault = _vaults[uuid];
         require(vault.integration != address(0), "Vault not found");
@@ -597,41 +625,47 @@ contract PoolMerchant is
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         Integration storage integ = integrations[vault.integration];
 
-        integration = vault.integration;
-        shares = vault.shares;
-        valueMinted = dlc.valueMinted;
-        allocated = vault.allocated;
-        unallocated = valueMinted - allocated;
-        // Get reward tokens from the integration strategy
+        // Get reward tokens and pending rewards from integration
         address[] memory _rewardTokens = integ.strategy.getRewardTokens();
+        uint256[] memory integrationPendingRewards = integ
+            .strategy
+            .getPendingRewards();
 
-        // Get reward data
-        lastClaimedAt = new uint256[](_rewardTokens.length);
-        pendingAmounts = new uint256[](_rewardTokens.length);
+        // Calculate vault's share of unharvested rewards
+        uint256[] memory pendingRewards = _calculateVaultPendingRewards(
+            uuid,
+            integrationPendingRewards,
+            _rewardTokens
+        );
+
+        // Get harvested rewards waiting to be claimed
+        uint256[] memory harvestedRewards = new uint256[](_rewardTokens.length);
+        uint256[] memory lastClaimedAt = new uint256[](_rewardTokens.length);
 
         for (uint256 i = 0; i < _rewardTokens.length; i++) {
             UserReward storage reward = vault.rewards[_rewardTokens[i]];
-            lastClaimedAt[i] = reward.lastClaimedAt;
-            pendingAmounts[i] = reward.pendingAmount;
+            harvestedRewards[i] = reward.harvestedAmount; // Rewards harvested but not yet claimed
+            lastClaimedAt[i] = reward.lastClaimedAt; // Last time rewards were claimed
         }
+
+        return
+            VaultDetails({
+                integration: vault.integration,
+                shares: vault.shares,
+                valueMinted: dlc.valueMinted,
+                allocated: vault.allocated,
+                unallocated: dlc.valueMinted - vault.allocated,
+                rewardTokens: _rewardTokens,
+                lastClaimedAt: lastClaimedAt,
+                harvestedRewards: harvestedRewards, // Ready to be claimed
+                pendingRewards: pendingRewards // Still in integration
+            });
     }
 
     function getVaultDetailsByTaprootAndIntegration(
         string calldata taprootPubKey,
         address _integration
-    )
-        external
-        view
-        returns (
-            address integration,
-            uint256 shares,
-            uint256 valueMinted,
-            uint256 allocated,
-            uint256 unallocated,
-            uint256[] memory lastClaimedAt,
-            uint256[] memory pendingAmounts
-        )
-    {
+    ) external view returns (VaultDetails memory details) {
         bytes32 uuid = uuidByTaprootAndIntegration[
             _createMappingKey(taprootPubKey, _integration)
         ];
