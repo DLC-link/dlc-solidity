@@ -14,25 +14,20 @@ describe('PoolMerchant', () => {
     let poolMerchant;
     let dlcManager;
     let dlcBtc;
-    let curveIntegration;
-    let curvePool;
-    let curveGauge;
     let deployer;
     let attestor_1;
     let attestor_2;
     let attestor_3;
     let attestors;
-    let operator;
     let harvester;
     let user;
     let mockIntegration;
     let mockRewardToken;
+    const mockTaprootPubkey = 'taproot123';
+    const mockWithdrawalTxId = 'tx123';
 
     const ATTESTOR_ROLE = ethers.utils.keccak256(
         ethers.utils.toUtf8Bytes('ATTESTOR_ROLE')
-    );
-    const OPERATOR_ROLE = ethers.utils.keccak256(
-        ethers.utils.toUtf8Bytes('OPERATOR_ROLE')
     );
     const HARVESTER_ROLE = ethers.utils.keccak256(
         ethers.utils.toUtf8Bytes('HARVESTER_ROLE')
@@ -41,15 +36,8 @@ describe('PoolMerchant', () => {
     let btcFeeRecipient = '0x000001';
 
     beforeEach(async function () {
-        [
-            deployer,
-            attestor_1,
-            attestor_2,
-            attestor_3,
-            operator,
-            harvester,
-            user,
-        ] = await ethers.getSigners();
+        [deployer, attestor_1, attestor_2, attestor_3, harvester, user] =
+            await ethers.getSigners();
 
         attestors = [attestor_1, attestor_2, attestor_3];
 
@@ -92,13 +80,9 @@ describe('PoolMerchant', () => {
 
         // Setup roles
         await poolMerchant.grantRole(ATTESTOR_ROLE, attestor_1.address);
-        await poolMerchant.grantRole(OPERATOR_ROLE, operator.address);
         await poolMerchant.grantRole(HARVESTER_ROLE, harvester.address);
 
         await whitelistAddress(dlcManager, poolMerchant);
-
-        // Transfer CurveIntegration ownership to PoolMerchant
-        // await curveIntegration.transferOwnership(poolMerchant.address);
     });
 
     describe('Initialization', function () {
@@ -110,8 +94,6 @@ describe('PoolMerchant', () => {
             expect(
                 await poolMerchant.hasRole(ATTESTOR_ROLE, attestor_1.address)
             ).to.be.true;
-            expect(await poolMerchant.hasRole(OPERATOR_ROLE, operator.address))
-                .to.be.true;
             expect(
                 await poolMerchant.hasRole(HARVESTER_ROLE, harvester.address)
             ).to.be.true;
@@ -120,7 +102,6 @@ describe('PoolMerchant', () => {
 
     describe('Vault Creation and Integration', function () {
         beforeEach(async function () {
-            // Setup integration
             await poolMerchant
                 .connect(deployer)
                 .addRewardToken(mockRewardToken.address);
@@ -132,34 +113,37 @@ describe('PoolMerchant', () => {
         });
 
         it('should create a pending vault with integration', async function () {
-            const taprootPubKey = 'taproot123';
-            const withdrawalTxId = 'tx123';
-
             const tx = await poolMerchant
                 .connect(attestor_1)
                 .createPendingVault(
-                    taprootPubKey,
-                    withdrawalTxId,
+                    mockTaprootPubkey,
+                    mockWithdrawalTxId,
                     mockIntegration.address
                 );
+
+            const uuid = await getEventArg(tx, 'PendingVaultCreated', 'uuid');
 
             await expect(tx)
                 .to.emit(poolMerchant, 'PendingVaultCreated')
                 .withArgs(
-                    await getEventArg(tx, 'PendingVaultCreated', 'uuid'),
-                    taprootPubKey,
-                    withdrawalTxId,
+                    uuid,
+                    mockTaprootPubkey,
+                    mockWithdrawalTxId,
                     mockIntegration.address
                 );
 
-            const vaultId = await getEventArg(
-                tx,
-                'PendingVaultCreated',
-                'uuid'
-            );
-            expect(await poolMerchant.getVaultIntegration(vaultId)).to.equal(
+            const vaultId = await poolMerchant.getVaultByTaprootAndIntegration(
+                mockTaprootPubkey,
                 mockIntegration.address
             );
+            expect(vaultId).to.equal(uuid);
+
+            expect(
+                await poolMerchant.getVaultIntegrationByTaprootAndIntegration(
+                    mockTaprootPubkey,
+                    mockIntegration.address
+                )
+            ).to.equal(mockIntegration.address);
         });
 
         it('should not create vault with inactive integration', async function () {
@@ -173,8 +157,8 @@ describe('PoolMerchant', () => {
                 poolMerchant
                     .connect(attestor_1)
                     .createPendingVault(
-                        'taproot123',
-                        'tx123',
+                        mockTaprootPubkey,
+                        mockWithdrawalTxId,
                         newIntegration.address
                     )
             ).to.be.revertedWith('Integration not active');
@@ -266,7 +250,6 @@ describe('PoolMerchant', () => {
     });
 
     describe('Allocation and Rewards', function () {
-        let vaultId;
         const initialFunding = ethers.utils.parseUnits('1', 8);
 
         beforeEach(async function () {
@@ -284,17 +267,22 @@ describe('PoolMerchant', () => {
             const tx = await poolMerchant
                 .connect(attestor_1)
                 .createPendingVault(
-                    'taproot123',
-                    'tx123',
+                    mockTaprootPubkey,
+                    mockWithdrawalTxId,
                     mockIntegration.address
                 );
-            vaultId = await getEventArg(tx, 'PendingVaultCreated', 'uuid');
+
+            const vaultId = await getEventArg(
+                tx,
+                'PendingVaultCreated',
+                'uuid'
+            );
 
             // Fund vault
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid: vaultId,
-                    btcTxId: 'tx123',
+                    btcTxId: mockWithdrawalTxId,
                     functionString: 'set-status-funded',
                     newLockedAmount: initialFunding,
                 },
@@ -305,45 +293,73 @@ describe('PoolMerchant', () => {
                 .connect(attestor_1)
                 .setStatusFunded(
                     vaultId,
-                    'tx123',
+                    mockWithdrawalTxId,
                     signatureBytesForFunding,
                     initialFunding
                 );
         });
 
         it('should allocate to integration', async function () {
+            const vaultId = await poolMerchant.getVaultByTaprootAndIntegration(
+                mockTaprootPubkey,
+                mockIntegration.address
+            );
+
             await expect(
-                poolMerchant.connect(operator).allocateToIntegration(vaultId)
+                poolMerchant
+                    .connect(attestor_1)
+                    .allocateToIntegration(
+                        mockTaprootPubkey,
+                        mockIntegration.address
+                    )
             )
                 .to.emit(poolMerchant, 'SharesAllocated')
-                .withArgs(vaultId, mockIntegration.address, initialFunding); // Assuming 1:1 share ratio
+                .withArgs(vaultId, mockIntegration.address, initialFunding);
 
-            const shares = await poolMerchant.getVaultShares(vaultId);
+            const shares =
+                await poolMerchant.getVaultSharesByTaprootAndIntegration(
+                    mockTaprootPubkey,
+                    mockIntegration.address
+                );
             expect(shares).to.equal(initialFunding);
 
             const details =
-                await poolMerchant.getVaultAllocationDetails(vaultId);
+                await poolMerchant.getVaultAllocationDetailsByTaprootAndIntegration(
+                    mockTaprootPubkey,
+                    mockIntegration.address
+                );
             expect(details.allocated).to.equal(initialFunding);
             expect(details.unallocated).to.equal(0);
         });
 
         it('should harvest rewards during withdrawal', async function () {
             // First allocate
-            await poolMerchant.connect(operator).allocateToIntegration(vaultId);
+            await poolMerchant
+                .connect(attestor_1)
+                .allocateToIntegration(
+                    mockTaprootPubkey,
+                    mockIntegration.address
+                );
 
             // Mock some rewards
             const rewardAmount = ethers.utils.parseEther('10');
             await mockRewardToken.mint(mockIntegration.address, rewardAmount);
             await mockIntegration.mockRewards([rewardAmount]);
 
-            // Withdraw partial amount
             const withdrawAmount = initialFunding.div(2);
+            const vaultId = await poolMerchant.getVaultByTaprootAndIntegration(
+                mockTaprootPubkey,
+                mockIntegration.address
+            );
 
-            // Should emit both rewards harvested and withdrawal events
             await expect(
                 poolMerchant
                     .connect(attestor_1)
-                    .withdrawFromVault(vaultId, withdrawAmount)
+                    .withdrawFromVault(
+                        mockTaprootPubkey,
+                        mockIntegration.address,
+                        withdrawAmount
+                    )
             )
                 .to.emit(poolMerchant, 'RewardsHarvested')
                 .withArgs(
@@ -355,16 +371,22 @@ describe('PoolMerchant', () => {
                 .and.to.emit(poolMerchant, 'VaultWithdrawn')
                 .withArgs(vaultId, withdrawAmount);
 
-            // Check rewards were distributed
-            const [_, pendingAmount] = await poolMerchant.getVaultReward(
-                vaultId,
-                mockRewardToken.address
-            );
+            const [_, pendingAmount] =
+                await poolMerchant.getVaultRewardByTaprootAndIntegration(
+                    mockTaprootPubkey,
+                    mockIntegration.address,
+                    mockRewardToken.address
+                );
             expect(pendingAmount).to.equal(rewardAmount);
         });
 
         it('should still allow manual reward harvesting by harvester', async function () {
-            await poolMerchant.connect(operator).allocateToIntegration(vaultId);
+            await poolMerchant
+                .connect(attestor_1)
+                .allocateToIntegration(
+                    mockTaprootPubkey,
+                    mockIntegration.address
+                );
 
             const rewardAmount = ethers.utils.parseEther('10');
             await mockRewardToken.mint(mockIntegration.address, rewardAmount);

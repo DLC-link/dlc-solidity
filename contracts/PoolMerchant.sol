@@ -50,7 +50,6 @@ contract PoolMerchant is
     ////////////////////////////////////////////////////////////////
 
     bytes32 public constant ATTESTOR_ROLE = keccak256("ATTESTOR_ROLE");
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     bytes32 public constant HARVESTER_ROLE = keccak256("HARVESTER_ROLE");
 
     IDLCManager public dlcManager;
@@ -83,9 +82,10 @@ contract PoolMerchant is
     }
 
     mapping(bytes32 => VaultInfo) internal _vaults;
-    mapping(string => bytes32[]) public vaultsByBitcoinAddress;
+    mapping(string => bytes32[]) public vaultsByTaprootPubKey;
     mapping(address => Integration) public integrations;
     mapping(address => RewardToken) public rewardTokens;
+    mapping(bytes32 => bytes32) public uuidByTaprootAndIntegration; // taproot-integration -> uuid
     address[] public activeIntegrations;
 
     uint256[50] private __gap;
@@ -97,7 +97,7 @@ contract PoolMerchant is
     event PendingVaultCreated(
         bytes32 indexed uuid,
         string taprootPubKey,
-        string withdrawalTxId,
+        string wdPSBT,
         address integration
     );
     event VaultWithdrawn(bytes32 indexed uuid, uint256 amount);
@@ -152,7 +152,7 @@ contract PoolMerchant is
 
     function createPendingVault(
         string calldata taprootPubKey,
-        string calldata withdrawalTxId,
+        string calldata wdPSBT,
         address integration
     )
         external
@@ -163,35 +163,36 @@ contract PoolMerchant is
     {
         require(integrations[integration].isActive, "Integration not active");
 
-        bytes32 _uuid = dlcManager.setupPendingVault(
-            taprootPubKey,
-            withdrawalTxId
+        bytes32 mappingKey = _createMappingKey(taprootPubKey, integration);
+        require(
+            uuidByTaprootAndIntegration[mappingKey] == bytes32(0),
+            "Vault already exists for this taproot-integration pair"
         );
+
+        bytes32 _uuid = dlcManager.setupPendingVault(taprootPubKey, wdPSBT);
 
         _vaults[_uuid].integration = integration;
         _addVaultToIntegration(_uuid, integration);
 
-        vaultsByBitcoinAddress[taprootPubKey].push(_uuid);
+        vaultsByTaprootPubKey[taprootPubKey].push(_uuid);
+        uuidByTaprootAndIntegration[mappingKey] = _uuid;
 
-        emit PendingVaultCreated(
-            _uuid,
-            taprootPubKey,
-            withdrawalTxId,
-            integration
-        );
+        emit PendingVaultCreated(_uuid, taprootPubKey, wdPSBT, integration);
         return _uuid;
     }
 
     function withdrawFromVault(
-        bytes32 uuid,
+        string calldata taprootPubKey,
+        address integration,
         uint256 amount
     ) external onlyRole(ATTESTOR_ROLE) nonReentrant whenNotPaused {
+        bytes32 uuid = uuidByTaprootAndIntegration[
+            _createMappingKey(taprootPubKey, integration)
+        ];
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         require(dlc.uuid != bytes32(0), "Vault does not exist");
 
         VaultInfo storage vault = _vaults[uuid];
-        address integration = vault.integration;
-        require(integration != address(0), "No integration set");
         require(amount <= vault.allocated, "Amount exceeds allocation");
 
         Integration storage integ = integrations[integration];
@@ -280,9 +281,13 @@ contract PoolMerchant is
     // TODO: add auth/a way for users to claim their rewards
     // So, it would not be msg.sender who gets this
     function claimRewards(
-        bytes32 uuid,
+        string calldata taprootPubKey,
+        address integration,
         address rewardToken
     ) external nonReentrant whenNotPaused {
+        bytes32 uuid = uuidByTaprootAndIntegration[
+            _createMappingKey(taprootPubKey, integration)
+        ];
         VaultInfo storage vault = _vaults[uuid];
         UserReward storage reward = vault.rewards[rewardToken];
         require(reward.pendingAmount > 0, "No rewards to claim");
@@ -333,11 +338,13 @@ contract PoolMerchant is
 
     // Allocate dlcBTC to the vault's integration
     function allocateToIntegration(
-        bytes32 uuid
-    ) external onlyRole(OPERATOR_ROLE) nonReentrant whenNotPaused {
+        string calldata taprootPubKey,
+        address integration
+    ) external onlyRole(ATTESTOR_ROLE) nonReentrant whenNotPaused {
+        bytes32 uuid = uuidByTaprootAndIntegration[
+            _createMappingKey(taprootPubKey, integration)
+        ];
         VaultInfo storage vault = _vaults[uuid];
-        address integration = vault.integration;
-        require(integration != address(0), "No integration set");
         require(integrations[integration].isActive, "Integration not active");
 
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
@@ -424,6 +431,16 @@ contract PoolMerchant is
         return integrations[integration].vaults;
     }
 
+    function getVaultByTaprootAndIntegration(
+        string calldata taprootPubKey,
+        address integration
+    ) external view returns (bytes32) {
+        return
+            uuidByTaprootAndIntegration[
+                _createMappingKey(taprootPubKey, integration)
+            ];
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      VAULT FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -432,8 +449,32 @@ contract PoolMerchant is
         return _vaults[uuid].shares;
     }
 
+    function getVaultSharesByTaprootAndIntegration(
+        string calldata taprootPubKey,
+        address integration
+    ) external view returns (uint256) {
+        return
+            _vaults[
+                uuidByTaprootAndIntegration[
+                    _createMappingKey(taprootPubKey, integration)
+                ]
+            ].shares;
+    }
+
     function getVaultIntegration(bytes32 uuid) external view returns (address) {
         return _vaults[uuid].integration;
+    }
+
+    function getVaultIntegrationByTaprootAndIntegration(
+        string calldata taprootPubKey,
+        address integration
+    ) external view returns (address) {
+        return
+            _vaults[
+                uuidByTaprootAndIntegration[
+                    _createMappingKey(taprootPubKey, integration)
+                ]
+            ].integration;
     }
 
     function getVaultReward(
@@ -444,10 +485,23 @@ contract PoolMerchant is
         return (reward.lastClaimedAt, reward.pendingAmount);
     }
 
+    function getVaultRewardByTaprootAndIntegration(
+        string calldata taprootPubKey,
+        address integration,
+        address rewardToken
+    ) external view returns (uint256 lastClaimedAt, uint256 pendingAmount) {
+        UserReward storage reward = _vaults[
+            uuidByTaprootAndIntegration[
+                _createMappingKey(taprootPubKey, integration)
+            ]
+        ].rewards[rewardToken];
+        return (reward.lastClaimedAt, reward.pendingAmount);
+    }
+
     function getVaultAllocationDetails(
         bytes32 uuid
     )
-        external
+        public
         view
         returns (uint256 valueMinted, uint256 allocated, uint256 unallocated)
     {
@@ -462,6 +516,20 @@ contract PoolMerchant is
         );
     }
 
+    function getVaultAllocationDetailsByTaprootAndIntegration(
+        string calldata taprootPubKey,
+        address integration
+    )
+        external
+        view
+        returns (uint256 valueMinted, uint256 allocated, uint256 unallocated)
+    {
+        bytes32 uuid = uuidByTaprootAndIntegration[
+            _createMappingKey(taprootPubKey, integration)
+        ];
+        return getVaultAllocationDetails(uuid);
+    }
+
     function getUnallocatedAmount(bytes32 uuid) public view returns (uint256) {
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
         return
@@ -469,6 +537,16 @@ contract PoolMerchant is
                 _vaults[uuid].allocated,
                 "Allocation exceeds minted value"
             );
+    }
+
+    function getUnallocatedAmountByTaprootAndIntegration(
+        string calldata taprootPubKey,
+        address integration
+    ) external view returns (uint256) {
+        bytes32 uuid = uuidByTaprootAndIntegration[
+            _createMappingKey(taprootPubKey, integration)
+        ];
+        return getUnallocatedAmount(uuid);
     }
 
     function getPendingIntegrationRewards(
@@ -490,10 +568,10 @@ contract PoolMerchant is
     ////////////////////////////////////////////////////////////////
 
     // Get all vault UUIDs for a taproot public key
-    function getVaultsByBitcoinAddress(
+    function getVaultsByTaprootPubKey(
         string calldata taprootPubKey
     ) external view returns (bytes32[] memory) {
-        return vaultsByBitcoinAddress[taprootPubKey];
+        return vaultsByTaprootPubKey[taprootPubKey];
     }
 
     // Get details for a specific vault by UUID
@@ -501,7 +579,7 @@ contract PoolMerchant is
         bytes32 uuid,
         address[] calldata _rewardTokens
     )
-        external
+        public
         view
         returns (
             address integration,
@@ -536,6 +614,29 @@ contract PoolMerchant is
         }
     }
 
+    function getVaultDetailsByTaprootAndIntegration(
+        string calldata taprootPubKey,
+        address _integration,
+        address[] calldata _rewardTokens
+    )
+        external
+        view
+        returns (
+            address integration,
+            uint256 shares,
+            uint256 valueMinted,
+            uint256 allocated,
+            uint256 unallocated,
+            uint256[] memory lastClaimedAt,
+            uint256[] memory pendingAmounts
+        )
+    {
+        bytes32 uuid = uuidByTaprootAndIntegration[
+            _createMappingKey(taprootPubKey, _integration)
+        ];
+        return getVaultDetails(uuid, _rewardTokens);
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -568,6 +669,13 @@ contract PoolMerchant is
     ////////////////////////////////////////////////////////////////
     //                        UTILITIES                           //
     ////////////////////////////////////////////////////////////////
+
+    function _createMappingKey(
+        string memory taprootPubKey,
+        address integration
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(taprootPubKey, integration));
+    }
 
     // Required interface implementations
     function onERC721Received(

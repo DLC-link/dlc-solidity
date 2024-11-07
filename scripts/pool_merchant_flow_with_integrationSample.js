@@ -144,10 +144,6 @@ async function main() {
         operator.address
     );
     await poolMerchant.grantRole(
-        await poolMerchant.OPERATOR_ROLE(),
-        operator.address
-    );
-    await poolMerchant.grantRole(
         await poolMerchant.HARVESTER_ROLE(),
         harvester.address
     );
@@ -176,9 +172,10 @@ async function main() {
         );
 
     const receipt = await tx.wait();
-    const vaultId = receipt.events.find(
-        (e) => e.event === 'PendingVaultCreated'
-    ).args.uuid;
+    const vaultId = await poolMerchant.getVaultByTaprootAndIntegration(
+        mockTaprootPubkey,
+        integrationSample.address
+    );
     console.log('Vault created with ID:', vaultId);
 
     console.log('\n💰 Funding vault...');
@@ -200,10 +197,15 @@ async function main() {
         integrationSharesBefore.toString()
     );
 
-    await poolMerchant.connect(operator).allocateToIntegration(vaultId);
+    await poolMerchant
+        .connect(operator)
+        .allocateToIntegration(mockTaprootPubkey, integrationSample.address);
 
-    const shares = await poolMerchant.getVaultShares(vaultId);
-    console.log('Allocated shares for vaultID:', shares.toString());
+    const shares = await poolMerchant.getVaultSharesByTaprootAndIntegration(
+        mockTaprootPubkey,
+        integrationSample.address
+    );
+    console.log('Allocated shares for vault:', shares.toString());
 
     const integrationSharesAfter = await mockVault.balanceOf(
         integrationSample.address
@@ -223,8 +225,16 @@ async function main() {
 
     console.log('\n🔍 Testing withdrawal process...');
 
-    const vaultBefore = await poolMerchant.getVaultAllocationDetails(vaultId);
-    const sharesBefore = await poolMerchant.getVaultShares(vaultId);
+    const vaultBefore =
+        await poolMerchant.getVaultAllocationDetailsByTaprootAndIntegration(
+            mockTaprootPubkey,
+            integrationSample.address
+        );
+    const sharesBefore =
+        await poolMerchant.getVaultSharesByTaprootAndIntegration(
+            mockTaprootPubkey,
+            integrationSample.address
+        );
     console.log('\nInitial state:');
     console.log(' - Total minted:', vaultBefore.valueMinted.toString());
     console.log(' - Allocated:', vaultBefore.allocated.toString());
@@ -266,16 +276,28 @@ async function main() {
         }
         const withdrawTx = await poolMerchant
             .connect(operator)
-            .withdrawFromVault(vaultId, withdrawAmount, {
-                gasLimit: 2000000,
-            });
+            .withdrawFromVault(
+                mockTaprootPubkey,
+                integrationSample.address,
+                withdrawAmount,
+                {
+                    gasLimit: 2000000,
+                }
+            );
 
         await withdrawTx.wait();
         console.log('Withdrawal successful!');
 
         const vaultAfter =
-            await poolMerchant.getVaultAllocationDetails(vaultId);
-        const sharesAfter = await poolMerchant.getVaultShares(vaultId);
+            await poolMerchant.getVaultAllocationDetailsByTaprootAndIntegration(
+                mockTaprootPubkey,
+                integrationSample.address
+            );
+        const sharesAfter =
+            await poolMerchant.getVaultSharesByTaprootAndIntegration(
+                mockTaprootPubkey,
+                integrationSample.address
+            );
         console.log('\nPost-withdrawal state:');
         console.log(' - Total minted:', vaultAfter.valueMinted.toString());
         console.log(' - Allocated:', vaultAfter.allocated.toString());
@@ -337,10 +359,12 @@ async function main() {
 
     // Check vault's initial reward state
     console.log('\n📊 Checking vault initial rewards...');
-    const [lastClaimedAt, pendingAmount] = await poolMerchant.getVaultReward(
-        vaultId,
-        MAINNET_ADDRESSES.DLC_BTC
-    );
+    const [lastClaimedAt, pendingAmount] =
+        await poolMerchant.getVaultRewardByTaprootAndIntegration(
+            mockTaprootPubkey,
+            integrationSample.address,
+            MAINNET_ADDRESSES.DLC_BTC
+        );
     console.log('Vault reward state:', {
         lastClaimedAt: lastClaimedAt.toString(),
         pendingAmount: pendingAmount.toString(),
@@ -429,7 +453,11 @@ async function main() {
     try {
         const claimTx = await poolMerchant
             .connect(operator)
-            .claimRewards(vaultId, MAINNET_ADDRESSES.DLC_BTC);
+            .claimRewards(
+                mockTaprootPubkey,
+                integrationSample.address,
+                MAINNET_ADDRESSES.DLC_BTC
+            );
         const claimReceipt = await claimTx.wait();
 
         const claimEvents = claimReceipt.events.filter(
