@@ -576,8 +576,7 @@ contract PoolMerchant is
 
     // Get details for a specific vault by UUID
     function getVaultDetails(
-        bytes32 uuid,
-        address[] calldata _rewardTokens
+        bytes32 uuid
     )
         public
         view
@@ -596,12 +595,15 @@ contract PoolMerchant is
         require(vault.integration != address(0), "Vault not found");
 
         DLCLink.DLC memory dlc = dlcManager.getDLC(uuid);
+        Integration storage integ = integrations[vault.integration];
 
         integration = vault.integration;
         shares = vault.shares;
         valueMinted = dlc.valueMinted;
         allocated = vault.allocated;
         unallocated = valueMinted - allocated;
+        // Get reward tokens from the integration strategy
+        address[] memory _rewardTokens = integ.strategy.getRewardTokens();
 
         // Get reward data
         lastClaimedAt = new uint256[](_rewardTokens.length);
@@ -616,8 +618,7 @@ contract PoolMerchant is
 
     function getVaultDetailsByTaprootAndIntegration(
         string calldata taprootPubKey,
-        address _integration,
-        address[] calldata _rewardTokens
+        address _integration
     )
         external
         view
@@ -634,7 +635,7 @@ contract PoolMerchant is
         bytes32 uuid = uuidByTaprootAndIntegration[
             _createMappingKey(taprootPubKey, _integration)
         ];
-        return getVaultDetails(uuid, _rewardTokens);
+        return getVaultDetails(uuid);
     }
 
     ////////////////////////////////////////////////////////////////
