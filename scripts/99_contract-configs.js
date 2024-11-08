@@ -195,6 +195,19 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                     networkName
                 );
 
+                try {
+                    console.log('Whitelisting PoolMerchant...');
+                    const dlcManager = await hardhat.ethers.getContractAt(
+                        'DLCManager',
+                        DLCManagerAddress
+                    );
+                    await dlcManager
+                        .connect(deployer)
+                        .whitelistAddress(poolMerchant.address);
+                } catch (error) {
+                    console.error(error);
+                }
+
                 return poolMerchant.address;
             },
             verify: async () => {
