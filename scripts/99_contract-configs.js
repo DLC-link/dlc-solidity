@@ -162,5 +162,50 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                 });
             },
         },
+        {
+            name: 'PoolMerchant',
+            deployer: deployer.address,
+            upgradeable: true,
+            requirements: ['DLCManager', 'DLCBTC'],
+            deploy: async (requirementAddresses) => {
+                const DLCManagerAddress = requirementAddresses['DLCManager'];
+                const DLCBTCAddress = requirementAddresses['DLCBTC'];
+                if (!DLCManagerAddress)
+                    throw new Error('DLCManager deployment not found.');
+                if (!DLCBTCAddress)
+                    throw new Error('DLCBTC deployment not found.');
+                await beforeDeployment(
+                    'PoolMerchant',
+                    `dlcManager: ${DLCManagerAddress}, \
+                  dlcBTC: ${DLCBTCAddress}, \
+                  deployer: ${deployer.address}`,
+                    networkName
+                );
+                const PoolMerchant =
+                    await hardhat.ethers.getContractFactory('PoolMerchant');
+                const poolMerchant = await hardhat.upgrades.deployProxy(
+                    PoolMerchant,
+                    [DLCManagerAddress, DLCBTCAddress, deployer.address]
+                );
+                await poolMerchant.deployed();
+
+                await afterDeployment(
+                    'PoolMerchant',
+                    poolMerchant,
+                    networkName
+                );
+
+                return poolMerchant.address;
+            },
+            verify: async () => {
+                const address = await loadContractAddress(
+                    'PoolMerchant',
+                    networkName
+                );
+                await hardhat.run('verify:verify', {
+                    address: address,
+                });
+            },
+        },
     ];
 };

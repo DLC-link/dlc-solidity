@@ -456,6 +456,14 @@ contract PoolMerchant is
             ];
     }
 
+    function getAllActiveIntegrations()
+        external
+        view
+        returns (address[] memory)
+    {
+        return activeIntegrations;
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      VAULT FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////

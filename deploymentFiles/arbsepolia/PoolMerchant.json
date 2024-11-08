@@ -1,7 +1,7 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-11-07T18:53:25.584Z",
-  "gitSHA": "362ac1c",
+  "updatedAt": "2024-11-08T08:36:51.728Z",
+  "gitSHA": "77f0343",
   "contract": {
     "name": "PoolMerchant",
     "address": "0xc0Fd850bE474e21449aF001782F11a0e9FC049C7",
@@ -42,6 +42,7 @@
       "function defaultAdminDelayIncreaseWait() view returns (uint48)",
       "function dlcBTC() view returns (address)",
       "function dlcManager() view returns (address)",
+      "function getAllActiveIntegrations() view returns (address[])",
       "function getIntegrationVaults(address integration) view returns (bytes32[])",
       "function getPendingIntegrationRewards(address integration) view returns (address[] tokens, uint256[] amounts)",
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
