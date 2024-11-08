@@ -6,7 +6,6 @@ cache/
 artifacts/
 .openzeppelin/
 .husky/
-contracts/mocks/
 contracts/upgrades/
 
 scripts/log.txt
