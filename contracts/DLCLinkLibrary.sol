@@ -35,5 +35,6 @@ library DLCLink {
         string taprootPubKey;
         uint256 valueMinted;
         string wdTxId;
+        address icyIntegrationAddress;
     }
 }

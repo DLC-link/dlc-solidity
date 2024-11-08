@@ -24,7 +24,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 interface IDLCManager {
     function setupPendingVault(
         string calldata _taprootPubKey,
-        string calldata _wdTxId
+        string calldata _wdTxId,
+        address _integration
     ) external returns (bytes32);
 
     function withdraw(bytes32 uuid, uint256 amount) external;
@@ -174,6 +175,14 @@ contract PoolMerchant is
         whenNotPaused
         returns (bytes32)
     {
+        return _createPendingVault(taprootPubKey, wdPSBT, integration);
+    }
+
+    function _createPendingVault(
+        string memory taprootPubKey,
+        string memory wdPSBT,
+        address integration
+    ) internal returns (bytes32) {
         require(integrations[integration].isActive, "Integration not active");
 
         bytes32 mappingKey = _createMappingKey(taprootPubKey, integration);
@@ -182,16 +191,39 @@ contract PoolMerchant is
             "Vault already exists for this taproot-integration pair"
         );
 
-        bytes32 _uuid = dlcManager.setupPendingVault(taprootPubKey, wdPSBT);
+        // Create vault separately to manage stack
+        bytes32 _uuid = _setupVaultInDLCManager(
+            taprootPubKey,
+            wdPSBT,
+            integration
+        );
 
+        // Initialize vault data separately
+        _initializeVault(_uuid, integration, taprootPubKey, mappingKey);
+
+        emit PendingVaultCreated(_uuid, taprootPubKey, wdPSBT, integration);
+        return _uuid;
+    }
+
+    function _setupVaultInDLCManager(
+        string memory taprootPubKey,
+        string memory wdPSBT,
+        address integration
+    ) internal returns (bytes32) {
+        return dlcManager.setupPendingVault(taprootPubKey, wdPSBT, integration);
+    }
+
+    function _initializeVault(
+        bytes32 _uuid,
+        address integration,
+        string memory taprootPubKey,
+        bytes32 mappingKey
+    ) internal {
         _vaults[_uuid].integration = integration;
         _addVaultToIntegration(_uuid, integration);
 
         vaultsByTaprootPubKey[taprootPubKey].push(_uuid);
         uuidByTaprootAndIntegration[mappingKey] = _uuid;
-
-        emit PendingVaultCreated(_uuid, taprootPubKey, wdPSBT, integration);
-        return _uuid;
     }
 
     function withdrawFromVault(

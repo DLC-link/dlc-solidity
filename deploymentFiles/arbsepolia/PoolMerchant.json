@@ -1,7 +1,7 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-11-08T08:36:51.728Z",
-  "gitSHA": "77f0343",
+  "updatedAt": "2024-11-08T09:31:33.116Z",
+  "gitSHA": "f8bab99",
   "contract": {
     "name": "PoolMerchant",
     "address": "0xc0Fd850bE474e21449aF001782F11a0e9FC049C7",

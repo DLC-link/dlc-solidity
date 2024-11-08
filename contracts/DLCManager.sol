@@ -341,7 +341,7 @@ contract DLCManager is
     {
         bytes32 _uuid = generateUUID(msg.sender, _index);
 
-        dlcs[_index] = DLCLink.DLC({
+        DLCLink.DLC memory newDLC = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender, // deprecated
             valueLocked: 0,
@@ -355,8 +355,11 @@ contract DLCManager is
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeRate,
             btcRedeemFeeBasisPoints: btcRedeemFeeRate,
-            taprootPubKey: ""
+            taprootPubKey: "",
+            icyIntegrationAddress: address(0)
         });
+
+        dlcs[_index] = newDLC;
 
         emit CreateDLC(_uuid, msg.sender, block.timestamp);
 
@@ -370,10 +373,11 @@ contract DLCManager is
     // TODO: auth
     function setupPendingVault(
         string calldata _taprootPubKey,
-        string calldata _wdTxId
+        string calldata _wdTxId,
+        address icyIntegrationAddress
     ) public onlyWhitelisted whenNotPaused returns (bytes32) {
         bytes32 _uuid = generateUUID(msg.sender, _index);
-        dlcs[_index] = DLCLink.DLC({
+        DLCLink.DLC memory newDLC = DLCLink.DLC({
             uuid: _uuid,
             protocolContract: msg.sender, // deprecated
             valueLocked: 0,
@@ -387,8 +391,10 @@ contract DLCManager is
             btcFeeRecipient: btcFeeRecipient,
             btcMintFeeBasisPoints: btcMintFeeRate,
             btcRedeemFeeBasisPoints: btcRedeemFeeRate,
-            taprootPubKey: _taprootPubKey
+            taprootPubKey: _taprootPubKey,
+            icyIntegrationAddress: icyIntegrationAddress
         });
+        dlcs[_index] = newDLC;
 
         emit CreateDLC(_uuid, msg.sender, block.timestamp);
 
