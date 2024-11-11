@@ -238,33 +238,43 @@ contract PoolMerchant is
         require(dlc.uuid != bytes32(0), "Vault does not exist");
 
         VaultInfo storage vault = _vaults[uuid];
-        require(amount <= vault.allocated, "Amount exceeds allocation");
-
         Integration storage integ = integrations[integration];
 
-        // Harvest any pending rewards
-        if (vault.shares > 0) {
-            _harvestRewardsForVault(uuid);
+        require(amount <= dlc.valueMinted, "Amount exceeds minted value");
+
+        uint256 received;
+
+        if (vault.allocated > 0) {
+            // If there are allocated funds, handle integration withdrawal
+            require(amount <= vault.allocated, "Amount exceeds allocation");
+
+            // Harvest any pending rewards
+            if (vault.shares > 0) {
+                _harvestRewardsForVault(uuid);
+            }
+
+            // Withdraw from integration
+            received = integ.strategy.withdraw(amount);
+
+            vault.shares = vault.shares.sub(received, "Insufficient shares");
+            vault.allocated = vault.allocated.sub(
+                received,
+                "Insufficient allocation"
+            );
+            integrations[integration].totalShares = integrations[integration]
+                .totalShares
+                .sub(received, "Insufficient total shares");
+
+            // Clean up if fully withdrawn
+            if (vault.shares == 0) {
+                _removeVaultFromIntegration(uuid, integration);
+            }
+        } else {
+            // If no funds are allocated, simply withdraw the requested amount
+            received = amount;
         }
 
-        // Withdraw from integration
-        uint256 received = integ.strategy.withdraw(amount);
-
-        vault.shares = vault.shares.sub(received, "Insufficient shares");
-        vault.allocated = vault.allocated.sub(
-            received,
-            "Insufficient allocation"
-        );
-        integrations[integration].totalShares = integrations[integration]
-            .totalShares
-            .sub(received, "Insufficient total shares");
-
-        // Clean up if fully withdrawn
-        if (vault.shares == 0) {
-            _removeVaultFromIntegration(uuid, integration);
-        }
-
-        // Withdraw from DLCManager with adjusted received
+        // Withdraw from DLCManager with adjusted received amount
         dlcManager.withdraw(uuid, received);
         emit VaultWithdrawn(uuid, received);
     }
