@@ -513,14 +513,13 @@ module.exports = async function contractAdmin() {
             break;
         }
         case 'transfer-proxyadmin': {
-            const currentAdmin = await (
-                await hardhat.upgrades.admin.getInstance()
-            ).functions['owner()']();
+            const proxyAdmin = await hardhat.upgrades.admin.getInstance();
+            const currentAdminOwner = await proxyAdmin.functions['owner()']();
 
             console.log(
-                chalk.bgYellow('Current ProxyAdmin owner:', currentAdmin)
+                chalk.bgYellow('Current ProxyAdmin owner:', currentAdminOwner)
             );
-            if (currentAdmin == dlcAdminSafes.critical) {
+            if (currentAdminOwner == dlcAdminSafes.critical) {
                 console.log(
                     chalk.bgRed(
                         'Current ProxyAdmin owner is the Critical Multisig Already!'
@@ -539,6 +538,20 @@ module.exports = async function contractAdmin() {
                 message: 'Enter new ProxyAdmin address',
             });
             if (!newAdmin.value) return;
+
+            if (currentAdminOwner != deployer.address) {
+                const txRequest =
+                    await proxyAdmin.populateTransaction.transferProxyAdminOwnership(
+                        newAdmin.value
+                    );
+                await safeContractProposal(
+                    txRequest,
+                    deployer,
+                    currentAdminOwner
+                );
+                return;
+            }
+
             console.log('Transferring ownership of ProxyAdmin...');
             await hardhat.upgrades.admin.transferProxyAdminOwnership(
                 newAdmin.value
