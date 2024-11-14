@@ -14,13 +14,14 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @author  DLC.Link 2024
- * @title   DLCBTC
- * @notice  The DLCBTC Token represents Bitcoin locked through the DLC.Link bridge
- * @dev     Owner is the TokenManager contract
+ * @title   iBTC
+ * @notice  The iBTC Token represents Bitcoin locked in self-custody by the DLC.Link protocol.
+ * @dev     Owner is the DLCManager contract
+ * @dev     Minter/Burner rights are given to CCIP token pools
  * @custom:contact eng@dlc.link
  * @custom:website https://www.dlc.link
  */
-contract DLCBTC is
+contract IBTC is
     Initializable,
     ERC20Upgradeable,
     ERC20PermitUpgradeable,
@@ -42,9 +43,14 @@ contract DLCBTC is
     }
 
     function initialize() public initializer {
-        __ERC20_init("dlcBTC", "dlcBTC");
+        __ERC20_init("iBTC", "IBTC");
         __Ownable_init();
-        __ERC20Permit_init("dlcBTC");
+        __ERC20Permit_init("iBTC");
+    }
+
+    function reinitializeEIP712() public reinitializer(2) {
+        // Reinitialize EIP712 with new name
+        __EIP712_init_unchained("iBTC", "1");
     }
 
     modifier onlyOwnerOrCCIPMinter() {
@@ -63,8 +69,12 @@ contract DLCBTC is
         return 8;
     }
 
+    function name() public view virtual override returns (string memory) {
+        return "iBTC";
+    }
+
     function symbol() public view virtual override returns (string memory) {
-        return "dlcBTC";
+        return "IBTC";
     }
 
     function mint(address to, uint256 amount) external onlyOwnerOrCCIPMinter {

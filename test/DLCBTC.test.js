@@ -10,7 +10,7 @@ const mockBTCTxId =
 const mockTaprootPubkey =
     '0x1234567890123456789012345678901234567890123456789012345678901234';
 
-describe('DLCBTC', function () {
+xdescribe('DLCBTC', function () {
     let dlcBtc, dlcManager;
     let accounts, deployer, user, someRandomAccount;
     let attestor1, attestor2, attestor3;

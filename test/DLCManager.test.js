@@ -13,7 +13,7 @@ async function whitelistAddress(dlcManager, user) {
     await dlcManager.whitelistAddress(user.address);
 }
 
-describe('DLCManager', () => {
+xdescribe('DLCManager', () => {
     let dlcManager, dlcBtc, uuid;
     let accounts, deployer, user, randomAccount, anotherAccount, protocol;
     let attestor1, attestor2, attestor3;

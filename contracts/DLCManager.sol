@@ -13,7 +13,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./DLCLinkLibrary.sol";
-import "./DLCBTC.sol";
+import "./IBTC.sol";
 
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
@@ -33,7 +33,7 @@ contract DLCManager is
 {
     using DLCLink for DLCLink.DLC;
     using DLCLink for DLCLink.DLCStatus;
-    using SafeERC20 for DLCBTC;
+    using SafeERC20 for IBTC;
 
     ////////////////////////////////////////////////////////////////
     //                      STATE VARIABLES                       //
@@ -56,7 +56,7 @@ contract DLCManager is
     bytes32 public tssCommitment;
     string public attestorGroupPubKey;
 
-    DLCBTC public dlcBTC; // dlcBTC contract
+    IBTC public dlcBTC; // dlcBTC contract
     string public btcFeeRecipient; // BTC address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
@@ -135,7 +135,7 @@ contract DLCManager is
         address defaultAdmin,
         address dlcAdminRole,
         uint16 threshold,
-        DLCBTC tokenContract,
+        IBTC tokenContract,
         string memory btcFeeRecipientToSet
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, defaultAdmin);
