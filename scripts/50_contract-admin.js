@@ -519,6 +519,7 @@ module.exports = async function contractAdmin() {
             console.log(
                 chalk.bgYellow('Current ProxyAdmin owner:', currentAdminOwner)
             );
+            console.log('dlcAdminSafes.critical: ', dlcAdminSafes.critical);
             if (currentAdminOwner == dlcAdminSafes.critical) {
                 console.log(
                     chalk.bgRed(
@@ -549,10 +550,15 @@ module.exports = async function contractAdmin() {
                     await proxyAdmin.populateTransaction.transferOwnership(
                         newAdmin.value
                     );
+                console.log(
+                    'Proposing ownership transfer of ProxyAdmin to:',
+                    newAdmin.value
+                );
+                console.log('txRequest', txRequest);
                 await safeContractProposal(
                     txRequest,
                     deployer,
-                    currentAdminOwner
+                    dlcAdminSafes.critical
                 );
                 return;
             }
