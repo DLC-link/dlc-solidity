@@ -10,6 +10,7 @@ const {
     promptUser,
     loadContractAddress,
     getMinimumDelay,
+    getExpectedContractAddress,
 } = require('./helpers/utils');
 const {
     saveDeploymentInfo,
@@ -219,6 +220,7 @@ module.exports = async function contractAdmin() {
                         value: config.name,
                     })),
             });
+            await hardhat.run('clean');
             await hardhat.run('compile');
             const contractName = contractSelectPrompt.contracts;
             const proxyAddress = await loadContractAddress(
@@ -233,13 +235,14 @@ module.exports = async function contractAdmin() {
             const newImplementation =
                 await hardhat.ethers.getContractFactory(contractName);
 
-            if (proxyAdminOwner == deployer) {
+            if (proxyAdminOwner == deployer.address) {
                 // Deployer can perform the whole upgrade flow
                 console.log('deployer is ProxyAdmin owner, continuing...');
                 await hardhat.upgrades.upgradeProxy(
                     proxyAddress,
                     newImplementation,
                     {
+                        timeout: 240,
                         // @ts-ignore
                         txOverrides: {
                             maxFeePerGas: 1000000000,
@@ -266,6 +269,16 @@ module.exports = async function contractAdmin() {
                     console.error(error);
                 }
             } else {
+                console.log('New implementation:', newImplementation);
+                console.log(
+                    'Expected contract address: ',
+                    await getExpectedContractAddress(deployer)
+                );
+                if (
+                    (await promptUser('Are you sure you want to continue?')) ===
+                    false
+                )
+                    return;
                 // We need to propose the upgrade through the SAFE & timelock
                 const newImplementationAddress =
                     await hardhat.upgrades.prepareUpgrade(
@@ -500,14 +513,14 @@ module.exports = async function contractAdmin() {
             break;
         }
         case 'transfer-proxyadmin': {
-            const currentAdmin = await (
-                await hardhat.upgrades.admin.getInstance()
-            ).functions['owner()']();
+            const proxyAdmin = await hardhat.upgrades.admin.getInstance();
+            const currentAdminOwner = await proxyAdmin.functions['owner()']();
 
             console.log(
-                chalk.bgYellow('Current ProxyAdmin owner:', currentAdmin)
+                chalk.bgYellow('Current ProxyAdmin owner:', currentAdminOwner)
             );
-            if (currentAdmin == dlcAdminSafes.critical) {
+            console.log('dlcAdminSafes.critical: ', dlcAdminSafes.critical);
+            if (currentAdminOwner == dlcAdminSafes.critical) {
                 console.log(
                     chalk.bgRed(
                         'Current ProxyAdmin owner is the Critical Multisig Already!'
@@ -523,9 +536,33 @@ module.exports = async function contractAdmin() {
             const newAdmin = await prompts({
                 type: 'text',
                 name: 'value',
-                message: 'Enter new ProxyAdmin address',
+                message:
+                    'Enter new ProxyAdmin address or use default TimelockController address',
+                initial: await loadContractAddress(
+                    'TimelockController',
+                    network
+                ),
             });
             if (!newAdmin.value) return;
+
+            if (currentAdminOwner != deployer.address) {
+                const txRequest =
+                    await proxyAdmin.populateTransaction.transferOwnership(
+                        newAdmin.value
+                    );
+                console.log(
+                    'Proposing ownership transfer of ProxyAdmin to:',
+                    newAdmin.value
+                );
+                console.log('txRequest', txRequest);
+                await safeContractProposal(
+                    txRequest,
+                    deployer,
+                    dlcAdminSafes.critical
+                );
+                return;
+            }
+
             console.log('Transferring ownership of ProxyAdmin...');
             await hardhat.upgrades.admin.transferProxyAdminOwnership(
                 newAdmin.value
