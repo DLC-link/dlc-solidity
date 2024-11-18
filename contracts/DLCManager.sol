@@ -69,7 +69,8 @@ contract DLCManager is
     bool public porEnabled;
     AggregatorV3Interface public dlcBTCPoRFeed;
     mapping(address => mapping(bytes32 => bool)) private _seenSigners;
-    uint256[39] __gap;
+    uint256 private _totalValueMinted;
+    uint256[38] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -154,6 +155,20 @@ contract DLCManager is
         btcRedeemFeeRate = 15; // 0.15% BTC fee for now
         btcFeeRecipient = btcFeeRecipientToSet;
         porEnabled = false;
+        _totalValueMinted = 0;
+    }
+
+    /**
+     * @notice Initialize total minted value tracking
+     */
+    function initializeV2() public reinitializer(2) {
+        // Calculate initial total by iterating through existing vaults
+        uint256 total = 0;
+        for (uint256 i = 0; i < _index; i++) {
+            total += dlcs[i].valueMinted;
+        }
+
+        _totalValueMinted = total;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -400,9 +415,6 @@ contract DLCManager is
             revert DepositTooSmall(amountToLockDiff, minimumDeposit);
         }
 
-        // We fetch the current total minted value in all vaults before we update this Vault
-        uint256 currentTotalMinted = getTotalValueMintedInVaults();
-
         dlc.fundingTxId = btcTxId;
         dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
@@ -410,7 +422,8 @@ contract DLCManager is
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted = newValueLocked;
 
-        if (_checkMint(amountToMint, currentTotalMinted)) {
+        if (_checkMint(amountToMint, _totalValueMinted)) {
+            _totalValueMinted = _totalValueMinted + amountToMint;
             _mintTokens(dlc.creator, amountToMint);
         }
 
@@ -489,6 +502,7 @@ contract DLCManager is
         }
 
         dlc.valueMinted -= amount;
+        _totalValueMinted -= amount;
         _burnTokens(dlc.creator, amount);
         emit Withdraw(uuid, amount, msg.sender);
     }
@@ -556,11 +570,7 @@ contract DLCManager is
     }
 
     function getTotalValueMintedInVaults() public view returns (uint256) {
-        uint256 totalValueMinted = 0;
-        for (uint256 i = 0; i < _index; i++) {
-            totalValueMinted += dlcs[i].valueMinted;
-        }
-        return totalValueMinted;
+        return _totalValueMinted;
     }
 
     function isWhitelisted(address account) external view returns (bool) {
@@ -724,5 +734,14 @@ contract DLCManager is
     function setDlcBTCPoRFeed(AggregatorV3Interface feed) external onlyAdmin {
         dlcBTCPoRFeed = feed;
         emit SetDlcBTCPoRFeed(feed);
+    }
+
+    function verifyTotalValueMinted() external view onlyAdmin returns (bool) {
+        uint256 calculatedTotal = 0;
+        for (uint256 i = 0; i < _index; i++) {
+            calculatedTotal += dlcs[i].valueMinted;
+        }
+
+        return calculatedTotal == _totalValueMinted;
     }
 }
