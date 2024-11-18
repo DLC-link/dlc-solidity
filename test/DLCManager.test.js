@@ -847,6 +847,17 @@ describe('DLCManager', () => {
                 await dlcManager.getTotalValueMintedInVaults();
             expect(totalValueMinted).to.equal(valueLocked * 2);
         });
+
+        it('returns correct value after a withdrawal', async () => {
+            const tx = await dlcManager
+                .connect(user)
+                .withdraw(uuid, valueLocked);
+            await tx.wait();
+
+            const totalValueMinted =
+                await dlcManager.getTotalValueMintedInVaults();
+            expect(totalValueMinted).to.equal(0);
+        });
     });
 
     describe('Proof of Reserves', async () => {
