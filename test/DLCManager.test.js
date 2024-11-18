@@ -734,7 +734,7 @@ describe('DLCManager', () => {
         });
     });
 
-    describe('getTotalValueMintedInVaults', async () => {
+    describe('totalValueMinted', async () => {
         beforeEach(async () => {
             await whitelistAddress(dlcManager, user);
 
@@ -788,8 +788,7 @@ describe('DLCManager', () => {
         });
 
         it('returns the correct value for 1 vault', async () => {
-            const totalValueMinted =
-                await dlcManager.getTotalValueMintedInVaults();
+            const totalValueMinted = await dlcManager.totalValueMinted();
             expect(totalValueMinted).to.equal(valueLocked);
         });
 
@@ -843,9 +842,18 @@ describe('DLCManager', () => {
                 );
             await tx3.wait();
 
-            const totalValueMinted =
-                await dlcManager.getTotalValueMintedInVaults();
+            const totalValueMinted = await dlcManager.totalValueMinted();
             expect(totalValueMinted).to.equal(valueLocked * 2);
+        });
+
+        it('returns correct value after a withdrawal', async () => {
+            const tx = await dlcManager
+                .connect(user)
+                .withdraw(uuid, valueLocked);
+            await tx.wait();
+
+            const totalValueMinted = await dlcManager.totalValueMinted();
+            expect(totalValueMinted).to.equal(0);
         });
     });
 
