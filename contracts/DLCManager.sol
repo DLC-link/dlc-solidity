@@ -56,7 +56,7 @@ contract DLCManager is
     bytes32 public tssCommitment;
     string public attestorGroupPubKey;
 
-    IBTC public dlcBTC; // dlcBTC contract
+    IBTC public dlcBTC; // iBTC contract
     string public btcFeeRecipient; // BTC address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
