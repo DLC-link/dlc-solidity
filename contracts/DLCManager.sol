@@ -735,13 +735,4 @@ contract DLCManager is
         dlcBTCPoRFeed = feed;
         emit SetDlcBTCPoRFeed(feed);
     }
-
-    function verifyTotalValueMinted() external view onlyAdmin returns (bool) {
-        uint256 calculatedTotal = 0;
-        for (uint256 i = 0; i < _index; i++) {
-            calculatedTotal += dlcs[i].valueMinted;
-        }
-
-        return calculatedTotal == _totalValueMinted;
-    }
 }
