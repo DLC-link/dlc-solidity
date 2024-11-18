@@ -424,6 +424,20 @@ module.exports = async function contractAdmin() {
             );
             console.log('DeploymentInfo updated.');
 
+            if (contractName == 'IBTC') {
+                if (
+                    (await promptUser(
+                        'Do you want to call reinitializeEIP712 on iBTC?'
+                    )) === false
+                )
+                    return;
+                const iBTC = await hardhat.ethers.getContractAt(
+                    'IBTC',
+                    contractDeployInfo.contract.address
+                );
+                await iBTC.reinitializeEIP712();
+            }
+
             break;
         }
         // NOTE: TODO: This will be useful for one time, while we transfer from the old TokenManager
