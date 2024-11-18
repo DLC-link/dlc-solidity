@@ -10,8 +10,8 @@ const mockBTCTxId =
 const mockTaprootPubkey =
     '0x1234567890123456789012345678901234567890123456789012345678901234';
 
-xdescribe('DLCBTC', function () {
-    let dlcBtc, dlcManager;
+describe('iBTC', function () {
+    let iBTC, dlcManager;
     let accounts, deployer, user, someRandomAccount;
     let attestor1, attestor2, attestor3;
     let attestors;
@@ -30,9 +30,9 @@ xdescribe('DLCBTC', function () {
         attestor3 = accounts[8];
         attestors = [attestor1, attestor2, attestor3];
 
-        const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
-        dlcBtc = await upgrades.deployProxy(DLCBTC);
-        await dlcBtc.deployed();
+        const IBTC = await ethers.getContractFactory('IBTC', deployer);
+        iBTC = await upgrades.deployProxy(IBTC);
+        await iBTC.deployed();
 
         // DLCManager
         const DLCManager = await ethers.getContractFactory('DLCManager');
@@ -40,79 +40,79 @@ xdescribe('DLCBTC', function () {
             deployer.address,
             deployer.address,
             3,
-            dlcBtc.address,
+            iBTC.address,
             btcFeeRecipient,
         ]);
         await dlcManager.deployed();
     });
 
     it('should deploy', async () => {
-        expect(dlcBtc.address).to.not.equal(0);
+        expect(iBTC.address).to.not.equal(0);
     });
 
     it('should be owned by deployer at start', async () => {
-        expect(await dlcBtc.owner()).to.equal(deployer.address);
+        expect(await iBTC.owner()).to.equal(deployer.address);
     });
 
     it('should have 8 decimals', async () => {
-        expect(await dlcBtc.decimals()).to.equal(8);
+        expect(await iBTC.decimals()).to.equal(8);
     });
 
     it('should have 0 total supply', async () => {
-        expect(await dlcBtc.totalSupply()).to.equal(0);
+        expect(await iBTC.totalSupply()).to.equal(0);
     });
 
     it('should revert on unauthorized mint', async () => {
         await expect(
-            dlcBtc.connect(user)['mint(address,uint256)'](user.address, deposit)
-        ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
+            iBTC.connect(user)['mint(address,uint256)'](user.address, deposit)
+        ).to.be.revertedWithCustomError(iBTC, 'NotAuthorized');
     });
 
     it('should revert on unauthorized burn', async () => {
         await expect(
-            dlcBtc.connect(user)['burn(address,uint256)'](user.address, deposit)
+            iBTC.connect(user)['burn(address,uint256)'](user.address, deposit)
         ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('owner can mint tokens', async () => {
-        await dlcBtc['mint(address,uint256)'](user.address, deposit);
-        expect(await dlcBtc.balanceOf(user.address)).to.equal(deposit);
+        await iBTC['mint(address,uint256)'](user.address, deposit);
+        expect(await iBTC.balanceOf(user.address)).to.equal(deposit);
     });
 
     it('owner can burn tokens', async () => {
-        await dlcBtc['mint(address,uint256)'](user.address, deposit);
-        await dlcBtc['burn(address,uint256)'](user.address, deposit);
-        expect(await dlcBtc.balanceOf(user.address)).to.equal(0);
+        await iBTC['mint(address,uint256)'](user.address, deposit);
+        await iBTC['burn(address,uint256)'](user.address, deposit);
+        expect(await iBTC.balanceOf(user.address)).to.equal(0);
     });
 
     describe('after Ownership transfer', async () => {
         beforeEach(async () => {
-            await dlcBtc['mint(address,uint256)'](user.address, deposit);
-            await dlcBtc.transferOwnership(dlcManager.address);
+            await iBTC['mint(address,uint256)'](user.address, deposit);
+            await iBTC.transferOwnership(dlcManager.address);
         });
 
         it('should be owned by dlcManager', async () => {
-            expect(await dlcBtc.owner()).to.equal(dlcManager.address);
+            expect(await iBTC.owner()).to.equal(dlcManager.address);
         });
 
         it('should revert on mint called by previous owner', async () => {
             await expect(
-                dlcBtc
+                iBTC
                     .connect(deployer)
                     ['mint(address,uint256)'](user.address, deposit)
-            ).to.be.revertedWithCustomError(dlcBtc, 'NotAuthorized');
+            ).to.be.revertedWithCustomError(iBTC, 'NotAuthorized');
         });
 
         it('should revert on burn called by previous owner', async () => {
             await expect(
-                dlcBtc
+                iBTC
                     .connect(deployer)
                     ['burn(address,uint256)'](user.address, deposit)
             ).to.be.revertedWith('Ownable: caller is not the owner');
         });
 
         it('dlcManager can mint tokens', async () => {
-            const existingBalance = await dlcBtc.balanceOf(user.address);
+            const existingBalance = await iBTC.balanceOf(user.address);
             await dlcManager.connect(deployer).whitelistAddress(user.address);
             const tx = await dlcManager.connect(user).setupVault();
             const receipt = await tx.wait();
@@ -161,13 +161,13 @@ xdescribe('DLCBTC', function () {
             const expectedBalance = ethers.BigNumber.from(existingBalance).add(
                 ethers.BigNumber.from(deposit)
             );
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+            expect(await iBTC.balanceOf(user.address)).to.equal(
                 expectedBalance
             );
         });
 
         it('dlcManager can burn tokens', async () => {
-            const existingBalance = await dlcBtc.balanceOf(user.address);
+            const existingBalance = await iBTC.balanceOf(user.address);
             await dlcManager.connect(deployer).whitelistAddress(user.address);
             const tx = await dlcManager.connect(user).setupVault();
             const receipt = await tx.wait();
@@ -213,7 +213,7 @@ xdescribe('DLCBTC', function () {
                     deposit
                 );
             await tx3.wait();
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+            expect(await iBTC.balanceOf(user.address)).to.equal(
                 ethers.BigNumber.from(existingBalance).add(
                     ethers.BigNumber.from(deposit)
                 )
@@ -223,7 +223,7 @@ xdescribe('DLCBTC', function () {
                 .withdraw(mockUUID, deposit);
             await tx4.wait();
 
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+            expect(await iBTC.balanceOf(user.address)).to.equal(
                 existingBalance
             );
         });

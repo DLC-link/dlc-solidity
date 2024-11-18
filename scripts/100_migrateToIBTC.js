@@ -122,7 +122,7 @@ const main = async () => {
         );
         await saveDeploymentInfo(
             deploymentInfoToSave,
-            `deploymentFiles/${network}/${'IBTC'}.proposed.json`
+            `deploymentFiles/${network}/IBTC.proposed.json`
         );
     }
 };
