@@ -69,7 +69,7 @@ contract DLCManager is
     bool public porEnabled;
     AggregatorV3Interface public dlcBTCPoRFeed;
     mapping(address => mapping(bytes32 => bool)) private _seenSigners;
-    uint256 private _totalValueMinted;
+    uint256 public totalValueMinted;
     uint256[38] __gap;
 
     ////////////////////////////////////////////////////////////////
@@ -155,7 +155,7 @@ contract DLCManager is
         btcRedeemFeeRate = 15; // 0.15% BTC fee for now
         btcFeeRecipient = btcFeeRecipientToSet;
         porEnabled = false;
-        _totalValueMinted = 0;
+        totalValueMinted = 0;
     }
 
     /**
@@ -168,7 +168,7 @@ contract DLCManager is
             total += dlcs[i].valueMinted;
         }
 
-        _totalValueMinted = total;
+        totalValueMinted = total;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -422,8 +422,8 @@ contract DLCManager is
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted = newValueLocked;
 
-        if (_checkMint(amountToMint, _totalValueMinted)) {
-            _totalValueMinted = _totalValueMinted + amountToMint;
+        if (_checkMint(amountToMint, totalValueMinted)) {
+            totalValueMinted = totalValueMinted + amountToMint;
             _mintTokens(dlc.creator, amountToMint);
         }
 
@@ -502,7 +502,7 @@ contract DLCManager is
         }
 
         dlc.valueMinted -= amount;
-        _totalValueMinted -= amount;
+        totalValueMinted -= amount;
         _burnTokens(dlc.creator, amount);
         emit Withdraw(uuid, amount, msg.sender);
     }
@@ -567,10 +567,6 @@ contract DLCManager is
             vaults[i] = getVault(uuids[i]);
         }
         return vaults;
-    }
-
-    function getTotalValueMintedInVaults() public view returns (uint256) {
-        return _totalValueMinted;
     }
 
     function isWhitelisted(address account) external view returns (bool) {
