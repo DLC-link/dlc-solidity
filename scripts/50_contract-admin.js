@@ -549,19 +549,29 @@ module.exports = async function contractAdmin() {
             const newAdmin = await prompts({
                 type: 'text',
                 name: 'value',
-                message: 'Enter new ProxyAdmin address',
+                message:
+                    'Enter new ProxyAdmin address or use default TimelockController address',
+                initial: await loadContractAddress(
+                    'TimelockController',
+                    network
+                ),
             });
             if (!newAdmin.value) return;
 
             if (currentAdminOwner != deployer.address) {
                 const txRequest =
-                    await proxyAdmin.populateTransaction.transferProxyAdminOwnership(
+                    await proxyAdmin.populateTransaction.transferOwnership(
                         newAdmin.value
                     );
+                console.log(
+                    'Proposing ownership transfer of ProxyAdmin to:',
+                    newAdmin.value
+                );
+                console.log('txRequest', txRequest);
                 await safeContractProposal(
                     txRequest,
                     deployer,
-                    currentAdminOwner
+                    dlcAdminSafes.critical
                 );
                 return;
             }
