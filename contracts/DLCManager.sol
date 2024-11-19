@@ -13,14 +13,14 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./DLCLinkLibrary.sol";
-import "./DLCBTC.sol";
+import "./IBTC.sol";
 
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 /**
  * @author  DLC.Link 2024
  * @title   DLCManager
- * @dev     This is the contract the Attestor Layer listens to.
+ * @dev     This is the contract the Attestor Layer listens and writes to
  * @dev     It is upgradable through the OpenZeppelin proxy pattern
  * @notice  DLCManager is the main contract of the DLC.Link protocol.
  * @custom:contact eng@dlc.link
@@ -33,7 +33,7 @@ contract DLCManager is
 {
     using DLCLink for DLCLink.DLC;
     using DLCLink for DLCLink.DLCStatus;
-    using SafeERC20 for DLCBTC;
+    using SafeERC20 for IBTC;
 
     ////////////////////////////////////////////////////////////////
     //                      STATE VARIABLES                       //
@@ -56,7 +56,9 @@ contract DLCManager is
     bytes32 public tssCommitment;
     string public attestorGroupPubKey;
 
-    DLCBTC public dlcBTC; // dlcBTC contract
+    // iBTC was historically called dlcBTC.
+    // Due the nature of upgradability, we have to keep the old name.
+    IBTC public dlcBTC; // iBTC contract.
     string public btcFeeRecipient; // BTC address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
@@ -69,7 +71,8 @@ contract DLCManager is
     bool public porEnabled;
     AggregatorV3Interface public dlcBTCPoRFeed;
     mapping(address => mapping(bytes32 => bool)) private _seenSigners;
-    uint256[39] __gap;
+    uint256 public totalValueMinted;
+    uint256[38] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -135,7 +138,7 @@ contract DLCManager is
         address defaultAdmin,
         address dlcAdminRole,
         uint16 threshold,
-        DLCBTC tokenContract,
+        IBTC tokenContract,
         string memory btcFeeRecipientToSet
     ) public initializer {
         __AccessControlDefaultAdminRules_init(2 days, defaultAdmin);
@@ -154,6 +157,21 @@ contract DLCManager is
         btcRedeemFeeRate = 15; // 0.15% BTC fee for now
         btcFeeRecipient = btcFeeRecipientToSet;
         porEnabled = false;
+        totalValueMinted = 0;
+    }
+
+    /**
+     * @notice Initialize total minted value tracking
+     * @dev    This function is called once after the contract is upgraded with totalValueMinted tracking
+     */
+    function initializeV2() public reinitializer(2) {
+        // Calculate initial total by iterating through existing vaults
+        uint256 total = 0;
+        for (uint256 i = 0; i < _index; i++) {
+            total += dlcs[i].valueMinted;
+        }
+
+        totalValueMinted = total;
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -400,9 +418,6 @@ contract DLCManager is
             revert DepositTooSmall(amountToLockDiff, minimumDeposit);
         }
 
-        // We fetch the current total minted value in all vaults before we update this Vault
-        uint256 currentTotalMinted = getTotalValueMintedInVaults();
-
         dlc.fundingTxId = btcTxId;
         dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
@@ -410,7 +425,8 @@ contract DLCManager is
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted = newValueLocked;
 
-        if (_checkMint(amountToMint, currentTotalMinted)) {
+        if (_checkMint(amountToMint, totalValueMinted)) {
+            totalValueMinted = totalValueMinted + amountToMint;
             _mintTokens(dlc.creator, amountToMint);
         }
 
@@ -489,6 +505,7 @@ contract DLCManager is
         }
 
         dlc.valueMinted -= amount;
+        totalValueMinted -= amount;
         _burnTokens(dlc.creator, amount);
         emit Withdraw(uuid, amount, msg.sender);
     }
@@ -553,14 +570,6 @@ contract DLCManager is
             vaults[i] = getVault(uuids[i]);
         }
         return vaults;
-    }
-
-    function getTotalValueMintedInVaults() public view returns (uint256) {
-        uint256 totalValueMinted = 0;
-        for (uint256 i = 0; i < _index; i++) {
-            totalValueMinted += dlcs[i].valueMinted;
-        }
-        return totalValueMinted;
     }
 
     function isWhitelisted(address account) external view returns (bool) {

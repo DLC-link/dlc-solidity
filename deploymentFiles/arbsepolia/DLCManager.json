@@ -1,7 +1,7 @@
 {
   "network": "arbsepolia",
-  "updatedAt": "2024-10-17T11:35:45.772Z",
-  "gitSHA": "9e318a1",
+  "updatedAt": "2024-11-19T11:14:52.743Z",
+  "gitSHA": "1d405d1",
   "contract": {
     "name": "DLCManager",
     "address": "0xe29d3648a1256F015D7A60F9aAC690187e156740",
@@ -92,11 +92,11 @@
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
       "function getSignerCount() view returns (uint16)",
       "function getThreshold() view returns (uint16)",
-      "function getTotalValueMintedInVaults() view returns (uint256)",
       "function getVault(bytes32 uuid) view returns (tuple(bytes32 uuid, address protocolContract, uint256 timestamp, uint256 valueLocked, address creator, uint8 status, string fundingTxId, string closingTxId, string btcFeeRecipient, uint256 btcMintFeeBasisPoints, uint256 btcRedeemFeeBasisPoints, string taprootPubKey, uint256 valueMinted, string wdTxId))",
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",
       "function initialize(address defaultAdmin, address dlcAdminRole, uint16 threshold, address tokenContract, string btcFeeRecipientToSet)",
+      "function initializeV2()",
       "function isWhitelisted(address account) view returns (bool)",
       "function maximumDeposit() view returns (uint256)",
       "function minimumDeposit() view returns (uint256)",
@@ -127,6 +127,7 @@
       "function setWhitelistingEnabled(bool isWhitelistingEnabled)",
       "function setupVault() returns (bytes32)",
       "function supportsInterface(bytes4 interfaceId) view returns (bool)",
+      "function totalValueMinted() view returns (uint256)",
       "function transferTokenContractOwnership(address newOwner)",
       "function tssCommitment() view returns (bytes32)",
       "function unpauseContract()",
@@ -136,5 +137,6 @@
       "function whitelistingEnabled() view returns (bool)",
       "function withdraw(bytes32 uuid, uint256 amount)"
     ]
-  }
+  },
+  "upgradeData": ""
 }

@@ -4,7 +4,11 @@ const {
     saveDeploymentInfo,
     deploymentInfo,
 } = require('./helpers/deployment-handlers_versioned');
-const { promptUser, loadContractAddress } = require('./helpers/utils');
+const {
+    promptUser,
+    loadContractAddress,
+    getMinimumDelay,
+} = require('./helpers/utils');
 
 // This is a pure function that just logs
 async function beforeDeployment(contractName, constructorArguments, network) {
@@ -37,32 +41,77 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
     const btcFeeRecipient =
         _btcFeeRecipient ?? '0014e60f61fa2f2941217934d5f9976bf27381b3b036';
     const threshold = 2;
+    const minimumDelay = getMinimumDelay(networkName);
+    const proposers = [dlcAdminSafes.critical];
+    const executors = [dlcAdminSafes.critical, deployer.address];
+    const timelockConstructorArgs = [
+        minimumDelay,
+        proposers,
+        executors,
+        hardhat.ethers.constants.AddressZero, // no admin
+    ];
 
     return [
         {
-            name: 'DLCBTC',
+            name: 'IBTC',
             deployer: deployer.address,
             upgradeable: true,
             requirements: [],
             deploy: async (requirementAddresses) => {
-                await beforeDeployment('DLCBTC', '', networkName);
+                await beforeDeployment('IBTC', '', networkName);
 
-                const DLCBTC =
-                    await hardhat.ethers.getContractFactory('DLCBTC');
-                const dlcBtc = await hardhat.upgrades.deployProxy(DLCBTC);
-                await dlcBtc.deployed();
+                const IBTC = await hardhat.ethers.getContractFactory('IBTC');
+                const iBTC = await hardhat.upgrades.deployProxy(IBTC);
+                await iBTC.deployed();
 
-                await afterDeployment('DLCBTC', dlcBtc, networkName);
+                await afterDeployment('IBTC', iBTC, networkName);
 
-                return dlcBtc.address;
+                return iBTC.address;
+            },
+            verify: async () => {
+                const address = await loadContractAddress('IBTC', networkName);
+                await hardhat.run('verify:verify', {
+                    address: address,
+                });
+            },
+        },
+        {
+            name: 'TimelockController',
+            deployer: deployer.address,
+            upgradeable: false,
+            requirements: [],
+            deploy: async (requirementAddresses) => {
+                await beforeDeployment(
+                    'TimelockController',
+                    timelockConstructorArgs,
+                    networkName
+                );
+
+                const TimelockController =
+                    await hardhat.ethers.getContractFactory(
+                        'TimelockController'
+                    );
+                const timelockController = await TimelockController.deploy(
+                    ...timelockConstructorArgs
+                );
+                await timelockController.deployed();
+
+                await afterDeployment(
+                    'TimelockController',
+                    timelockController,
+                    networkName
+                );
+
+                return timelockController.address;
             },
             verify: async () => {
                 const address = await loadContractAddress(
-                    'DLCBTC',
+                    'TimelockController',
                     networkName
                 );
                 await hardhat.run('verify:verify', {
                     address: address,
+                    constructorArguments: timelockConstructorArgs,
                 });
             },
         },
@@ -70,21 +119,20 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
             name: 'DLCManager',
             deployer: deployer.address,
             upgradeable: true,
-            requirements: ['DLCBTC'],
+            requirements: ['IBTC'],
             deploy: async (requirementAddresses) => {
                 // const defaultAdmin = deployer.address;
                 // const dlcAdmin = deployer.address;
                 const defaultAdmin = dlcAdminSafes.critical;
                 const dlcAdmin = dlcAdminSafes.medium;
-                const DLCBTCAddress = requirementAddresses['DLCBTC'];
-                if (!DLCBTCAddress)
-                    throw new Error('DLCBTC deployment not found.');
+                const IBTCAddress = requirementAddresses['IBTC'];
+                if (!IBTCAddress) throw new Error('IBTC deployment not found.');
                 await beforeDeployment(
                     'DLCManager',
                     `defaultAdmin: ${defaultAdmin}, \
                     dlcAdminRole: ${dlcAdmin}, \
                     threshold: ${threshold}, \
-                    tokenContract: ${DLCBTCAddress}, \
+                    tokenContract: ${IBTCAddress}, \
                     btcFeeRecipient: ${btcFeeRecipient}`,
                     networkName
                 );
@@ -96,7 +144,7 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                         defaultAdmin,
                         dlcAdmin,
                         threshold,
-                        DLCBTCAddress,
+                        IBTCAddress,
                         btcFeeRecipient,
                     ]
                 );
@@ -104,29 +152,29 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
 
                 await afterDeployment('DLCManager', dlcManager, networkName);
 
-                const dlcBtc = await hardhat.ethers.getContractAt(
-                    'DLCBTC',
-                    DLCBTCAddress
+                const iBTC = await hardhat.ethers.getContractAt(
+                    'IBTC',
+                    IBTCAddress
                 );
-                const currentOwner = await dlcBtc.owner();
+                const currentOwner = await iBTC.owner();
                 console.log(
-                    chalk.bgYellow('Current DLCBTC owner:', currentOwner)
+                    chalk.bgYellow('Current IBTC owner:', currentOwner)
                 );
 
                 if (currentOwner === dlcManager.address) {
                     console.log(
-                        'DLCBTC is already owned by DLCManager, skipping transfer...'
+                        'IBTC is already owned by DLCManager, skipping transfer...'
                     );
                 } else {
                     const shouldTransferOwnership = await promptUser(
-                        `Would you like to transfer ownership of DLCBTC contract to ${dlcManager.address}?`
+                        `Would you like to transfer ownership of IBTC contract to ${dlcManager.address}?`
                     );
                     if (shouldTransferOwnership) {
                         if (currentOwner === deployer.address) {
                             console.log(
-                                'DLCBTC is owned by deployer, transferring ownership...'
+                                'IBTC is owned by deployer, transferring ownership...'
                             );
-                            const tx = await dlcBtc
+                            const tx = await iBTC
                                 .connect(deployer)
                                 .transferOwnership(dlcManager.address);
                             await tx.wait();
@@ -145,8 +193,8 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                             console.log(receipt);
                         }
 
-                        const newOwner = await dlcBtc.owner();
-                        console.log('New DLCBTC Owner:', newOwner);
+                        const newOwner = await iBTC.owner();
+                        console.log('New IBTC Owner:', newOwner);
                     }
                 }
 
@@ -154,7 +202,7 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
             },
             verify: async () => {
                 const address = await loadContractAddress(
-                    'DlcManager',
+                    'DLCManager',
                     networkName
                 );
                 await hardhat.run('verify:verify', {
