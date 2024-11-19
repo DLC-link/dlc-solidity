@@ -20,7 +20,7 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.so
 /**
  * @author  DLC.Link 2024
  * @title   DLCManager
- * @dev     This is the contract the Attestor Layer listens to.
+ * @dev     This is the contract the Attestor Layer listens and writes to
  * @dev     It is upgradable through the OpenZeppelin proxy pattern
  * @notice  DLCManager is the main contract of the DLC.Link protocol.
  * @custom:contact eng@dlc.link
@@ -56,7 +56,9 @@ contract DLCManager is
     bytes32 public tssCommitment;
     string public attestorGroupPubKey;
 
-    IBTC public dlcBTC; // iBTC contract
+    // iBTC was historically called dlcBTC.
+    // Due the nature of upgradability, we have to keep the old name.
+    IBTC public dlcBTC; // iBTC contract.
     string public btcFeeRecipient; // BTC address to send fees to
     uint256 public minimumDeposit; // in sats
     uint256 public maximumDeposit; // in sats
@@ -160,6 +162,7 @@ contract DLCManager is
 
     /**
      * @notice Initialize total minted value tracking
+     * @dev    This function is called once after the contract is upgraded with totalValueMinted tracking
      */
     function initializeV2() public reinitializer(2) {
         // Calculate initial total by iterating through existing vaults

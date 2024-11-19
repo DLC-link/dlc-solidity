@@ -16,8 +16,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
  * @author  DLC.Link 2024
  * @title   iBTC
  * @notice  The iBTC Token represents Bitcoin locked in self-custody by the DLC.Link protocol.
- * @dev     Owner is the DLCManager contract
- * @dev     Minter/Burner rights are given to CCIP token pools
+ * @dev     Owner is the DLCManager contract, which can mint/burn tokens
+ * @dev     Minter/Burner rights are also given to CCIP token pools
  * @custom:contact eng@dlc.link
  * @custom:website https://www.dlc.link
  */
@@ -48,8 +48,12 @@ contract IBTC is
         __ERC20Permit_init("iBTC");
     }
 
+    /**
+     * @notice Reinitializes the EIP712 domain separator
+     * @dev This function is used to reinitialize the EIP712 domain separator after a change in the name
+     * @dev Name changed from "dlcBTC" to "iBTC"
+     */
     function reinitializeEIP712() public reinitializer(2) {
-        // Reinitialize EIP712 with new name
         __EIP712_init_unchained("iBTC", "1");
     }
 
