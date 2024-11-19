@@ -242,7 +242,7 @@ module.exports = async function contractAdmin() {
                     proxyAddress,
                     newImplementation,
                     {
-                        timeout: 2000,
+                        timeout: 10000,
                         // @ts-ignore
                         txOverrides: {
                             maxFeePerGas: 1000000000,
@@ -295,7 +295,7 @@ module.exports = async function contractAdmin() {
                     await hardhat.upgrades.prepareUpgrade(
                         proxyAddress,
                         newImplementation,
-                        { timeout: 240 }
+                        { timeout: 10000 }
                     );
                 console.log(
                     'New implementation address',
