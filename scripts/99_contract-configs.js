@@ -202,7 +202,7 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
             },
             verify: async () => {
                 const address = await loadContractAddress(
-                    'DlcManager',
+                    'DLCManager',
                     networkName
                 );
                 await hardhat.run('verify:verify', {

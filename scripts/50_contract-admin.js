@@ -242,7 +242,7 @@ module.exports = async function contractAdmin() {
                     proxyAddress,
                     newImplementation,
                     {
-                        timeout: 240,
+                        timeout: 2000,
                         // @ts-ignore
                         txOverrides: {
                             maxFeePerGas: 1000000000,
@@ -265,6 +265,17 @@ module.exports = async function contractAdmin() {
                     );
                     // @ts-ignore
                     await contractConfig.verify();
+
+                    if (contractName == 'DLCManager') {
+                        if (
+                            (await promptUser(
+                                'Do you want to call initializeV2()?'
+                            )) === false
+                        )
+                            return;
+
+                        await contractObject.initializeV2();
+                    }
                 } catch (error) {
                     console.error(error);
                 }
@@ -436,6 +447,18 @@ module.exports = async function contractAdmin() {
                     contractDeployInfo.contract.address
                 );
                 await iBTC.reinitializeEIP712();
+            } else if (contractName == 'DLCManager') {
+                if (
+                    (await promptUser(
+                        'Do you want to call initializeV2()?'
+                    )) === false
+                )
+                    return;
+                const dlcManager = await hardhat.ethers.getContractAt(
+                    'DLCManager',
+                    contractDeployInfo.contract.address
+                );
+                await dlcManager.initializeV2();
             }
 
             break;
