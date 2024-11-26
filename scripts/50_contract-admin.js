@@ -410,7 +410,15 @@ module.exports = async function contractAdmin() {
                 timeLockContractDeployInfo.contract.abi,
                 deployer
             );
+
             const proxyAdmin = await hardhat.upgrades.admin.getInstance();
+            const proxyAdminOwner = await proxyAdmin.owner();
+            console.log('ProxyAdmin owner:', proxyAdminOwner);
+            console.log(
+                await hardhat.upgrades.erc1967.getAdminAddress(
+                    contractDeployInfo.contract.address
+                )
+            );
             const tlRequestParams = [
                 proxyAdmin.address,
                 0,

@@ -1,7 +1,7 @@
 {
   "network": "base",
-  "updatedAt": "2024-11-01T10:22:01.026Z",
-  "gitSHA": "8204612",
+  "updatedAt": "2024-11-19T11:33:32.180Z",
+  "gitSHA": "9e2ac6d",
   "contract": {
     "name": "DLCManager",
     "address": "0xE0d2c0979583Db7fD7E8779ADd83cA7Eb6BC7BD7",
@@ -92,11 +92,11 @@
       "function getRoleAdmin(bytes32 role) view returns (bytes32)",
       "function getSignerCount() view returns (uint16)",
       "function getThreshold() view returns (uint16)",
-      "function getTotalValueMintedInVaults() view returns (uint256)",
       "function getVault(bytes32 uuid) view returns (tuple(bytes32 uuid, address protocolContract, uint256 timestamp, uint256 valueLocked, address creator, uint8 status, string fundingTxId, string closingTxId, string btcFeeRecipient, uint256 btcMintFeeBasisPoints, uint256 btcRedeemFeeBasisPoints, string taprootPubKey, uint256 valueMinted, string wdTxId))",
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",
       "function initialize(address defaultAdmin, address dlcAdminRole, uint16 threshold, address tokenContract, string btcFeeRecipientToSet)",
+      "function initializeV2()",
       "function isWhitelisted(address account) view returns (bool)",
       "function maximumDeposit() view returns (uint256)",
       "function minimumDeposit() view returns (uint256)",
@@ -127,6 +127,7 @@
       "function setWhitelistingEnabled(bool isWhitelistingEnabled)",
       "function setupVault() returns (bytes32)",
       "function supportsInterface(bytes4 interfaceId) view returns (bool)",
+      "function totalValueMinted() view returns (uint256)",
       "function transferTokenContractOwnership(address newOwner)",
       "function tssCommitment() view returns (bytes32)",
       "function unpauseContract()",
@@ -137,5 +138,5 @@
       "function withdraw(bytes32 uuid, uint256 amount)"
     ]
   },
-  "upgradeData": "0x99a88ec4000000000000000000000000e0d2c0979583db7fd7e8779add83ca7eb6bc7bd700000000000000000000000007234079573a5c1e2c0b3f1da3bd5ad675b5a2a7"
+  "upgradeData": "0x99a88ec4000000000000000000000000e0d2c0979583db7fd7e8779add83ca7eb6bc7bd7000000000000000000000000b0ca9142648ec20e037caf43cae60117cc960ada"
 }
