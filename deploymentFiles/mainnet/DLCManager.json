@@ -1,7 +1,7 @@
 {
   "network": "mainnet",
-  "updatedAt": "2024-09-27T08:18:22.594Z",
-  "gitSHA": "9c2375d",
+  "updatedAt": "2024-11-19T11:48:41.141Z",
+  "gitSHA": "9e2ac6d",
   "contract": {
     "name": "DLCManager",
     "address": "0xDFC48b54BAF7068eA1e024626E5c9D09841da841",
@@ -27,6 +27,7 @@
       "error NoSignerRenouncement()",
       "error NotCreatorContract()",
       "error NotDLCAdmin()",
+      "error NotEnoughReserves(uint256 reserves, uint256 amount)",
       "error NotEnoughSignatures()",
       "error NotOwner()",
       "error NotWhitelisted()",
@@ -50,8 +51,10 @@
       "event SetBtcFeeRecipient(string btcFeeRecipient)",
       "event SetBtcMintFeeRate(uint256 newBtcMintFeeRate)",
       "event SetBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate)",
+      "event SetDlcBTCPoRFeed(address feed)",
       "event SetMaximumDeposit(uint256 newMaximumDeposit)",
       "event SetMinimumDeposit(uint256 newMinimumDeposit)",
+      "event SetPorEnabled(bool enabled)",
       "event SetStatusFunded(bytes32 uuid, string btcTxId, address creator, uint256 newValueLocked, uint256 amountToMint)",
       "event SetStatusPending(bytes32 uuid, string btcTxId, address creator, string taprootPubKey, uint256 newValueLocked)",
       "event SetThreshold(uint16 newThreshold)",
@@ -77,6 +80,7 @@
       "function defaultAdminDelay() view returns (uint48)",
       "function defaultAdminDelayIncreaseWait() view returns (uint48)",
       "function dlcBTC() view returns (address)",
+      "function dlcBTCPoRFeed() view returns (address)",
       "function dlcIDsByUUID(bytes32) view returns (uint256)",
       "function dlcs(uint256) view returns (bytes32 uuid, address protocolContract, uint256 timestamp, uint256 valueLocked, address creator, uint8 status, string fundingTxId, string closingTxId, string btcFeeRecipient, uint256 btcMintFeeBasisPoints, uint256 btcRedeemFeeBasisPoints, string taprootPubKey, uint256 valueMinted, string wdTxId)",
       "function getAllDLCs(uint256 startIndex, uint256 endIndex) view returns (tuple(bytes32 uuid, address protocolContract, uint256 timestamp, uint256 valueLocked, address creator, uint8 status, string fundingTxId, string closingTxId, string btcFeeRecipient, uint256 btcMintFeeBasisPoints, uint256 btcRedeemFeeBasisPoints, string taprootPubKey, uint256 valueMinted, string wdTxId)[])",
@@ -92,6 +96,7 @@
       "function grantRole(bytes32 role, address account)",
       "function hasRole(bytes32 role, address account) view returns (bool)",
       "function initialize(address defaultAdmin, address dlcAdminRole, uint16 threshold, address tokenContract, string btcFeeRecipientToSet)",
+      "function initializeV2()",
       "function isWhitelisted(address account) view returns (bool)",
       "function maximumDeposit() view returns (uint256)",
       "function minimumDeposit() view returns (uint256)",
@@ -100,6 +105,7 @@
       "function paused() view returns (bool)",
       "function pendingDefaultAdmin() view returns (address newAdmin, uint48 schedule)",
       "function pendingDefaultAdminDelay() view returns (uint48 newDelay, uint48 schedule)",
+      "function porEnabled() view returns (bool)",
       "function renounceRole(bytes32 role, address account)",
       "function revokeRole(bytes32 role, address account)",
       "function rollbackDefaultAdminDelay()",
@@ -109,9 +115,11 @@
       "function setBtcMintFeeRate(uint256 newBtcMintFeeRate)",
       "function setBtcRedeemFeeRate(uint256 newBtcRedeemFeeRate)",
       "function setBurnerOnTokenContract(address burner)",
+      "function setDlcBTCPoRFeed(address feed)",
       "function setMaximumDeposit(uint256 newMaximumDeposit)",
       "function setMinimumDeposit(uint256 newMinimumDeposit)",
       "function setMinterOnTokenContract(address minter)",
+      "function setPorEnabled(bool enabled)",
       "function setStatusFunded(bytes32 uuid, string btcTxId, bytes[] signatures, uint256 newValueLocked)",
       "function setStatusPending(bytes32 uuid, string wdTxId, bytes[] signatures, string taprootPubKey, uint256 newValueLocked)",
       "function setTSSCommitment(bytes32 commitment)",
@@ -119,6 +127,7 @@
       "function setWhitelistingEnabled(bool isWhitelistingEnabled)",
       "function setupVault() returns (bytes32)",
       "function supportsInterface(bytes4 interfaceId) view returns (bool)",
+      "function totalValueMinted() view returns (uint256)",
       "function transferTokenContractOwnership(address newOwner)",
       "function tssCommitment() view returns (bytes32)",
       "function unpauseContract()",
@@ -128,5 +137,6 @@
       "function whitelistingEnabled() view returns (bool)",
       "function withdraw(bytes32 uuid, uint256 amount)"
     ]
-  }
+  },
+  "upgradeData": "0x99a88ec4000000000000000000000000dfc48b54baf7068ea1e024626e5c9d09841da84100000000000000000000000024b0420c82f1333596ad7bf9d892f2ff70ca4a76"
 }
