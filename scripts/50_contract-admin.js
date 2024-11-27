@@ -242,7 +242,7 @@ module.exports = async function contractAdmin() {
                     proxyAddress,
                     newImplementation,
                     {
-                        timeout: 240,
+                        timeout: 10000,
                         // @ts-ignore
                         txOverrides: {
                             maxFeePerGas: 1000000000,
@@ -265,6 +265,17 @@ module.exports = async function contractAdmin() {
                     );
                     // @ts-ignore
                     await contractConfig.verify();
+
+                    if (contractName == 'DLCManager') {
+                        if (
+                            (await promptUser(
+                                'Do you want to call initializeV2()?'
+                            )) === false
+                        )
+                            return;
+
+                        await contractObject.initializeV2();
+                    }
                 } catch (error) {
                     console.error(error);
                 }
@@ -284,7 +295,7 @@ module.exports = async function contractAdmin() {
                     await hardhat.upgrades.prepareUpgrade(
                         proxyAddress,
                         newImplementation,
-                        { timeout: 240 }
+                        { timeout: 10000 }
                     );
                 console.log(
                     'New implementation address',
@@ -399,7 +410,15 @@ module.exports = async function contractAdmin() {
                 timeLockContractDeployInfo.contract.abi,
                 deployer
             );
+
             const proxyAdmin = await hardhat.upgrades.admin.getInstance();
+            const proxyAdminOwner = await proxyAdmin.owner();
+            console.log('ProxyAdmin owner:', proxyAdminOwner);
+            console.log(
+                await hardhat.upgrades.erc1967.getAdminAddress(
+                    contractDeployInfo.contract.address
+                )
+            );
             const tlRequestParams = [
                 proxyAdmin.address,
                 0,
@@ -423,6 +442,32 @@ module.exports = async function contractAdmin() {
                 `deploymentFiles/${network}/${contractName}.${new Date().toISOString()}.json`
             );
             console.log('DeploymentInfo updated.');
+
+            if (contractName == 'IBTC') {
+                if (
+                    (await promptUser(
+                        'Do you want to call reinitializeEIP712 on iBTC?'
+                    )) === false
+                )
+                    return;
+                const iBTC = await hardhat.ethers.getContractAt(
+                    'IBTC',
+                    contractDeployInfo.contract.address
+                );
+                await iBTC.reinitializeEIP712();
+            } else if (contractName == 'DLCManager') {
+                if (
+                    (await promptUser(
+                        'Do you want to call initializeV2()?'
+                    )) === false
+                )
+                    return;
+                const dlcManager = await hardhat.ethers.getContractAt(
+                    'DLCManager',
+                    contractDeployInfo.contract.address
+                );
+                await dlcManager.initializeV2();
+            }
 
             break;
         }
@@ -519,7 +564,6 @@ module.exports = async function contractAdmin() {
             console.log(
                 chalk.bgYellow('Current ProxyAdmin owner:', currentAdminOwner)
             );
-            console.log('dlcAdminSafes.critical: ', dlcAdminSafes.critical);
             if (currentAdminOwner == dlcAdminSafes.critical) {
                 console.log(
                     chalk.bgRed(

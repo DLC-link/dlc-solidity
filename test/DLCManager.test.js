@@ -14,7 +14,7 @@ async function whitelistAddress(dlcManager, user) {
 }
 
 describe('DLCManager', () => {
-    let dlcManager, dlcBtc, uuid;
+    let dlcManager, iBTC, uuid;
     let accounts, deployer, user, randomAccount, anotherAccount, protocol;
     let attestor1, attestor2, attestor3;
     let attestors;
@@ -46,9 +46,9 @@ describe('DLCManager', () => {
         attestor3 = accounts[8];
         attestors = [attestor1, attestor2, attestor3];
 
-        const DLCBTC = await ethers.getContractFactory('DLCBTC', deployer);
-        dlcBtc = await hardhat.upgrades.deployProxy(DLCBTC);
-        await dlcBtc.deployed();
+        const IBTC = await ethers.getContractFactory('IBTC', deployer);
+        iBTC = await hardhat.upgrades.deployProxy(IBTC);
+        await iBTC.deployed();
 
         // DLCManager
         const DLCManager = await ethers.getContractFactory('DLCManager');
@@ -56,12 +56,12 @@ describe('DLCManager', () => {
             deployer.address,
             deployer.address,
             3,
-            dlcBtc.address,
+            iBTC.address,
             btcFeeRecipient,
         ]);
         await dlcManager.deployed();
 
-        await dlcBtc.transferOwnership(dlcManager.address);
+        await iBTC.transferOwnership(dlcManager.address);
     });
 
     describe('test contracts are deployed correctly', async () => {
@@ -69,8 +69,8 @@ describe('DLCManager', () => {
             expect(dlcManager.address).to.not.equal(0);
         });
 
-        it('should be the owner of the dlcBTC token contract', async () => {
-            expect(await dlcBtc.owner()).to.equal(dlcManager.address);
+        it('should be the owner of the iBTC token contract', async () => {
+            expect(await iBTC.owner()).to.equal(dlcManager.address);
         });
     });
 
@@ -499,7 +499,7 @@ describe('DLCManager', () => {
         });
 
         it('should revert on nonce-manipulated signatures from the same signer', async () => {
-            const existingBalance = await dlcBtc.balanceOf(user.address);
+            const existingBalance = await iBTC.balanceOf(user.address);
             const deposit = 100000000; // 1 BTC
             const tx = await dlcManager.connect(user).setupVault();
             const receipt = await tx.wait();
@@ -687,7 +687,7 @@ describe('DLCManager', () => {
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
         });
 
-        it('mints dlcBTC tokens to the user', async () => {
+        it('mints iBTC tokens to the user', async () => {
             await whitelistAddress(dlcManager, user);
             const tx = await dlcManager.connect(user).setupVault();
             await tx.wait();
@@ -706,7 +706,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusFunded(uuid, btcTxId, signatureBytes, valueLocked);
             await tx2.wait();
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(valueLocked);
+            expect(await iBTC.balanceOf(user.address)).to.equal(valueLocked);
         });
 
         it('emits a StatusFunded event with the correct data', async () => {
@@ -978,7 +978,7 @@ describe('DLCManager', () => {
                     signatureBytesForFunding,
                     valueLocked
                 );
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(valueLocked);
+            expect(await iBTC.balanceOf(user.address)).to.equal(valueLocked);
         });
     });
 
@@ -1042,7 +1042,7 @@ describe('DLCManager', () => {
                 .withdraw(uuid, valueLocked / 2);
             const getDlcTx = await dlcManager.getDLC(uuid);
 
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+            expect(await iBTC.balanceOf(user.address)).to.equal(
                 valueLocked / 2
             );
             expect(getDlcTx.valueMinted).to.equal(valueLocked / 2);
@@ -1097,7 +1097,7 @@ describe('DLCManager', () => {
                 );
             await tx3.wait();
 
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+            expect(await iBTC.balanceOf(user.address)).to.equal(
                 valueLocked / 2
             );
 
@@ -1300,7 +1300,7 @@ describe('DLCManager', () => {
                 );
             await tx3.wait();
 
-            expect(await dlcBtc.balanceOf(user.address)).to.equal(
+            expect(await iBTC.balanceOf(user.address)).to.equal(
                 lockedAmountAfterDeposit
             );
 
