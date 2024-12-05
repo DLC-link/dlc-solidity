@@ -23,6 +23,8 @@ module.exports = async function getPoRAddress(network) {
             return '';
         case 'basesepolia':
             return '';
+        case 'bsc':
+            return '';
         case 'localhost':
             return await deployAndGetMockAggregatorAddress();
         default:

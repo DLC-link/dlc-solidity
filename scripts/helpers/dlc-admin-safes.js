@@ -31,4 +31,8 @@ module.exports = {
         medium: '0x9506Ea24038609679732855F757041a3C1C06623',
         critical: '0xebDC2027D3ee493B49553Befc1200e1cce9e2E08',
     },
+    bsc: {
+        medium: '0x989a6b15c0c55C0c9FEd6E60a812d9Fb02Ad666E',
+        critical: '0x019A7B9C9622633Adb6C771B5c1817AB0D85b557',
+    },
 };

@@ -150,7 +150,7 @@ contract DLCManager is
         _index = 0;
         tssCommitment = 0x0;
         dlcBTC = tokenContract;
-        minimumDeposit = 1e6; // 0.01 BTC
+        minimumDeposit = 1e7; // 0.1 BTC
         maximumDeposit = 5e8; // 5 BTC
         whitelistingEnabled = true;
         btcMintFeeRate = 12; // 0.12% BTC fee for now
