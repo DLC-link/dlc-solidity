@@ -30,6 +30,9 @@ const optimismURL =
 const bscURL =
     process.env.BSC_NODE_ADDR ??
     `https://bnb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
+const avaxURL =
+    process.env.AVAX_NODE_ADDR ??
+    `https://avax-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 
 const deployerKey = process.env.SCRIPT_KEY ?? process.env.KEY;
 module.exports = {
@@ -95,6 +98,11 @@ module.exports = {
             chainId: 56,
             accounts: [deployerKey],
         },
+        avax: {
+            url: avaxURL,
+            chainId: 43114,
+            accounts: [deployerKey],
+        },
     },
     etherscan: {
         apiKey: {
@@ -106,6 +114,7 @@ module.exports = {
             base: process.env['BASESCAN_API_KEY'],
             basesepolia: process.env['BASESCAN_API_KEY'],
             bsc: process.env['BSCSCAN_API_KEY'],
+            avax: 'N/A',
         },
         customChains: [
             {
@@ -170,6 +179,14 @@ module.exports = {
                 urls: {
                     apiURL: `https://api.bscscan.com/api?apikey=${process.env.BSCSCAN_API_KEY}`,
                     browserURL: 'https://bscscan.com/',
+                },
+            },
+            {
+                network: 'avax',
+                chainId: 43114,
+                urls: {
+                    apiURL: `https://api.avascan.info/v2/network/mainnet/evm/43114/etherscan`,
+                    browserURL: 'https://avascan.info/blockchain/c',
                 },
             },
         ],
