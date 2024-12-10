@@ -25,6 +25,8 @@ module.exports = async function getPoRAddress(network) {
             return '';
         case 'bsc':
             return '';
+        case 'avax':
+            return '';
         case 'localhost':
             return await deployAndGetMockAggregatorAddress();
         default:
