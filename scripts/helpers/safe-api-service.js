@@ -15,6 +15,7 @@ module.exports = async function safeContractProposal(
     let network = hardhat.network.name;
 
     if (network === 'basesepolia') network = 'base-sepolia';
+    if (network === 'avax') network = 'avalanche';
 
     console.log('Network', network);
 
