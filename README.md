@@ -3,7 +3,7 @@
 [![Discord Banner](https://discordapp.com/api/guilds/887360470955208745/widget.png?style=banner2)](https://discord.gg/TtzqyfPCvE) -->
 
 <div align="center">
-  <img src="./assets/dlcBTC_Token.svg" alt="icon" width="140" height="140" />
+  <img src="./assets/iBTC_Token.svg" alt="icon" width="140" height="140" />
 </div>
 
 # dlc-solidity
@@ -11,9 +11,9 @@
 [![Build Status](https://github.com/DLC-link/dlc-solidity/actions/workflows/docker-build-and-push.yaml/badge.svg)](https://github.com/DLC-link/dlc-solidity/actions/workflows/docker-build-and-push.yaml)
 [![Tests Status](https://github.com/DLC-link/dlc-solidity/actions/workflows/hardhat-test.yaml/badge.svg)](https://github.com/DLC-link/dlc-solidity/actions/workflows/hardhat-test.yaml)
 
-This repo contains the solidity smart contracts for the DLC.Link infrastructure and the dlcBTC token.
+This repo contains the solidity smart contracts for the DLC.Link infrastructure and the iBTC token.
 
-Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) and [dlcBTC](https://dlcbtc.com).
+Learn more about [DLCs](https://github.com/DLC-link/dlc-solidity#What-Are-DLCs) and [iBTC](https://www.ibtc.network/).
 
 # Overview
 
@@ -21,14 +21,14 @@ A DLC is a contract on Bitcoin that enables users to move/lock Bitcoin condition
 
 This way, any EVM chain can essentially move native Bitcoin in a safe, "bridgeless" way. Ethereum can leverage the power of DLCs and the trust-minimised Attestor Layer that DLC.Link provides.
 
-_dlcBTC_ is a token that represents Bitcoin locked in DLCs. It is minted when Bitcoin is locked in a DLC and burned when the DLC is settled.
+_iBTC_ is a token that represents Bitcoin locked in DLCs. It is minted when Bitcoin is locked in a DLC and burned when the DLC is settled.
 
 Learn more about the whole architecture on the documentation site here:
 https://docs.dlc.link/architecture/tech-stack
 
 ## Timelocked Upgrades
 
-Some of the contracts in this repository are upgradeable. They can be changed by a multisig of dlcBTC team and external members. The upgrade process is timelocked, meaning that the upgrade will only happen after a certain time has passed (minimum 7 days). This is to ensure that the community has time to review the changes and react if necessary.
+Some of the contracts in this repository are upgradeable. They can be changed by a multisig of DLC.Link team and external members. The upgrade process is timelocked, meaning that the upgrade will only happen after a certain time has passed (minimum 7 days). This is to ensure that the community has time to review the changes and react if necessary.
 
 <img src="./assets/timelockArchitecture.svg" alt="architecture" width="100%" />
 
