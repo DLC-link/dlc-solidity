@@ -6,13 +6,14 @@ MEDIUM_MULTISIG=0x989a6b15c0c55C0c9FEd6E60a812d9Fb02Ad666E
 dlc-link-eth add-signer 0x989E9c4005ABc2a8E4b85544B44d2d95cfDe08de # DLC.Link
 dlc-link-eth add-signer 0xBe4aAE47A62f67bdF93eA9f5F189ae51B1b54492 # DLC.Link
 dlc-link-eth add-signer 0x7B254D8C6eBd9662A52180B06920aEA4f23a8940 # DLC.Link
-dlc-link-eth add-signer 0x2daef70747eb9E97E5f31A9EBDbda593918F8bE7 # Stakin
 dlc-link-eth add-signer 0x2b16469227cd34F591D455aC81Ca8a1A4bA69F02 # LinkPool
 dlc-link-eth add-signer 0x5db792d5facb35e9adce8a151e8a3d0d36c9cb77 # HashKey
 dlc-link-eth add-signer 0x194c697e8343EaB3C53917BA7e597d02687f8BA0 # Despread
 dlc-link-eth add-signer 0xdf4d8B54dE476B674f1832B95984fFa7e223d47B # PierTwo
 dlc-link-eth add-signer 0xAFBc5Dde8a3fEc5234600Ed7fCA541609F3Ed23C # ValidationCloud
 dlc-link-eth add-signer 0x087632014330977A9B85972A6E92c4e1893E75c5 # Everstake
+dlc-link-eth add-signer 0x48A493c9A755E4c80DFccF9F40624259aF8fe1c3 # OKX
+dlc-link-eth add-signer 0xec32836897C40dc29525db3bAfBAC18e62fab363 # Nethermind
 
 dlc-link-eth set-attestor-gpk 'xpub6C1F2SwADP3TNajQjg2PaniEGpZLvWdMiFP8ChPjQBRWD1XUBeMdE4YkQYvnNhAYGoZKfcQbsRCefserB5DyJM7R9VR6ce6vLrXHVfeqyH3'
 
