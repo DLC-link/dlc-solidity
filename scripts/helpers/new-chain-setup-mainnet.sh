@@ -19,7 +19,7 @@ dlc-link-eth set-attestor-gpk 'xpub6C1F2SwADP3TNajQjg2PaniEGpZLvWdMiFP8ChPjQBRWD
 
 dlc-link-eth set-btc-fee-recipient 3D8kYzXXsvibCqWUu7RkXZTLcx5DzmckZ2
 
-dlc-link-eth set-threshold 6
+dlc-link-eth set-threshold 5
 
 # - Whitelist Minters
 dlc-link-eth whitelist-account 0x0DD4f29E21F10cb2E485cf9bDAb9F2dD1f240Bfa # DLC.Link
