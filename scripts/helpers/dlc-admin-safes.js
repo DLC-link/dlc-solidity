@@ -7,6 +7,10 @@ module.exports = {
         medium: '0x9506Ea24038609679732855F757041a3C1C06623',
         critical: '0x9506Ea24038609679732855F757041a3C1C06623',
     },
+    holesky: {
+        medium: '0x9506Ea24038609679732855F757041a3C1C06623',
+        critical: '0x9506Ea24038609679732855F757041a3C1C06623',
+    },
     arbsepolia: {
         medium: '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9',
         critical: '0xbf7184178d610d7b0239a5cb8d64c1df22d306a9',

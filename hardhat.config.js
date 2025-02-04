@@ -12,6 +12,9 @@ const mainnetURL =
 const sepoliaURL =
     process.env.SEPOLIA_NODE_ADDR ??
     `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
+const holeskyURL =
+    process.env.HOLESKY_NODE_ADDR ??
+    `https://eth-holesky.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 const arbitrumURL =
     process.env.ARB_NODE_ADDR ??
     `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
@@ -73,6 +76,11 @@ module.exports = {
                 deployerKey,
             ],
         },
+        holesky: {
+            url: holeskyURL,
+            chainId: 17000,
+            accounts: [deployerKey],
+        },
         arbitrum: {
             url: arbitrumURL,
             chainId: 42161,
@@ -110,6 +118,7 @@ module.exports = {
             arbsepolia: process.env['ARBISCAN_API_KEY'],
             mainnet: process.env['ETHERSCAN_API_KEY'],
             sepolia: process.env['ETHERSCAN_API_KEY'],
+            holesky: process.env['ETHERSCAN_API_KEY'],
             optimism: process.env['OPTISCAN_API_KEY'],
             base: process.env['BASESCAN_API_KEY'],
             basesepolia: process.env['BASESCAN_API_KEY'],
@@ -147,6 +156,14 @@ module.exports = {
                 urls: {
                     apiURL: `https://api-sepolia.etherscan.io/api?apikey=${process.env.ETHERSCAN_API_KEY}`,
                     browserURL: 'https://sepolia.etherscan.io',
+                },
+            },
+            {
+                network: 'holesky',
+                chainId: 17000,
+                urls: {
+                    apiURL: `https://api-holesky.etherscan.io/api?apikey=${process.env.ETHERSCAN_API_KEY}`,
+                    browserURL: 'https://holesky.etherscan.io',
                 },
             },
             {
