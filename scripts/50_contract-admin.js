@@ -242,7 +242,7 @@ module.exports = async function contractAdmin() {
                     proxyAddress,
                     newImplementation,
                     {
-                        timeout: 5000,
+                        timeout: 10000,
                         // @ts-ignore
                         txOverrides: {
                             maxFeePerGas: 1000000000,
@@ -295,7 +295,7 @@ module.exports = async function contractAdmin() {
                     await hardhat.upgrades.prepareUpgrade(
                         proxyAddress,
                         newImplementation,
-                        { timeout: 240 }
+                        { timeout: 10000 }
                     );
                 console.log(
                     'New implementation address',
@@ -410,7 +410,15 @@ module.exports = async function contractAdmin() {
                 timeLockContractDeployInfo.contract.abi,
                 deployer
             );
+
             const proxyAdmin = await hardhat.upgrades.admin.getInstance();
+            const proxyAdminOwner = await proxyAdmin.owner();
+            console.log('ProxyAdmin owner:', proxyAdminOwner);
+            console.log(
+                await hardhat.upgrades.erc1967.getAdminAddress(
+                    contractDeployInfo.contract.address
+                )
+            );
             const tlRequestParams = [
                 proxyAdmin.address,
                 0,
