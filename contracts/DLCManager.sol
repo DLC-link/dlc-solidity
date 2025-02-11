@@ -72,7 +72,9 @@ contract DLCManager is
     AggregatorV3Interface public dlcBTCPoRFeed;
     mapping(address => mapping(bytes32 => bool)) private _seenSigners;
     uint256 public totalValueMinted;
-    uint256[38] __gap;
+    mapping(address => uint256) public btcMintFeeRates;
+    mapping(address => uint256) public btcRedeemFeeRates;
+    uint256[36] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -218,6 +220,14 @@ contract DLCManager is
     event TransferTokenContractOwnership(address newOwner);
     event SetPorEnabled(bool enabled);
     event SetDlcBTCPoRFeed(AggregatorV3Interface feed);
+    event SetBtcMintFeeRateForAddress(
+        address indexed user,
+        uint256 newBtcMintFeeRate
+    );
+    event SetBtcRedeemFeeRateForAddress(
+        address indexed user,
+        uint256 newBtcRedeemFeeRate
+    );
 
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
@@ -588,6 +598,21 @@ contract DLCManager is
         return _signerCount;
     }
 
+    function getFeeRatesForAddress(
+        address user
+    ) public view returns (uint256, uint256) {
+        uint256 mintFeeRate = btcMintFeeRates[user];
+        uint256 redeemFeeRate = btcRedeemFeeRates[user];
+
+        if (mintFeeRate == 0 && mintFeeRate != btcMintFeeRate) {
+            mintFeeRate = btcMintFeeRate;
+        }
+        if (redeemFeeRate == 0 && redeemFeeRate != btcRedeemFeeRate) {
+            redeemFeeRate = btcRedeemFeeRate;
+        }
+        return (mintFeeRate, redeemFeeRate);
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -733,5 +758,25 @@ contract DLCManager is
     function setDlcBTCPoRFeed(AggregatorV3Interface feed) external onlyAdmin {
         dlcBTCPoRFeed = feed;
         emit SetDlcBTCPoRFeed(feed);
+    }
+
+    function setBtcMintFeeRateForAddress(
+        address user,
+        uint256 newBtcMintFeeRate
+    ) external onlyAdmin {
+        if (newBtcMintFeeRate > 10000)
+            revert FeeRateOutOfBounds(newBtcMintFeeRate);
+        btcMintFeeRates[user] = newBtcMintFeeRate;
+        emit SetBtcMintFeeRateForAddress(user, newBtcMintFeeRate);
+    }
+
+    function setBtcRedeemFeeRateForAddress(
+        address user,
+        uint256 newBtcRedeemFeeRate
+    ) external onlyAdmin {
+        if (newBtcRedeemFeeRate > 10000)
+            revert FeeRateOutOfBounds(newBtcRedeemFeeRate);
+        btcRedeemFeeRates[user] = newBtcRedeemFeeRate;
+        emit SetBtcRedeemFeeRateForAddress(user, newBtcRedeemFeeRate);
     }
 }
