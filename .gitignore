@@ -248,3 +248,5 @@ cache
 artifacts
 coverage/
 coverage.json
+
+cache_forge

@@ -1,0 +1,8 @@
+@chainlink/=node_modules/@chainlink/
+@eth-optimism/=node_modules/@eth-optimism/
+@openzeppelin/=node_modules/@openzeppelin/
+@scroll-tech/=node_modules/@scroll-tech/
+eth-gas-reporter/=node_modules/eth-gas-reporter/
+forge-std/=lib/forge-std/src/
+hardhat/=node_modules/hardhat/
+solmate/=node_modules/solmate/

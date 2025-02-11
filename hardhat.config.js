@@ -2,6 +2,7 @@
 
 require('@nomicfoundation/hardhat-toolbox');
 require('@nomiclabs/hardhat-ethers');
+require('@nomicfoundation/hardhat-foundry');
 require('@openzeppelin/hardhat-upgrades');
 require('@nomiclabs/hardhat-solhint');
 require('dotenv').config();
