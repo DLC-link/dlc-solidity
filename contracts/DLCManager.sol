@@ -74,7 +74,9 @@ contract DLCManager is
     uint256 public totalValueMinted;
     mapping(address => uint256) public btcMintFeeRates;
     mapping(address => uint256) public btcRedeemFeeRates;
-    uint256[36] __gap;
+    mapping(address => bool) private _btcMintFeeRatesSet;
+    mapping(address => bool) private _btcRedeemFeeRatesSet;
+    uint256[34] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -604,10 +606,10 @@ contract DLCManager is
         uint256 mintFeeRate = btcMintFeeRates[user];
         uint256 redeemFeeRate = btcRedeemFeeRates[user];
 
-        if (mintFeeRate == 0 && mintFeeRate != btcMintFeeRate) {
+        if (!_btcMintFeeRatesSet[user]) {
             mintFeeRate = btcMintFeeRate;
         }
-        if (redeemFeeRate == 0 && redeemFeeRate != btcRedeemFeeRate) {
+        if (!_btcRedeemFeeRatesSet[user]) {
             redeemFeeRate = btcRedeemFeeRate;
         }
         return (mintFeeRate, redeemFeeRate);
@@ -767,6 +769,7 @@ contract DLCManager is
         if (newBtcMintFeeRate > 10000)
             revert FeeRateOutOfBounds(newBtcMintFeeRate);
         btcMintFeeRates[user] = newBtcMintFeeRate;
+        _btcMintFeeRatesSet[user] = true;
         emit SetBtcMintFeeRateForAddress(user, newBtcMintFeeRate);
     }
 
@@ -777,6 +780,7 @@ contract DLCManager is
         if (newBtcRedeemFeeRate > 10000)
             revert FeeRateOutOfBounds(newBtcRedeemFeeRate);
         btcRedeemFeeRates[user] = newBtcRedeemFeeRate;
+        _btcRedeemFeeRatesSet[user] = true;
         emit SetBtcRedeemFeeRateForAddress(user, newBtcRedeemFeeRate);
     }
 }
