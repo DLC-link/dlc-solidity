@@ -598,6 +598,12 @@ contract DLCManager is
         return _signerCount;
     }
 
+    /// @notice Get the mint fee rate for a specific address
+    /// @dev The stored rate is shifted by +1 to differentiate between unset (0) and 0% fee rate
+    /// If the rate is 0 (unset), returns the default btcMintFeeRate
+    /// Otherwise returns the stored rate minus 1 to get the true value
+    /// @param user The address to get the mint fee rate for
+    /// @return The mint fee rate for the given address
     function getMintFeeRateForAddress(
         address user
     ) public view returns (uint256) {
@@ -605,6 +611,12 @@ contract DLCManager is
         return addressRate == 0 ? btcMintFeeRate : addressRate - 1; // Unshifting to true value
     }
 
+    /// @notice Get the redeem fee rate for a specific address
+    /// @dev The stored rate is shifted by +1 to differentiate between unset (0) and 0% fee rate
+    /// If the rate is 0 (unset), returns the default btcRedeemFeeRate
+    /// Otherwise returns the stored rate minus 1 to get the true value
+    /// @param user The address to get the redeem fee rate for
+    /// @return The redeem fee rate for the given address
     function getRedeemFeeRateForAddress(
         address user
     ) public view returns (uint256) {
@@ -759,6 +771,12 @@ contract DLCManager is
         emit SetDlcBTCPoRFeed(feed);
     }
 
+    /// @notice Sets Bitcoin minting fee rate for a specific address
+    /// @dev Increments the fee rate by 1 to distinguish between unset (0) and deliberately set zero (1) values.
+    /// @dev This helps identify if a fee rate was explicitly set to 0 vs never being set.
+    /// @param user The address to set the fee rate for
+    /// @param newBtcMintFeeRate The fee rate to set (0-10000)
+    /// @custom:throws FeeRateOutOfBounds if newBtcMintFeeRate > 10000
     function setBtcMintFeeRateForAddress(
         address user,
         uint256 newBtcMintFeeRate
@@ -769,6 +787,12 @@ contract DLCManager is
         emit SetBtcMintFeeRateForAddress(user, newBtcMintFeeRate);
     }
 
+    /// @notice Sets Bitcoin redemption fee rate for a specific address
+    /// @dev Increments the fee rate by 1 to distinguish between unset (0) and deliberately set zero (1) values.
+    /// @dev This helps identify if a fee rate was explicitly set to 0 vs never being set.
+    /// @param user The address to set the fee rate for
+    /// @param newBtcRedeemFeeRate The fee rate to set (0-10000)
+    /// @custom:throws FeeRateOutOfBounds if newBtcRedeemFeeRate > 10000
     function setBtcRedeemFeeRateForAddress(
         address user,
         uint256 newBtcRedeemFeeRate
