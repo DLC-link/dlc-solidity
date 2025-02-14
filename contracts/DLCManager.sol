@@ -72,11 +72,9 @@ contract DLCManager is
     AggregatorV3Interface public dlcBTCPoRFeed;
     mapping(address => mapping(bytes32 => bool)) private _seenSigners;
     uint256 public totalValueMinted;
-    mapping(address => uint256) public btcMintFeeRates;
-    mapping(address => uint256) public btcRedeemFeeRates;
-    mapping(address => bool) private _btcMintFeeRatesSet;
-    mapping(address => bool) private _btcRedeemFeeRatesSet;
-    uint256[34] __gap;
+    mapping(address => uint256) private _btcMintFeeRates;
+    mapping(address => uint256) private _btcRedeemFeeRates;
+    uint256[36] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -600,18 +598,26 @@ contract DLCManager is
         return _signerCount;
     }
 
+    function getMintFeeRateForAddress(
+        address user
+    ) public view returns (uint256) {
+        uint256 addressRate = _btcMintFeeRates[user];
+        return addressRate == 0 ? btcMintFeeRate : addressRate - 1; // Unshifting to true value
+    }
+
+    function getRedeemFeeRateForAddress(
+        address user
+    ) public view returns (uint256) {
+        uint256 addressRate = _btcRedeemFeeRates[user];
+        return addressRate == 0 ? btcRedeemFeeRate : addressRate - 1; // Unshifting to true value
+    }
+
     function getFeeRatesForAddress(
         address user
     ) public view returns (uint256, uint256) {
-        uint256 mintFeeRate = btcMintFeeRates[user];
-        uint256 redeemFeeRate = btcRedeemFeeRates[user];
+        uint256 mintFeeRate = getMintFeeRateForAddress(user);
+        uint256 redeemFeeRate = getRedeemFeeRateForAddress(user);
 
-        if (!_btcMintFeeRatesSet[user]) {
-            mintFeeRate = btcMintFeeRate;
-        }
-        if (!_btcRedeemFeeRatesSet[user]) {
-            redeemFeeRate = btcRedeemFeeRate;
-        }
         return (mintFeeRate, redeemFeeRate);
     }
 
@@ -768,8 +774,7 @@ contract DLCManager is
     ) external onlyAdmin {
         if (newBtcMintFeeRate > 10000)
             revert FeeRateOutOfBounds(newBtcMintFeeRate);
-        btcMintFeeRates[user] = newBtcMintFeeRate;
-        _btcMintFeeRatesSet[user] = true;
+        _btcMintFeeRates[user] = newBtcMintFeeRate + 1; // Shifted by 1 to easily store a deliberate value of 0
         emit SetBtcMintFeeRateForAddress(user, newBtcMintFeeRate);
     }
 
@@ -779,8 +784,7 @@ contract DLCManager is
     ) external onlyAdmin {
         if (newBtcRedeemFeeRate > 10000)
             revert FeeRateOutOfBounds(newBtcRedeemFeeRate);
-        btcRedeemFeeRates[user] = newBtcRedeemFeeRate;
-        _btcRedeemFeeRatesSet[user] = true;
+        _btcRedeemFeeRates[user] = newBtcRedeemFeeRate + 1; // Shifted by 1 to easily store a deliberate value of 0
         emit SetBtcRedeemFeeRateForAddress(user, newBtcRedeemFeeRate);
     }
 }
