@@ -612,15 +612,6 @@ contract DLCManager is
         return addressRate == 0 ? btcRedeemFeeRate : addressRate - 1; // Unshifting to true value
     }
 
-    function getFeeRatesForAddress(
-        address user
-    ) public view returns (uint256, uint256) {
-        uint256 mintFeeRate = getMintFeeRateForAddress(user);
-        uint256 redeemFeeRate = getRedeemFeeRateForAddress(user);
-
-        return (mintFeeRate, redeemFeeRate);
-    }
-
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
