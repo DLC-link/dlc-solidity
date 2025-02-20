@@ -72,7 +72,9 @@ contract DLCManager is
     AggregatorV3Interface public dlcBTCPoRFeed;
     mapping(address => mapping(bytes32 => bool)) private _seenSigners;
     uint256 public totalValueMinted;
-    uint256[38] __gap;
+    mapping(address => uint256) private _btcMintFeeRates;
+    mapping(address => uint256) private _btcRedeemFeeRates;
+    uint256[36] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -218,6 +220,14 @@ contract DLCManager is
     event TransferTokenContractOwnership(address newOwner);
     event SetPorEnabled(bool enabled);
     event SetDlcBTCPoRFeed(AggregatorV3Interface feed);
+    event SetBtcMintFeeRateForAddress(
+        address indexed user,
+        uint256 newBtcMintFeeRate
+    );
+    event SetBtcRedeemFeeRateForAddress(
+        address indexed user,
+        uint256 newBtcRedeemFeeRate
+    );
 
     ////////////////////////////////////////////////////////////////
     //                    INTERNAL FUNCTIONS                      //
@@ -588,6 +598,32 @@ contract DLCManager is
         return _signerCount;
     }
 
+    /// @notice Get the mint fee rate for a specific address
+    /// @dev The stored rate is shifted by +1 to differentiate between unset (0) and 0% fee rate
+    /// If the rate is 0 (unset), returns the default btcMintFeeRate
+    /// Otherwise returns the stored rate minus 1 to get the true value
+    /// @param user The address to get the mint fee rate for
+    /// @return The mint fee rate for the given address
+    function getMintFeeRateForAddress(
+        address user
+    ) public view returns (uint256) {
+        uint256 addressRate = _btcMintFeeRates[user];
+        return addressRate == 0 ? btcMintFeeRate : addressRate - 1; // Unshifting to true value
+    }
+
+    /// @notice Get the redeem fee rate for a specific address
+    /// @dev The stored rate is shifted by +1 to differentiate between unset (0) and 0% fee rate
+    /// If the rate is 0 (unset), returns the default btcRedeemFeeRate
+    /// Otherwise returns the stored rate minus 1 to get the true value
+    /// @param user The address to get the redeem fee rate for
+    /// @return The redeem fee rate for the given address
+    function getRedeemFeeRateForAddress(
+        address user
+    ) public view returns (uint256) {
+        uint256 addressRate = _btcRedeemFeeRates[user];
+        return addressRate == 0 ? btcRedeemFeeRate : addressRate - 1; // Unshifting to true value
+    }
+
     ////////////////////////////////////////////////////////////////
     //                      ADMIN FUNCTIONS                       //
     ////////////////////////////////////////////////////////////////
@@ -733,5 +769,37 @@ contract DLCManager is
     function setDlcBTCPoRFeed(AggregatorV3Interface feed) external onlyAdmin {
         dlcBTCPoRFeed = feed;
         emit SetDlcBTCPoRFeed(feed);
+    }
+
+    /// @notice Sets Bitcoin minting fee rate for a specific address
+    /// @dev Increments the fee rate by 1 to distinguish between unset (0) and deliberately set zero (1) values.
+    /// @dev This helps identify if a fee rate was explicitly set to 0 vs never being set.
+    /// @param user The address to set the fee rate for
+    /// @param newBtcMintFeeRate The fee rate to set (0-10000)
+    /// @custom:throws FeeRateOutOfBounds if newBtcMintFeeRate > 10000
+    function setBtcMintFeeRateForAddress(
+        address user,
+        uint256 newBtcMintFeeRate
+    ) external onlyAdmin {
+        if (newBtcMintFeeRate > 10000)
+            revert FeeRateOutOfBounds(newBtcMintFeeRate);
+        _btcMintFeeRates[user] = newBtcMintFeeRate + 1; // Shifted by 1 to easily store a deliberate value of 0
+        emit SetBtcMintFeeRateForAddress(user, newBtcMintFeeRate);
+    }
+
+    /// @notice Sets Bitcoin redemption fee rate for a specific address
+    /// @dev Increments the fee rate by 1 to distinguish between unset (0) and deliberately set zero (1) values.
+    /// @dev This helps identify if a fee rate was explicitly set to 0 vs never being set.
+    /// @param user The address to set the fee rate for
+    /// @param newBtcRedeemFeeRate The fee rate to set (0-10000)
+    /// @custom:throws FeeRateOutOfBounds if newBtcRedeemFeeRate > 10000
+    function setBtcRedeemFeeRateForAddress(
+        address user,
+        uint256 newBtcRedeemFeeRate
+    ) external onlyAdmin {
+        if (newBtcRedeemFeeRate > 10000)
+            revert FeeRateOutOfBounds(newBtcRedeemFeeRate);
+        _btcRedeemFeeRates[user] = newBtcRedeemFeeRate + 1; // Shifted by 1 to easily store a deliberate value of 0
+        emit SetBtcRedeemFeeRateForAddress(user, newBtcRedeemFeeRate);
     }
 }
