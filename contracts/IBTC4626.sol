@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-//     ___  __   ___    __ _       _
-//    /   \/ /  / __\  / /(_)_ __ | | __
-//   / /\ / /  / /    / / | | '_ \| |/ /
-//  / /_// /__/ /____/ /__| | | | |   <
-// /___,'\____|____(_)____/_|_| |_|_|\_\
+//  ██ ██████  ████████  ██████
+//  ██ ██   ██    ██    ██
+//  ██ ██████     ██    ██
+//  ██ ██   ██    ██    ██
+//  ██ ██████     ██     ██████
 
 pragma solidity 0.8.18;
 
@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/AccessControlDefaultAdminRules.sol";
 
-contract VaultedIBTC is
+contract WrappedIBTC is
     ERC4626,
     ERC20Permit,
     ReentrancyGuard,
@@ -24,12 +24,12 @@ contract VaultedIBTC is
     error InvalidToken();
 
     constructor(
-        IERC20 _ibtc,
+        IERC20 _ibtcAddress,
         address _defaultAdmin
     )
-        ERC4626(_ibtc)
-        ERC20("Vaulted IBTC", "vIBTC")
-        ERC20Permit("vIBTC")
+        ERC4626(_ibtcAddress)
+        ERC20("Wrapped iBTC", "wiBTC")
+        ERC20Permit("wiBTC")
         AccessControlDefaultAdminRules(2 days, _defaultAdmin)
     {}
 
@@ -41,7 +41,7 @@ contract VaultedIBTC is
     /**
      * @notice Allows the owner to rescue tokens accidentally sent to the contract.
      * Note that the owner cannot rescue iBTC tokens because they functionally sit here
-     * and belong to stakers but can rescue vaulted iBTC as they should never actually
+     * and belong to stakers but can rescue wrapped iBTC as they should never actually
      * sit in this contract and a staker may well transfer them here by accident.
      * @param token The token to be rescued.
      * @param amount The amount of tokens to be rescued.
