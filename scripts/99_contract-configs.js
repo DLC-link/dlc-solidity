@@ -210,5 +210,46 @@ module.exports = function getContractConfigs(networkConfig, _btcFeeRecipient) {
                 });
             },
         },
+        {
+            name: 'WrappedIBTC',
+            deployer: deployer.address,
+            upgradeable: false,
+            requirements: ['IBTC'],
+            deploy: async (requirementAddresses) => {
+                const iBTCAddress = requirementAddresses['IBTC'];
+                if (!iBTCAddress) throw new Error('IBTC deployment not found.');
+
+                const constructorArgs = [iBTCAddress, dlcAdminSafes.critical];
+                await beforeDeployment(
+                    'WrappedIBTC',
+                    `iBTCAddress: ${iBTCAddress}, defaultAdmin: ${dlcAdminSafes.critical}`,
+                    networkName
+                );
+
+                const WrappedIBTC =
+                    await hardhat.ethers.getContractFactory('WrappedIBTC');
+                const wrappedIBTC = await WrappedIBTC.deploy(
+                    ...constructorArgs
+                );
+                await wrappedIBTC.deployed();
+
+                await afterDeployment('WrappedIBTC', wrappedIBTC, networkName);
+                return wrappedIBTC.address;
+            },
+            verify: async () => {
+                const address = await loadContractAddress(
+                    'WrappedIBTC',
+                    networkName
+                );
+                const iBTCAddress = await loadContractAddress(
+                    'IBTC',
+                    networkName
+                );
+                await hardhat.run('verify:verify', {
+                    address: address,
+                    constructorArguments: [iBTCAddress, dlcAdminSafes.critical],
+                });
+            },
+        },
     ];
 };
