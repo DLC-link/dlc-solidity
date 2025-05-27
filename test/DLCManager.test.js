@@ -120,31 +120,42 @@ describe('DLCManager', () => {
     });
 
     describe('setThreshold', async () => {
+        beforeEach(async () => {
+            await setSigners(dlcManager, [attestor1, attestor2, attestor3]);
+            await dlcManager.connect(deployer).setThreshold(2);
+        });
+
         it('reverts if called by a non-admin', async () => {
             await expect(
-                dlcManager.connect(user).setThreshold(4)
+                dlcManager.connect(user).setThreshold(3)
             ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
         });
 
         it('reverts if threshold is set below minimum threshold', async () => {
-            await expect(
-                dlcManager.connect(deployer).setThreshold(0)
-            ).to.be.revertedWithCustomError(dlcManager, 'ThresholdTooLow');
+            await expect(dlcManager.connect(deployer).setThreshold(1))
+                .to.be.revertedWithCustomError(dlcManager, 'ThresholdTooLow')
+                .withArgs(1, 2);
+        });
+
+        it('reverts if threshold is set greater than signer count', async () => {
+            await expect(dlcManager.connect(deployer).setThreshold(4))
+                .to.be.revertedWithCustomError(dlcManager, 'ThresholdTooHigh')
+                .withArgs(4, 3);
         });
 
         it('emits a SetThreshold event with the correct data', async () => {
-            const tx = await dlcManager.connect(deployer).setThreshold(4);
+            const tx = await dlcManager.connect(deployer).setThreshold(3);
             const receipt = await tx.wait();
             const event = receipt.events[0];
 
             expect(event.event).to.equal('SetThreshold');
-            expect(event.args.newThreshold).to.equal(4);
+            expect(event.args.newThreshold).to.equal(3);
         });
 
         it('updates the threshold correctly', async () => {
-            await dlcManager.connect(deployer).setThreshold(4);
+            await dlcManager.connect(deployer).setThreshold(3);
             const newThreshold = await dlcManager.getThreshold();
-            expect(newThreshold).to.equal(4);
+            expect(newThreshold).to.equal(3);
         });
     });
 
@@ -557,8 +568,8 @@ describe('DLCManager', () => {
             attestors.push(maliciousSigner);
 
             // Change threshold and add the new signer
-            await dlcManager.connect(deployer).setThreshold(4);
             await setSigners(dlcManager, [maliciousAttestor]);
+            await dlcManager.connect(deployer).setThreshold(4);
 
             // Sign pending status
             const signatureBytesForPending =
