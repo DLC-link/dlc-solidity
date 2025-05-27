@@ -645,11 +645,9 @@ describe('DLCManager', () => {
         });
 
         it('reverts if attestors sign a different UUID', async () => {
-            const wrongUUID =
-                '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
             const signatureBytes = await getSignatures(
                 {
-                    uuid: wrongUUID,
+                    uuid: ethers.utils.formatBytes32String('different-uuid'),
                     btcTxId,
                     functionString: 'set-status-funded',
                     newLockedAmount: valueLocked,
@@ -657,6 +655,7 @@ describe('DLCManager', () => {
                 attestors,
                 3
             );
+
             await expect(
                 dlcManager
                     .connect(attestor1)
