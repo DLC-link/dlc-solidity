@@ -446,6 +446,93 @@ describe('DLCManager', () => {
         });
     });
 
+    describe('signature checks on SSP and SSF', () => {
+        let uuid;
+        beforeEach(async () => {
+            await whitelistAddress(dlcManager, user);
+
+            const tx = await dlcManager.connect(user).setupVault();
+            const receipt = await tx.wait();
+            const event = receipt.events[0];
+            const decodedEvent = dlcManager.interface.parseLog(event);
+            uuid = decodedEvent.args.uuid;
+
+            await setSigners(dlcManager, attestors);
+        });
+
+        it('should revert on nonce-manipulated signatures from the same signer', async () => {
+            const deposit = 100000000; // 1 BTC
+            const tx = await dlcManager.connect(user).setupVault();
+            const receipt = await tx.wait();
+            const _uuid = await receipt.events[0].args.uuid;
+
+            // Hardhat account #9
+            let maliciousAttestor = new ethers.Wallet(
+                ethers.utils.arrayify(
+                    '0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6'
+                )
+            );
+
+            const maliciousSigner = new ethers.Wallet(
+                maliciousAttestor,
+                ethers.provider
+            );
+            attestors.push(maliciousSigner);
+
+            // Change threshold and add the new signer
+            await dlcManager.connect(deployer).setThreshold(4);
+            await setSigners(dlcManager, [maliciousAttestor]);
+
+            // Sign pending status
+            const signatureBytesForPending =
+                await getMultipleSignaturesForSameAttestorAndMessage(
+                    {
+                        uuid: _uuid,
+                        btcTxId,
+                        functionString: 'set-status-pending',
+                        newLockedAmount: 0,
+                    },
+                    maliciousSigner,
+                    4
+                );
+
+            // Fund with just one signature
+            const signatureBytesForFunding =
+                await getMultipleSignaturesForSameAttestorAndMessage(
+                    {
+                        uuid: _uuid,
+                        btcTxId,
+                        functionString: 'set-status-funded',
+                        newLockedAmount: deposit,
+                    },
+                    maliciousSigner,
+                    4
+                );
+            await expect(
+                dlcManager
+                    .connect(maliciousSigner)
+                    .setStatusPending(
+                        _uuid,
+                        btcTxId,
+                        signatureBytesForPending,
+                        mockTaprootPubkey,
+                        0
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSigner');
+
+            await expect(
+                dlcManager
+                    .connect(maliciousSigner)
+                    .setStatusFunded(
+                        _uuid,
+                        btcTxId,
+                        signatureBytesForFunding,
+                        deposit
+                    )
+            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSigner');
+        });
+    });
+
     describe('setStatusFunded', async () => {
         let uuid;
         beforeEach(async () => {
@@ -522,7 +609,7 @@ describe('DLCManager', () => {
                 {
                     uuid,
                     btcTxId,
-                    functionString: 'post-close-dlc',
+                    functionString: 'set-status-pending',
                     newLockedAmount: valueLocked,
                 },
                 attestors,
@@ -534,79 +621,6 @@ describe('DLCManager', () => {
                     .connect(attestor1)
                     .setStatusFunded(uuid, btcTxId, signatureBytes, valueLocked)
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
-        });
-
-        it('should revert on nonce-manipulated signatures from the same signer', async () => {
-            const existingBalance = await iBTC.balanceOf(user.address);
-            const deposit = 100000000; // 1 BTC
-            const tx = await dlcManager.connect(user).setupVault();
-            const receipt = await tx.wait();
-            const _uuid = await receipt.events[0].args.uuid;
-
-            // Hardhat account #9
-            let maliciousAttestor = new ethers.Wallet(
-                ethers.utils.arrayify(
-                    '0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6'
-                )
-            );
-
-            const maliciousSigner = new ethers.Wallet(
-                maliciousAttestor,
-                ethers.provider
-            );
-            attestors.push(maliciousSigner);
-
-            // Change threshold and add the new signer
-            await dlcManager.connect(deployer).setThreshold(4);
-            await setSigners(dlcManager, [maliciousAttestor]);
-
-            // Sign pending status
-            const signatureBytesForPending =
-                await getMultipleSignaturesForSameAttestorAndMessage(
-                    {
-                        uuid: _uuid,
-                        btcTxId,
-                        functionString: 'set-status-pending',
-                        newLockedAmount: 0,
-                    },
-                    maliciousSigner,
-                    4
-                );
-
-            // Fund with just one signature
-            const signatureBytesForFunding =
-                await getMultipleSignaturesForSameAttestorAndMessage(
-                    {
-                        uuid: _uuid,
-                        btcTxId,
-                        functionString: 'set-status-funded',
-                        newLockedAmount: deposit,
-                    },
-                    maliciousSigner,
-                    4
-                );
-            await expect(
-                dlcManager
-                    .connect(maliciousSigner)
-                    .setStatusPending(
-                        _uuid,
-                        btcTxId,
-                        signatureBytesForPending,
-                        mockTaprootPubkey,
-                        0
-                    )
-            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSigner');
-
-            await expect(
-                dlcManager
-                    .connect(maliciousSigner)
-                    .setStatusFunded(
-                        _uuid,
-                        btcTxId,
-                        signatureBytesForFunding,
-                        deposit
-                    )
-            ).to.be.revertedWithCustomError(dlcManager, 'DuplicateSigner');
         });
 
         it('reverts if DLC is not in the right state', async () => {
@@ -770,6 +784,90 @@ describe('DLCManager', () => {
             expect(event.args.uuid).to.equal(uuid);
             expect(event.args.btcTxId).to.equal(btcTxId);
         });
+
+        it('Revert on attemped replay attacks when attacker trying to reuse sigs on same function and same btcTxId', async () => {
+            // Setup: Add more attestors to have more than threshold
+            const attestor4 = accounts[9];
+            const attestor5 = accounts[10];
+            const attestor6 = accounts[11];
+
+            // Add the additional attestors
+            await setSigners(dlcManager, [attestor4, attestor5, attestor6]);
+
+            // Complete the normal flow first
+            const signatureBytes = await getSignatures(
+                {
+                    uuid,
+                    btcTxId, // Original btcTxId from beforeEach
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                [attestor1, attestor2, attestor3],
+                3
+            );
+
+            await dlcManager
+                .connect(attestor1)
+                .setStatusFunded(uuid, btcTxId, signatureBytes, valueLocked);
+
+            // Verify initial state
+            let dlc = await dlcManager.getDLC(uuid);
+            expect(dlc.status).to.equal(1); // DLCStatus.FUNDED
+            expect(await iBTC.balanceOf(user.address)).to.equal(valueLocked);
+
+            const replayAttestors = [attestor4, attestor5, attestor6];
+
+            const pendingSignatures1 = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-pending',
+                    newLockedAmount: 0,
+                },
+                replayAttestors,
+                3
+            );
+
+            await expect(
+                dlcManager
+                    .connect(attestor4)
+                    .setStatusPending(
+                        uuid,
+                        btcTxId,
+                        pendingSignatures1,
+                        mockTaprootPubkey,
+                        0
+                    )
+            ).to.be.revertedWithCustomError(
+                dlcManager,
+                'TransactionAlreadyProcessed'
+            );
+
+            const fundedSignatures1 = await getSignatures(
+                {
+                    uuid,
+                    btcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked * 2,
+                },
+                replayAttestors,
+                3
+            );
+
+            await expect(
+                dlcManager
+                    .connect(attestor4)
+                    .setStatusFunded(
+                        uuid,
+                        btcTxId,
+                        fundedSignatures1,
+                        valueLocked * 2
+                    )
+            ).to.be.revertedWithCustomError(
+                dlcManager,
+                'TransactionAlreadyProcessed'
+            );
+        });
     });
 
     describe('totalValueMinted', async () => {
@@ -842,7 +940,7 @@ describe('DLCManager', () => {
             const signatureBytesForPending = await getSignatures(
                 {
                     uuid: uuid2,
-                    btcTxId,
+                    btcTxId: btcTxId2,
                     functionString: 'set-status-pending',
                     newLockedAmount: 0,
                 },
@@ -853,7 +951,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusPending(
                     uuid2,
-                    btcTxId,
+                    btcTxId2,
                     signatureBytesForPending,
                     mockTaprootPubkey,
                     0
@@ -863,7 +961,7 @@ describe('DLCManager', () => {
             const signatureBytesForFunding = await getSignatures(
                 {
                     uuid: uuid2,
-                    btcTxId,
+                    btcTxId: btcTxId2,
                     functionString: 'set-status-funded',
                     newLockedAmount: valueLocked,
                 },
@@ -874,7 +972,7 @@ describe('DLCManager', () => {
                 .connect(attestor1)
                 .setStatusFunded(
                     uuid2,
-                    btcTxId,
+                    btcTxId2,
                     signatureBytesForFunding,
                     valueLocked
                 );
