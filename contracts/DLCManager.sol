@@ -12,6 +12,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./DLCLinkLibrary.sol";
 import "./IBTC.sol";
 
@@ -89,6 +90,7 @@ contract DLCManager is
     error DLCNotPending();
     error DLCNotReadyOrFunded();
     error DLCNotFunded();
+    error BtcTxIdMismatch(string expected, string actual);
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
     error ThresholdTooLow(uint16 _minimumThreshold);
@@ -428,7 +430,11 @@ contract DLCManager is
             revert DepositTooSmall(amountToLockDiff, minimumDeposit);
         }
 
-        dlc.fundingTxId = btcTxId;
+        if (!Strings.equal(btcTxId, dlc.wdTxId)) {
+            revert BtcTxIdMismatch(dlc.wdTxId, btcTxId);
+        }
+
+        dlc.fundingTxId = dlc.wdTxId;
         dlc.wdTxId = "";
         dlc.status = DLCLink.DLCStatus.FUNDED;
 
