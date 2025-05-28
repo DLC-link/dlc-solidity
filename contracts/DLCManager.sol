@@ -78,7 +78,7 @@ contract DLCManager is
     mapping(address => uint256) private _btcRedeemFeeRates;
     mapping(string => bool) private _processedPendingTransactions;
     mapping(string => bool) private _processedFundedTransactions;
-    uint256[36] __gap;
+    uint256[34] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -255,42 +255,40 @@ contract DLCManager is
     }
 
     /**
-     * @notice  Checks the 'signatures' of Attestors for a given 'message'.
+     * @notice  Checks the signatures of Attestors for a given transaction.
      * @dev     Recalculates the hash to make sure the signatures are for the same message.
      * @dev     Uses OpenZeppelin's ECDSA library to recover the public keys from the signatures.
      * @dev     Signatures must be unique, from unique signers.
-     * @param   message  Original message that was signed.
-     * @param   signatures  Byte array of at least 'threshold' number of signatures.
+     * @dev     Checks if the btc transaction has already been processed for this function signature.
+     * @param   uuid  Unique identifier for the transaction
+     * @param   btcTxId  Bitcoin transaction ID
+     * @param   newValueLocked  New value locked in the transaction
+     * @param   signatures  Byte array of at least 'threshold' number of signatures
+     * @param   functionString  String identifying the function being called
      */
     function _attestorMultisigIsValid(
-        bytes memory message,
+        bytes32 uuid,
+        string memory btcTxId,
+        uint256 newValueLocked,
         bytes[] memory signatures,
-        string memory functionString,
-        string memory txId
+        string memory functionString
     ) internal view {
         if (signatures.length < _threshold) revert NotEnoughSignatures();
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
-            keccak256(message)
+            keccak256(abi.encode(uuid, btcTxId, functionString, newValueLocked))
         );
 
-        // check if the transaction has already been processed
-        if (Strings.equal(functionString, "set-status-pending")) {
-            if (_processedPendingTransactions[txId]) {
-                revert TransactionAlreadyProcessed(
-                    prefixedMessageHash,
-                    functionString
-                );
-            }
-        } else if (Strings.equal(functionString, "set-status-funded")) {
-            if (_processedFundedTransactions[txId]) {
-                revert TransactionAlreadyProcessed(
-                    prefixedMessageHash,
-                    functionString
-                );
-            }
-        } else {
-            revert InvalidFunctionString(functionString);
+        if (
+            (Strings.equal(functionString, "set-status-pending") &&
+                _processedPendingTransactions[btcTxId]) ||
+            (Strings.equal(functionString, "set-status-funded") &&
+                _processedFundedTransactions[btcTxId])
+        ) {
+            revert TransactionAlreadyProcessed(
+                prefixedMessageHash,
+                functionString
+            );
         }
 
         address[] memory seenSigners = new address[](signatures.length);
@@ -426,10 +424,11 @@ contract DLCManager is
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "set-status-funded", newValueLocked),
+            uuid,
+            btcTxId,
+            newValueLocked,
             signatures,
-            "set-status-funded",
-            btcTxId
+            "set-status-funded"
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
@@ -495,10 +494,11 @@ contract DLCManager is
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(uuid, wdTxId, "set-status-pending", newValueLocked),
+            uuid,
+            wdTxId,
+            newValueLocked,
             signatures,
-            "set-status-pending",
-            wdTxId
+            "set-status-pending"
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
