@@ -103,7 +103,7 @@ contract DLCManager is
     error DuplicateSigner(address signer);
     error SignerNotApproved(address signer);
     error ClosingFundedVault();
-    error TransactionAlreadyProcessed(bytes32 txId, string functionString);
+    error TransactionAlreadyProcessed(string txId, string functionString);
 
     error InvalidRange();
     error NotOwner();
@@ -285,10 +285,7 @@ contract DLCManager is
             (Strings.equal(functionString, "set-status-funded") &&
                 _processedFundedTransactions[btcTxId])
         ) {
-            revert TransactionAlreadyProcessed(
-                prefixedMessageHash,
-                functionString
-            );
+            revert TransactionAlreadyProcessed(btcTxId, functionString);
         }
 
         address[] memory seenSigners = new address[](signatures.length);

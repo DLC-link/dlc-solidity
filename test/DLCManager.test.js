@@ -785,7 +785,7 @@ describe('DLCManager', () => {
             expect(event.args.btcTxId).to.equal(btcTxId);
         });
 
-        it('Revert on attemped replay attacks when attacker trying to reuse sigs on same function and same btcTxId', async () => {
+        it('Revert on attempted replay attacks when attacker trying to reuse sigs on same function and same btcTxId', async () => {
             // Setup: Add more attestors to have more than threshold
             const attestor4 = accounts[9];
             const attestor5 = accounts[10];
