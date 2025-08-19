@@ -7,5 +7,5 @@ services:
         volumes:
             - ../dlc-attestor-stack/attestor/observer/contracts:/app/dlc-solidity/deploymentFiles
         environment:
-            - BTC_FEE_RECIPIENT=03edf233daf20679848c38450c7feca2b32601d8150a68559de8ffefda7a03bd87
+            - BTC_FEE_RECIPIENT=3D8kYzXXsvibCqWUu7RkXZTLcx5DzmckZ2
             - NETWORK_NAME=hardhat-arb
