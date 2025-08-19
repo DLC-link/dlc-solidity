@@ -21,51 +21,72 @@ async function setTSSCommitment(timestamp) {
         admin
     );
 
-    const currentCommitmentBytes32 = await contract.tssCommitment();
-    console.log('Current Commitment: ', currentCommitmentBytes32);
     const currentCommitment = ethers.utils.parseBytes32String(
-        currentCommitmentBytes32
+        await contract.tssCommitment()
     );
-    console.log('Current Commitment (string): ', currentCommitment);
 
-    let commitment, commitmentBytes32;
+    console.log('Current Commitment: ', currentCommitment);
 
-    if (timestamp) {
-        commitment = timestamp;
-        commitmentBytes32 = ethers.utils.formatBytes32String(
-            commitment.toString()
-        );
-    } else {
-        const response = await prompts({
-            type: 'select',
-            name: 'set-unset',
-            message: 'Do you want to set or unset the TSS commitment?',
-            choices: [
-                { title: 'Set (to Timestamp)', value: 'set' },
-                { title: 'Unset (to HashZero)', value: 'unset' },
-            ],
-        });
+    let commitment;
 
-        if (response['set-unset'] === 'unset') {
-            commitment = ethers.constants.HashZero;
-            commitmentBytes32 = ethers.constants.HashZero;
-        } else if (response['set-unset'] === 'set') {
-            // lets make the commitment a UNIX timestamp in seconds
-            commitment = Math.floor(Date.now() / 1000);
-            // Convert the number to a string and then to bytes32
-            commitmentBytes32 = ethers.utils.formatBytes32String(
-                commitment.toString()
-            );
-        } else {
-            console.log('No action taken');
-            return;
+    const response = await prompts({
+        type: 'select',
+        name: 'set-unset',
+        message: 'Do you want to set or unset the TSS commitment?',
+        choices: [
+            { title: 'Set (to Timestamp)', value: 'set' },
+            { title: 'Unset (to HashZero)', value: 'unset' },
+        ],
+    });
+
+    if (response['set-unset'] === 'unset') {
+        commitment = ethers.constants.HashZero;
+    } else if (response['set-unset'] === 'set') {
+        const commitmentType = (
+            await prompts({
+                type: 'select',
+                name: 'commitmentType',
+                message: 'Select the commitment type:',
+                choices: [
+                    { title: 'DKG', value: 'DKG' },
+                    { title: 'VSR', value: 'VSR' },
+                ],
+            })
+        ).commitmentType;
+
+        const signerGroupIdentifier = (
+            await prompts({
+                type: 'select',
+                name: 'signerGroup',
+                message: 'Select the Signer Group Identifier:',
+                choices: [
+                    { title: 'Group A', value: 'A' },
+                    { title: 'Group B', value: 'B' },
+                ],
+            })
+        ).signerGroup;
+
+        const currentTimestamp = timestamp ?? Math.floor(Date.now() / 1000);
+
+        const commitmentString = `${commitmentType}|${currentTimestamp}|${signerGroupIdentifier}`;
+
+        console.log('New Commitment String: ', commitmentString);
+
+        const stringBytes = ethers.utils.toUtf8Bytes(commitmentString);
+        if (stringBytes.length > 32) {
+            throw new Error('Commitment string too long for bytes32');
         }
+
+        // Pad with zeros to make it 32 bytes
+        const paddedBytes = new Uint8Array(32);
+        paddedBytes.set(stringBytes);
+        commitment = ethers.utils.hexlify(paddedBytes);
+    } else {
+        console.log('No action taken');
+        return;
     }
 
-    console.log('Commitment: ', commitment.toString());
-    console.log('Commitment (bytes32): ', commitmentBytes32);
-
-    await callManagerContractFunction('setTSSCommitment', [commitmentBytes32]);
+    await callManagerContractFunction('setTSSCommitment', [commitment]);
 }
 
 module.exports = setTSSCommitment;

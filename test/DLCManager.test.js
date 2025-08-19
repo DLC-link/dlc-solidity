@@ -223,6 +223,44 @@ describe('DLCManager', () => {
         });
     });
 
+    describe('Mint fee rate for Address', async () => {
+        it('returns default value if unset', async () => {
+            const feeRate = await dlcManager.getMintFeeRateForAddress(
+                randomAccount.address
+            );
+            expect(feeRate).to.equal(12); // NOTE: If this test is failing, you probably changed the default value on the contract.
+        });
+        it('returns the correct value after setting', async () => {
+            const newRate = 1000;
+            await dlcManager
+                .connect(deployer)
+                .setBtcMintFeeRateForAddress(randomAccount.address, newRate);
+            const feeRate = await dlcManager.getMintFeeRateForAddress(
+                randomAccount.address
+            );
+            expect(feeRate).to.equal(newRate);
+        });
+    });
+
+    describe('Redeem fee rate for Address', async () => {
+        it('returns default value if unset', async () => {
+            const feeRate = await dlcManager.getRedeemFeeRateForAddress(
+                randomAccount.address
+            );
+            expect(feeRate).to.equal(15); // NOTE: If this test is failing, you probably changed the default value on the contract.
+        });
+        it('returns the correct value after setting', async () => {
+            const newRate = 1000;
+            await dlcManager
+                .connect(deployer)
+                .setBtcRedeemFeeRateForAddress(randomAccount.address, newRate);
+            const feeRate = await dlcManager.getRedeemFeeRateForAddress(
+                randomAccount.address
+            );
+            expect(feeRate).to.equal(newRate);
+        });
+    });
+
     describe('setupVault', async () => {
         it('reverts if called by a non-whitelisted user', async () => {
             await expect(
