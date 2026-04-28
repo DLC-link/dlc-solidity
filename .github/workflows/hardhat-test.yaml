@@ -5,6 +5,7 @@ on:
         branches:
             - dev
             - master
+            - new-deployment
         types:
             - opened
             - reopened
@@ -34,16 +35,19 @@ jobs:
         name: Build and push Docker image
         runs-on: ubuntu-latest
         needs: [test]
+        permissions:
+            id-token: write
+            contents: read
         steps:
             - name: Check out code
               uses: actions/checkout@v4
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                  aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY_ID }}
-                  aws-secret-access-key: ${{ secrets.TF_AWS_SECRET_ACCESS_KEY }}
+                  role-to-assume: arn:aws:iam::903295530547:role/gh-oidc-build-dlc-solidity
                   aws-region: us-east-1
-            - name: Login to Amazon ECR Public
+                  role-session-name: gha-${{ github.run_id }}
+            - name: Login to Amazon ECR
               id: login-ecr
               uses: aws-actions/amazon-ecr-login@v2
             - name: Set outputs
