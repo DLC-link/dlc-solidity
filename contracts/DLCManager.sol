@@ -16,6 +16,7 @@ import "./DLCLinkLibrary.sol";
 import "./IBTC.sol";
 
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @author  DLC.Link 2024
@@ -34,6 +35,7 @@ contract DLCManager is
     using DLCLink for DLCLink.DLC;
     using DLCLink for DLCLink.DLCStatus;
     using SafeERC20 for IBTC;
+    using Strings for string;
 
     ////////////////////////////////////////////////////////////////
     //                      STATE VARIABLES                       //
@@ -70,11 +72,13 @@ contract DLCManager is
     mapping(address => bool) private _whitelistedAddresses;
     bool public porEnabled;
     AggregatorV3Interface public dlcBTCPoRFeed;
-    mapping(address => mapping(bytes32 => bool)) private _seenSigners;
+    mapping(address => mapping(bytes32 => bool)) private _seenSigners; // deprecated
     uint256 public totalValueMinted;
     mapping(address => uint256) private _btcMintFeeRates;
     mapping(address => uint256) private _btcRedeemFeeRates;
-    uint256[36] __gap;
+    mapping(string => bool) private _processedPendingTransactions;
+    mapping(string => bool) private _processedFundedTransactions;
+    uint256[34] __gap;
 
     ////////////////////////////////////////////////////////////////
     //                           ERRORS                           //
@@ -99,6 +103,7 @@ contract DLCManager is
     error DuplicateSigner(address signer);
     error SignerNotApproved(address signer);
     error ClosingFundedVault();
+    error TransactionAlreadyProcessed(string txId, string functionString);
 
     error InvalidRange();
     error NotOwner();
@@ -110,6 +115,7 @@ contract DLCManager is
     error FeeRateOutOfBounds(uint256 feeRate);
     error UnderCollateralized(uint256 newValueLocked, uint256 valueMinted);
     error NotEnoughReserves(uint256 reserves, uint256 amount);
+    error InvalidFunctionString(string functionString);
 
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
@@ -249,23 +255,40 @@ contract DLCManager is
     }
 
     /**
-     * @notice  Checks the 'signatures' of Attestors for a given 'message'.
+     * @notice  Checks the signatures of Attestors for a given transaction.
      * @dev     Recalculates the hash to make sure the signatures are for the same message.
      * @dev     Uses OpenZeppelin's ECDSA library to recover the public keys from the signatures.
      * @dev     Signatures must be unique, from unique signers.
-     * @param   message  Original message that was signed.
-     * @param   signatures  Byte array of at least 'threshold' number of signatures.
+     * @dev     Checks if the btc transaction has already been processed for this function signature.
+     * @param   uuid  Unique identifier for the transaction
+     * @param   btcTxId  Bitcoin transaction ID
+     * @param   newValueLocked  New value locked in the transaction
+     * @param   signatures  Byte array of at least 'threshold' number of signatures
+     * @param   functionString  String identifying the function being called
      */
     function _attestorMultisigIsValid(
-        bytes memory message,
-        bytes[] memory signatures
-    ) internal {
+        bytes32 uuid,
+        string memory btcTxId,
+        uint256 newValueLocked,
+        bytes[] memory signatures,
+        string memory functionString
+    ) internal view {
         if (signatures.length < _threshold) revert NotEnoughSignatures();
 
         bytes32 prefixedMessageHash = ECDSAUpgradeable.toEthSignedMessageHash(
-            keccak256(message)
+            keccak256(abi.encode(uuid, btcTxId, functionString, newValueLocked))
         );
 
+        if (
+            (Strings.equal(functionString, "set-status-pending") &&
+                _processedPendingTransactions[btcTxId]) ||
+            (Strings.equal(functionString, "set-status-funded") &&
+                _processedFundedTransactions[btcTxId])
+        ) {
+            revert TransactionAlreadyProcessed(btcTxId, functionString);
+        }
+
+        address[] memory seenSigners = new address[](signatures.length);
         for (uint256 i = 0; i < signatures.length; i++) {
             address attestorPubKey = ECDSAUpgradeable.recover(
                 prefixedMessageHash,
@@ -274,18 +297,15 @@ contract DLCManager is
             if (!hasRole(APPROVED_SIGNER, attestorPubKey)) {
                 revert InvalidSigner();
             }
-            _checkSignerUnique(attestorPubKey, prefixedMessageHash);
-        }
-    }
 
-    function _checkSignerUnique(
-        address attestorPubKey,
-        bytes32 messageHash
-    ) internal {
-        if (_seenSigners[attestorPubKey][messageHash]) {
-            revert DuplicateSigner(attestorPubKey);
+            // Check for duplicates in already seen signers
+            for (uint256 j = 0; j < i; j++) {
+                if (seenSigners[j] == attestorPubKey) {
+                    revert DuplicateSigner(attestorPubKey);
+                }
+            }
+            seenSigners[i] = attestorPubKey;
         }
-        _seenSigners[attestorPubKey][messageHash] = true;
     }
 
     /**
@@ -401,8 +421,11 @@ contract DLCManager is
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(uuid, btcTxId, "set-status-funded", newValueLocked),
-            signatures
+            uuid,
+            btcTxId,
+            newValueLocked,
+            signatures,
+            "set-status-funded"
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
@@ -440,6 +463,8 @@ contract DLCManager is
             _mintTokens(dlc.creator, amountToMint);
         }
 
+        _processedFundedTransactions[btcTxId] = true;
+
         emit SetStatusFunded(
             uuid,
             btcTxId,
@@ -466,8 +491,11 @@ contract DLCManager is
         uint256 newValueLocked
     ) external whenNotPaused onlyApprovedSigners {
         _attestorMultisigIsValid(
-            abi.encode(uuid, wdTxId, "set-status-pending", newValueLocked),
-            signatures
+            uuid,
+            wdTxId,
+            newValueLocked,
+            signatures,
+            "set-status-pending"
         );
         DLCLink.DLC storage dlc = dlcs[dlcIDsByUUID[uuid]];
 
@@ -480,6 +508,8 @@ contract DLCManager is
         dlc.status = DLCLink.DLCStatus.AUX_STATE_1;
         dlc.wdTxId = wdTxId;
         dlc.taprootPubKey = taprootPubKey;
+
+        _processedPendingTransactions[wdTxId] = true;
 
         emit SetStatusPending(
             uuid,
