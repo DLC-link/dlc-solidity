@@ -645,11 +645,9 @@ describe('DLCManager', () => {
         });
 
         it('reverts if attestors sign a different UUID', async () => {
-            const wrongUUID =
-                '0x96eecb386fb10e82f510aaf3e2b99f52f8dcba03f9e0521f7551b367d8ad4968';
             const signatureBytes = await getSignatures(
                 {
-                    uuid: wrongUUID,
+                    uuid: ethers.utils.formatBytes32String('different-uuid'),
                     btcTxId,
                     functionString: 'set-status-funded',
                     newLockedAmount: valueLocked,
@@ -657,11 +655,41 @@ describe('DLCManager', () => {
                 attestors,
                 3
             );
+
             await expect(
                 dlcManager
                     .connect(attestor1)
                     .setStatusFunded(uuid, btcTxId, signatureBytes, valueLocked)
             ).to.be.revertedWithCustomError(dlcManager, 'InvalidSigner');
+        });
+
+        it('reverts with BtcTxIdMismatch when btcTxId does not match dlc.wdTxId', async () => {
+            // Use a different btcTxId than what was set in setStatusPending
+            const differentBtcTxId = '0x9876543210';
+
+            const signatureBytes = await getSignatures(
+                {
+                    uuid,
+                    btcTxId: differentBtcTxId,
+                    functionString: 'set-status-funded',
+                    newLockedAmount: valueLocked,
+                },
+                attestors,
+                3
+            );
+
+            await expect(
+                dlcManager
+                    .connect(attestor1)
+                    .setStatusFunded(
+                        uuid,
+                        differentBtcTxId,
+                        signatureBytes,
+                        valueLocked
+                    )
+            )
+                .to.be.revertedWithCustomError(dlcManager, 'BtcTxIdMismatch')
+                .withArgs(btcTxId, differentBtcTxId); // expected, actual
         });
 
         it('reverts if attestors sign a different btcTxId', async () => {
