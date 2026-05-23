@@ -91,7 +91,8 @@ contract DLCManager is
     error DLCNotFunded();
 
     error ThresholdMinimumReached(uint16 _minimumThreshold);
-    error ThresholdTooLow(uint16 _minimumThreshold);
+    error ThresholdTooLow(uint16 requestedThreshold, uint16 _minimumThreshold);
+    error ThresholdTooHigh(uint16 requestedThreshold, uint16 _maximumThreshold);
     error Unauthorized();
     error NotEnoughSignatures();
     error InvalidSigner();
@@ -147,7 +148,7 @@ contract DLCManager is
         _grantRole(DLC_ADMIN_ROLE, dlcAdminRole);
         _minimumThreshold = 2;
         if (threshold < _minimumThreshold)
-            revert ThresholdTooLow(_minimumThreshold);
+            revert ThresholdTooLow(_minimumThreshold, threshold);
         _threshold = threshold;
         _index = 0;
         tssCommitment = 0x0;
@@ -675,7 +676,9 @@ contract DLCManager is
 
     function setThreshold(uint16 newThreshold) external onlyAdmin {
         if (newThreshold < _minimumThreshold)
-            revert ThresholdTooLow(_minimumThreshold);
+            revert ThresholdTooLow(newThreshold, _minimumThreshold);
+        if (newThreshold > _signerCount)
+            revert ThresholdTooHigh(newThreshold, _signerCount);
         _threshold = newThreshold;
         emit SetThreshold(newThreshold);
     }
