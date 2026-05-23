@@ -289,40 +289,15 @@ contract DLCManager is
     }
 
     /**
-     * @notice  Checks mint eligibility.
-     * @dev     Checks if the amount is non-zero.
-     * @dev     If PoR is disabled, returns true.
-     * @dev     If PoR is enabled, checks if the new total value minted is within bounds.
-     * @dev     If the PoR check fails, reverts with an error.
-     * @param   amount  dlcBTC to mint.
-     * @param   currentTotalMinted  total minted value in all vaults on this chain.
-     * @return  bool  whether a call to _mint should happen.
-     */
-    function _checkMint(
-        uint256 amount,
-        uint256 currentTotalMinted
-    ) internal view returns (bool) {
-        if (amount == 0) {
-            return false;
-        }
-
-        uint256 proposedTotalValueMinted = currentTotalMinted + amount;
-        return _checkPoR(proposedTotalValueMinted);
-    }
-
-    /**
-     * @notice  Checks Proof of Reserves (PoR) eligibility.
+     * @notice  Checks Proof of Reserves (PoR) eligibility, raise if not eligible.
      * @dev     If PoR is disabled, returns true.
      * @dev     If PoR is enabled, checks if the proposed total value minted is within bounds.
      * @dev     If the PoR check fails, reverts with an error.
      * @param   proposedTotalValueMinted  proposed total minted value in all vaults on this chain.
-     * @return  bool  whether the proposed total value minted is within bounds.
      */
-    function _checkPoR(
-        uint256 proposedTotalValueMinted
-    ) internal view returns (bool) {
+    function _checkPoR(uint256 proposedTotalValueMinted) internal view {
         if (!porEnabled) {
-            return true;
+            return;
         }
 
         (, int256 porValue, , , ) = dlcBTCPoRFeed.latestRoundData();
@@ -331,7 +306,6 @@ contract DLCManager is
         if (porValueUint < proposedTotalValueMinted) {
             revert NotEnoughReserves(porValueUint, proposedTotalValueMinted);
         }
-        return true;
     }
 
     function _mintTokens(address to, uint256 amount) internal {
@@ -435,8 +409,11 @@ contract DLCManager is
         dlc.valueLocked = newValueLocked;
         dlc.valueMinted = newValueLocked;
 
-        if (_checkMint(amountToMint, totalValueMinted)) {
-            totalValueMinted = totalValueMinted + amountToMint;
+        if (amountToMint > 0) {
+            uint256 proposedTotalValueMinted = totalValueMinted + amountToMint;
+            _checkPoR(proposedTotalValueMinted); // reverts if not eligible
+
+            totalValueMinted = proposedTotalValueMinted;
             _mintTokens(dlc.creator, amountToMint);
         }
 
