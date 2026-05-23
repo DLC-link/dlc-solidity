@@ -103,6 +103,19 @@ describe('DLCManager', () => {
             await dlcManager.connect(deployer).setMinimumDeposit(1000);
             expect(await dlcManager.minimumDeposit()).to.equal(1000);
         });
+
+        it('reverts if new minimum deposit is greater than current maximum deposit', async () => {
+            const currentMaximum = await dlcManager.maximumDeposit();
+            const newMinimum = currentMaximum.add(1);
+            await expect(
+                dlcManager.connect(deployer).setMinimumDeposit(newMinimum)
+            )
+                .to.be.revertedWithCustomError(
+                    dlcManager,
+                    'InvalidMinimumDepositRange'
+                )
+                .withArgs(newMinimum, currentMaximum);
+        });
     });
 
     describe('setMaximumDeposit', async () => {
@@ -114,8 +127,21 @@ describe('DLCManager', () => {
             ).to.be.revertedWithCustomError(dlcManager, 'NotDLCAdmin');
         });
         it('should set maximum deposit', async () => {
-            await dlcManager.connect(deployer).setMaximumDeposit(1000);
-            expect(await dlcManager.maximumDeposit()).to.equal(1000);
+            await dlcManager.connect(deployer).setMaximumDeposit(1000000000); // 10 BTC, greater than default min
+            expect(await dlcManager.maximumDeposit()).to.equal(1000000000);
+        });
+
+        it('reverts if new maximum deposit is less than current minimum deposit', async () => {
+            const currentMinimum = await dlcManager.minimumDeposit();
+            const newMaximum = currentMinimum.sub(1);
+            await expect(
+                dlcManager.connect(deployer).setMaximumDeposit(newMaximum)
+            )
+                .to.be.revertedWithCustomError(
+                    dlcManager,
+                    'InvalidMaximumDepositRange'
+                )
+                .withArgs(newMaximum, currentMinimum);
         });
     });
 

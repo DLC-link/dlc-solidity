@@ -111,6 +111,15 @@ contract DLCManager is
     error UnderCollateralized(uint256 newValueLocked, uint256 valueMinted);
     error NotEnoughReserves(uint256 reserves, uint256 amount);
 
+    error InvalidMinimumDepositRange(
+        uint256 newMinimum,
+        uint256 currentMaximum
+    );
+    error InvalidMaximumDepositRange(
+        uint256 newMaximum,
+        uint256 currentMinimum
+    );
+
     ////////////////////////////////////////////////////////////////
     //                         MODIFIERS                          //
     ////////////////////////////////////////////////////////////////
@@ -701,11 +710,23 @@ contract DLCManager is
     }
 
     function setMinimumDeposit(uint256 newMinimumDeposit) external onlyAdmin {
+        if (newMinimumDeposit > maximumDeposit) {
+            revert InvalidMinimumDepositRange(
+                newMinimumDeposit,
+                maximumDeposit
+            );
+        }
         minimumDeposit = newMinimumDeposit;
         emit SetMinimumDeposit(newMinimumDeposit);
     }
 
     function setMaximumDeposit(uint256 newMaximumDeposit) external onlyAdmin {
+        if (newMaximumDeposit < minimumDeposit) {
+            revert InvalidMaximumDepositRange(
+                newMaximumDeposit,
+                minimumDeposit
+            );
+        }
         maximumDeposit = newMaximumDeposit;
         emit SetMaximumDeposit(newMaximumDeposit);
     }
